@@ -1,0 +1,2 @@
+include carrottransform/config/*.sql
+include carrottransform/config/*.json

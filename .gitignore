@@ -1,0 +1,12 @@
+data
+.ipynb_checkpoints
+*_pycache_*
+*.whl
+*egg-info
+dist
+.DS_store
+build
+*.env
+temp
+.python-version
+workflows
