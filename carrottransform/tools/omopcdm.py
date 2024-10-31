@@ -1,6 +1,7 @@
-import carrotlite.tools as tools
+import carrottransform.tools as tools
 import json
 import re
+import sys
 
 class OmopCDM:
 
@@ -25,7 +26,7 @@ class OmopCDM:
             fp = open(omopddl, "r") 
         except IOError as e:
             print("I/O error for ddl file ({0}): {1}".format(e.errno, e.strerror))
-            exit()
+            sys.exit()
         
         return(self.process_ddl(fp))
 
