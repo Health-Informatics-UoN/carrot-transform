@@ -53,6 +53,12 @@ def mapstream(rules_file, output_dir, write_mode, person_file, omop_version, sav
     """
     Map to output using input streams
     """
+    # Initialisation 
+    # - check for values in optional arguments
+    # - read in configuration files
+    # - check main directories for existence
+    # - handle saved persion ids
+    # - initialise metrics 
     omop_config_file = str(importlib.resources.files('carrottransform')) + '/' + 'config/omop.json'
     omop_ddl_file_name = "OMOPCDM_postgresql_" + omop_version + "_ddl.sql"
     omop_ddl_file = str(importlib.resources.files('carrottransform')) + '/' + 'config/' + omop_ddl_file_name
@@ -88,7 +94,7 @@ def mapstream(rules_file, output_dir, write_mode, person_file, omop_version, sav
     tgtcolmaps = {}
 
     try:
-        # Add in a saved-person-file existence test and reload from it is necessary returning the last used integer
+        # Saved-person-file existence test, reload if found, return last used integer
         if os.path.isfile(saved_person_id_file):
             person_lookup, last_used_integer = load_saved_person_ids(saved_person_id_file)
         else:
@@ -98,14 +104,13 @@ def mapstream(rules_file, output_dir, write_mode, person_file, omop_version, sav
             if os.path.isfile(last_used_ids_file):
                 record_numbers = load_last_used_ids(last_used_ids_file, record_numbers)
  
-        #fhp = open(person_file, mode="r", encoding="utf-8-sig")
-        #csvrp = csv.reader(fhp)
         person_lookup, rejected_person_count = load_person_ids(person_file, person_lookup, mappingrules, use_input_person_ids, last_used_integer)
         fhpout = open(saved_person_id_file, mode="w")
         fhpout.write("SOURCE_SUBJECT\tTARGET_SUBJECT\n")
         for person_id, person_assigned_id in person_lookup.items():
             fhpout.write("{0}\t{1}\n".format(str(person_id), str(person_assigned_id)))
         fhpout.close()
+        # Initialise output files, output a header for each 
         for tgtfile in output_files:
             fhd[tgtfile] = open(output_dir + "/" + tgtfile + ".tsv", mode=write_mode)
             if write_mode == 'w':
@@ -119,9 +124,10 @@ def mapstream(rules_file, output_dir, write_mode, person_file, omop_version, sav
 
     print("person_id stats: total loaded {0}, reject count {1}".format(len(person_lookup), rejected_person_count))
 
-    # TODO get this list of input files from the  parsed rules
+    # Compare files found in the input_dir with those expected based on mapping rules
     existing_input_files = fnmatch.filter(os.listdir(input_dir[0]), '*.csv')
     rules_input_files = mappingrules.get_all_infile_names()
+    # Log mismatches but continue
     for infile in existing_input_files:
         if infile not in rules_input_files:
             msg = "ERROR: no mapping rules found for existing input file - {0}".format(infile)
@@ -132,15 +138,18 @@ def mapstream(rules_file, output_dir, write_mode, person_file, omop_version, sav
             msg = "ERROR: no data for mapped input file - {0}".format(infile)
             print(msg)
             metrics.add_log_data(msg)
+
+    # set up overall counts
     rejidcounts = {}
     rejdatecounts = {}
-    #src_tgt_counts = {}
     print(rules_input_files)
 
+    # set up per-input counts
     for srcfilename in rules_input_files:
         rejidcounts[srcfilename] = 0
         rejdatecounts[srcfilename] = 0
 
+    # main processing loop, for each input file
     for srcfilename in rules_input_files:
         outcounts = {}
         rejcounts = {}
@@ -169,17 +178,15 @@ def mapstream(rules_file, output_dir, write_mode, person_file, omop_version, sav
         datetime_col = inputcolmap[infile_datetime_source]
         print("--------------------------------------------------------------------------------")
         print("Processing input: {0}".format(srcfilename))
-#        print("Processing input: {0}, All input cols = {1}, Data cols = {2}".format(srcfilename, str(datacolsall), str(dflist)))
-
+  
+        # for each input record
         for indata in csvr:
-            #indata = inputline.strip().split(",")
             key = srcfilename + "~all~all~all~"
             metrics.increment_key_count(key, "input_count")
             rcount += 1
             strdate = indata[datetime_col].split(" ")[0]
             fulldate = parse_date(strdate)
             if fulldate != None:
-                #fulldate = "{0}-{1:02}-{2:02}".format(dt.year, dt.month, dt.day)
                 indata[datetime_col] = fulldate
             else:
                 metrics.increment_key_count(key, "invalid_date_fields")
@@ -258,6 +265,9 @@ def mapstream(rules_file, output_dir, write_mode, person_file, omop_version, sav
     #stats.print_stats()
 
 def get_target_records(tgtfilename, tgtcolmap, rulesmap, srcfield, srcdata, srccolmap, srcfilename, omopcdm, metrics):
+    """
+    build all target records for a given input field
+    """
     build_records = False
     tgtrecords = []
     date_col_data = omopcdm.get_omop_datetime_linked_fields(tgtfilename)

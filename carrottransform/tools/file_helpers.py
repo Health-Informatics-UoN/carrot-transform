@@ -1,5 +1,7 @@
 import os
 import json
+
+# Function inherited from the "old" CaRROT-CDM
     
 def load_json(f_in):
   if os.path.exists(f_in):

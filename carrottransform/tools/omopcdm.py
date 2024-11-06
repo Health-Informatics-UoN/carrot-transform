@@ -4,6 +4,11 @@ import re
 import sys
 
 class OmopCDM:
+    """
+    Load and parse OMOP DDL data, to make an in-memory json CDM
+    Merge in manual additions (currently necessary to identify, person id, date / time fields and autonumber fields)
+    Define a series of "get" functions to allow CDM component discovery 
+    """
 
     def __init__(self, omopddl, omopcfg):
         self.numeric_types = ["integer", "numeric"]

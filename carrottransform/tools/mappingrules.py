@@ -4,6 +4,10 @@ import carrottransform.tools as tools
 from .omopcdm import OmopCDM
 
 class MappingRules:
+    """
+    self.rules_data stores the mapping rules as untransformed json, as each input file is processed rules are reorganised 
+    as a file-specific dictionary allowing rules to be "looked-up" depending on data content
+    """
 
     def __init__(self, rulesfilepath, omopcdm):
         self.rules_data = tools.load_json(rulesfilepath)

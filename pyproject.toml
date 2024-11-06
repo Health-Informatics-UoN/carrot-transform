@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "carrottransform"
-version = "0.3"
+version = "0.3.1"
 authors = [
   { name="PD Appleby", email="pdappleby@gmail.com" },
 ]
-description = "Carrot somple transformer, input rules and data csvs, output OMOP"
+description = "Carrot simple transformer, input rules and data csv's, output OMOP"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [

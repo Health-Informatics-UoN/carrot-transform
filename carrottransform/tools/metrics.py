@@ -1,5 +1,12 @@
 class Metrics():
+    """
+    Capture metrics for output to a summary tsv file, record counts at multiple levels
+    The main principle is to increment counts associated with datakeys (dkey) at different levels
+    """
     def __init__(self, dataset_name, log_threshold=0):
+        """
+        self.datasummary holds all the saved counts
+        """
         self.datasummary={}
         self.allcounts={}
         self.log_data=""
@@ -7,6 +14,9 @@ class Metrics():
         self.log_threshold = log_threshold
 
     def get_new_mapstream_counts(self):
+        """
+        return a new, initialised,  count structure
+        """
         counts = {}
         counts["input_count"] = 0
         counts["invalid_persids"] = 0
