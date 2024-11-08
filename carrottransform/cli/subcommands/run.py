@@ -27,8 +27,14 @@ def run():
 @click.option("--person-file",
               required=True,
               help="File containing person_ids in the first column")
+@click.option("--omop-ddl-file",
+              required=False,
+              help="File containing OHDSI ddl statements for OMOP tables")
+@click.option("--omop-config-file",
+              required=False,
+              help="File containing additional / override json config for omop outputs")
 @click.option("--omop-version",
-              required=True,
+              required=False,
               help="Quoted string containing opmop version - eg '5.3'")
 @click.option("--saved-person-id-file",
               default=None,
@@ -49,7 +55,10 @@ def run():
 @click.argument("input-dir",
                 required=False,
                 nargs=-1)
-def mapstream(rules_file, output_dir, write_mode, person_file, omop_version, saved_person_id_file, use_input_person_ids, last_used_ids_file, log_file_threshold, input_dir):
+def mapstream(rules_file, output_dir, write_mode, 
+              person_file, omop_ddl_file, omop_config_file, 
+              omop_version, saved_person_id_file, use_input_person_ids, 
+              last_used_ids_file, log_file_threshold, input_dir):
     """
     Map to output using input streams
     """
@@ -59,9 +68,10 @@ def mapstream(rules_file, output_dir, write_mode, person_file, omop_version, sav
     # - check main directories for existence
     # - handle saved persion ids
     # - initialise metrics 
-    omop_config_file = str(importlib.resources.files('carrottransform')) + '/' + 'config/omop.json'
-    omop_ddl_file_name = "OMOPCDM_postgresql_" + omop_version + "_ddl.sql"
-    omop_ddl_file = str(importlib.resources.files('carrottransform')) + '/' + 'config/' + omop_ddl_file_name
+    if (omop_ddl_file == None) and (omop_config_file == None) and (omop_version != None):
+      omop_config_file = str(importlib.resources.files('carrottransform')) + '/' + 'config/omop.json'
+      omop_ddl_file_name = "OMOPCDM_postgresql_" + omop_version + "_ddl.sql"
+      omop_ddl_file = str(importlib.resources.files('carrottransform')) + '/' + 'config/' + omop_ddl_file_name
 
     if os.path.isdir(input_dir[0]) == False:
         print("Not a directory, input dir {0}".format(input_dir[0]))
@@ -78,13 +88,12 @@ def mapstream(rules_file, output_dir, write_mode, person_file, omop_version, sav
    
     starttime = time.time()
     omopcdm = tools.omopcdm.OmopCDM(omop_ddl_file, omop_config_file)
-    #print(omopcdm.dump_ddl())
     mappingrules = tools.mappingrules.MappingRules(rules_file, omopcdm)
     metrics = tools.metrics.Metrics(mappingrules.get_dataset_name(), log_file_threshold)
     nowtime = time.time()
 
     print("--------------------------------------------------------------------------------")
-    print("Loaded mapping rules from: {0} after {1:.5f} secs".format(rules_file, (nowtime - starttime)))
+    print("Loaded mapping rules from: {0} in {1:.5f} secs".format(rules_file, (nowtime - starttime)))
     output_files = mappingrules.get_all_outfile_names()
     record_numbers = {}
     for output_file in output_files:
@@ -132,12 +141,10 @@ def mapstream(rules_file, output_dir, write_mode, person_file, omop_version, sav
         if infile not in rules_input_files:
             msg = "ERROR: no mapping rules found for existing input file - {0}".format(infile)
             print(msg)
-            metrics.add_log_data(msg)
     for infile in rules_input_files:
         if infile not in existing_input_files:
             msg = "ERROR: no data for mapped input file - {0}".format(infile)
             print(msg)
-            metrics.add_log_data(msg)
 
     # set up overall counts
     rejidcounts = {}
@@ -243,26 +250,21 @@ def mapstream(rules_file, output_dir, write_mode, person_file, omop_version, sav
         print("INPUT file data : {0}: input count {1}, time since start {2:.5} secs".format(srcfilename, str(rcount), (nowtime - starttime)))
         for outtablename, count in outcounts.items():
             print("TARGET: {0}: output count {1}".format(outtablename, str(count)))
+    # END main processing loop
 
     print("--------------------------------------------------------------------------------")
     data_summary = metrics.get_mapstream_summary()
-    log_report = metrics.get_log_data()
     try:
         dsfh = open(output_dir + "/summary_mapstream.tsv", mode="w")
         dsfh.write(data_summary)
         dsfh.close()
-        logfh = open(output_dir + "/error_report.txt", mode="w")
-        logfh.write(log_report)
-        logfh.close()
     except IOError as e:
         print("I/O error({0}): {1}".format(e.errno, e.strerror))
         print("Unable to write file")
 
+    # END mapstream
     nowtime = time.time()
     print("Elapsed time = {0:.5f} secs".format(nowtime - starttime))
-    #profiler.disable()
-    #stats = pstats.Stats(profiler).sort_stats('ncalls')
-    #stats.print_stats()
 
 def get_target_records(tgtfilename, tgtcolmap, rulesmap, srcfield, srcdata, srccolmap, srcfilename, omopcdm, metrics):
     """

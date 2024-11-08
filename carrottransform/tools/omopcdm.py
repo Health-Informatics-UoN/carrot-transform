@@ -29,8 +29,8 @@ class OmopCDM:
     def load_ddl(self, omopddl):
         try:
             fp = open(omopddl, "r") 
-        except IOError as e:
-            print("I/O error for ddl file ({0}): {1}".format(e.errno, e.strerror))
+        except Exception as err:
+            print("OMOP ddl file ({0}) not found".format(omopddl))
             sys.exit()
         
         return(self.process_ddl(fp))

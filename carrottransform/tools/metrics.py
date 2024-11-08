@@ -9,7 +9,6 @@ class Metrics():
         """
         self.datasummary={}
         self.allcounts={}
-        self.log_data=""
         self.dataset_name=dataset_name
         self.log_threshold = log_threshold
 
@@ -128,10 +127,3 @@ class Metrics():
               summary_str += self.dataset_name + "\t" + source + "\t" + fieldname + "\t" + tablename + "\t" + concept_id + "\t" + additional +"\t" + input_count + "\t" + invalid_person_ids + "\t" + invalid_date_fields + "\t" + invalid_source_fields + "\t" + output_count + "\n"
 
         return summary_str
-
-    def add_log_data(self, msg):
-        self.log_data += msg + "\n"
-
-    def get_log_data(self):
-        return self.log_data
-    
