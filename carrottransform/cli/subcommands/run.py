@@ -67,7 +67,13 @@ def mapstream(rules_file, output_dir, write_mode,
     # - read in configuration files
     # - check main directories for existence
     # - handle saved persion ids
-    # - initialise metrics 
+    # - initialise metrics
+    print(rules_file, output_dir, write_mode,
+              person_file, omop_ddl_file, omop_config_file,
+              omop_version, saved_person_id_file, use_input_person_ids,
+              last_used_ids_file, log_file_threshold, input_dir)
+
+
     if (omop_ddl_file == None) and (omop_config_file == None) and (omop_version != None):
       omop_config_file = str(importlib.resources.files('carrottransform')) + '/' + 'config/omop.json'
       omop_ddl_file_name = "OMOPCDM_postgresql_" + omop_version + "_ddl.sql"

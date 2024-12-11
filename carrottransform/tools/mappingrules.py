@@ -86,9 +86,9 @@ class MappingRules:
                 for infield, outfield_list in outfield_elem.items():
                     #print("{0}, {1}, {2}".format(outfile, infield, str(outfield_list)))
                     for outfield in outfield_list:
-                        if outfield in self.omopcdm.get_omop_datetime_fields(outfile):
+                        if outfield.split('~')[0] in self.omopcdm.get_omop_datetime_fields(outfile):
                             datetime_source = infield
-                        if outfield == self.omopcdm.get_omop_person_id_field(outfile):
+                        if outfield.split('~')[0] == self.omopcdm.get_omop_person_id_field(outfile):
                             person_id_source = infield
 
         return datetime_source, person_id_source
