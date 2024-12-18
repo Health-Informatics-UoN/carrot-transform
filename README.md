@@ -8,12 +8,9 @@ TODO:
 Reduction in complexity over the original CaRROT-CDM version for the Transform part of *ETL* - In practice *Extract* is always 
 performed by Data Partners, *Load* by database bulk-load software.
 
-Sample command line:
+Statistics
 
-`carrot-transform run mapstream \
-        --rulesfile=${DATASETHOME}/rules/mapping.json \
-        --person-file=${DATASETHOME/input/Demographics.csv \
-        --omop-version="5.3" \
-        --output-dir=${DATASETHOME}/output \
-        ${DATASETHOME}/input`
+External libraries imported (approximate)
 
+carrot-cdm      61
+carrot-transform 12
