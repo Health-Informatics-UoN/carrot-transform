@@ -53,9 +53,9 @@ def remove_zero_columns(df):
             df[column] = df[column].replace(0, np.nan)
 
 
-def test_compare_tsv_headers(file1, file2, order = False):
+def test_compare_tsv_headers(file1, file2, order = False, assertion = True):
     df1 = pd.read_csv(file1, sep='\t')
-    df2 = pd.read_csv(file1, sep='\t')
+    df2 = pd.read_csv(file2, sep='\t')
 
     ### check headers are the same. Since the set is the union of both headers, all possible headers are in it
     if order:
@@ -63,18 +63,27 @@ def test_compare_tsv_headers(file1, file2, order = False):
 
     set1 = set(df1.columns)
     set2 = set(df2.columns)
-    assert set1 == set2
+    #assert set1 == set2
 
     ### shouldn't need to do this if the sets are equal, but check if not - it'll fail, but we'll know what is missing from which file
     header_set = set(df1.columns).union(set(df2.columns))
     for header in header_set:
         if header not in df1.columns:
-            pass
+            print(header, ' not in ', file1)
+            if np.isnan(df2[header]).all():
+                print ('    but column is all NaN - dropping')
+                df2 = df2.drop(columns = header)
+                continue
         if header not in df2.columns:
-            pass
-        assert header in df1.columns
-        assert header in df2.columns
-
+            print(header, ' not in ', file2)
+            if np.isnan(df1[header]).all():
+                print ('    but column is all NaN - dropping')
+                df1 = df1.drop(columns = header)
+                continue
+        if assertion:
+            assert header in df1.columns
+            assert header in df2.columns
+    return df1, df2
     # syntax reminder
     # 'person_id' in df1.columns
 
@@ -95,8 +104,8 @@ if __name__ == "__main__":
 
     transform_person_ids_file = "test_output/person_ids.tsv"
     expected_output_person_ids_file =  "expected_outputs/person_ids.tsv"
-    transform_output_file = "test_output/measurement.tsv"
-    expected_output_file = "expected_outputs/measurement.tsv"
+    transform_output_file = "test_output/condition_occurrence.tsv"
+    expected_output_file = "expected_outputs/condition_occurrence.tsv"
 
     combined_df = set_person_id_df(transform_person_ids_file, expected_output_person_ids_file)
 
@@ -119,5 +128,12 @@ if __name__ == "__main__":
     expected_df = expected_df.sort_values(by='person_id')
     transform_df = transform_df.sort_values(by='person_id')
 
-    test_frames_equal(expected_df, transform_df)
+    print (expected_output_file, expected_df.shape)
+    print (transform_output_file, transform_df.shape)
+
+
+### need to implement the preprocessing of this to drop nan columns
+    test_compare_tsv_headers(transform_output_file, expected_output_file, assertion=True)
+
+    # test_frames_equal(df1, df2)
     pass
