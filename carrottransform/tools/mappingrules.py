@@ -10,6 +10,7 @@ class MappingRules:
     """
 
     def __init__(self, rulesfilepath, omopcdm):
+        ## just loads the json directly
         self.rules_data = tools.load_json(rulesfilepath)
         self.omopcdm = omopcdm
         
@@ -34,12 +35,7 @@ class MappingRules:
         return self.dataset_name
 
     def get_all_outfile_names(self):
-        file_list = []
-        
-        for outfilename in self.rules_data["cdm"]:
-            file_list.append(outfilename)
-
-        return file_list
+        return list(self.rules_data["cdm"])
 
     def get_all_infile_names(self):
         file_list = []
@@ -101,6 +97,7 @@ class MappingRules:
         person_id_source = None
         if tgtfilename in self.rules_data["cdm"]:
             source_rules_data = self.rules_data["cdm"][tgtfilename]
+            ## this loops over all the fields in the person part of the rules, which will lead to overwriting of the source variables and unneccesary looping
             for rule_name, rule_fields in source_rules_data.items():
                 if "birth_datetime" in rule_fields:
                     birth_datetime_source = rule_fields["birth_datetime"]["source_field"]
@@ -113,6 +110,7 @@ class MappingRules:
         """
         Parse rules to produce a map of source to target data for a given input file
         """
+        ## creates a dict of dicts that has input files as keys, and infile~field~data~target as keys for the underlying keys, which contain a list of dicts of lists
         if infilename in self.outfile_names and infilename in self.parsed_rules:
             return self.outfile_names[infilename], self.parsed_rules[infilename]
         outfilenames = []
@@ -141,6 +139,7 @@ class MappingRules:
         plain_key = ""
         term_value_key = ""
 
+        ## iterate through the rules, looking for rules that apply to the input file.
         for outfield, source_info in rules.items():
             if source_info["source_field"] not in data:
                 data[source_info["source_field"]] = []
@@ -148,6 +147,7 @@ class MappingRules:
                 if "term_mapping" in source_info:
                     if type(source_info["term_mapping"]) is dict:
                         for inputvalue, term in source_info["term_mapping"].items():
+                            ## add a key/add to the list of data in the dict for the given input file
                             term_value_key = infilename + "~" + source_info["source_field"] + "~" + str(inputvalue) + "~" + outfilename
                             data[source_info["source_field"]].append(outfield + "~" + str(source_info["term_mapping"][str(inputvalue)]))
                     else:
