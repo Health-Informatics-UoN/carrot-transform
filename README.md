@@ -101,27 +101,6 @@ where last_used_id must be an integer.
 Change the limit for  output count limit for logfile output. Logfile will contain the threshold number of output results.  
 ```
 
-## TODO: 
-* Document carrot-transform 
-* Add more comments in-code
-* Handle capture of ddl and json config via the command-line as optional args
-
-* add a flag arg for input-dir
-* set required = True for input_dir 
-* set required = True for output directory
-* auto create the output dir if it doesn't exist
-* add required flag for --omop-config-file and --omop-ddl-file (or make the functions not fail when one is None)
-* might be better to store directories as paths, to avoid parsing issues with extra '/' at the end?
-* remove need for setting input file explicitly - can we use the rules file to find the named files with person_ID as first column? What if there's more than one?
-* auto finding omop files shouldn't require both not to be set, should only require one - the undeclared file can then be found automatically.
-
-
 Reduction in complexity over the original CaRROT-CDM version for the Transform part of *ETL* - In practice *Extract* is always 
 performed by Data Partners, *Load* by database bulk-load software.
 
-Statistics
-
-External libraries imported (approximate)
-
-carrot-cdm      61
-carrot-transform 12
