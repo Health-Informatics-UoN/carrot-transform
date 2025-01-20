@@ -4,7 +4,9 @@ version = "0.1.0"
 description = ""
 authors = ["anwarfg <913028+anwarfg@users.noreply.github.com>"]
 readme = "README.md"
-package-mode = false
+packages = [
+    { include = "carrottransform" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
