@@ -1,20 +1,18 @@
-[build-system]
-requires = ["setuptools", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "carrot-transform"
-version = "0.3.2"
-authors = [
-  { name="PD Appleby", email="pdappleby@gmail.com" },
-]
-description = "Carrot simple transformer, input rules and data csv's, output OMOP"
+[tool.poetry]
+name = "carrot transform"
+version = "0.1.0"
+description = ""
+authors = ["anwarfg <913028+anwarfg@users.noreply.github.com>"]
 readme = "README.md"
-requires-python = ">=3.9"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
-[project.scripts]
-carrot-transform="carrottransform.cli.command:transform"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.10"
+click = "^8.1.7"
+pandas = "^2.2.3"
+jinja2 = "^3.1.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
