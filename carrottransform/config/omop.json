@@ -26,6 +26,10 @@
     "visit_occurrence": {
 	    "visit_start_datetime": "visit_start_date", 
 	    "visit_end_datetime": "visit_end_date"
+    },
+    "device_exposure": {
+	    "device_exposure_start_datetime": "device_exposure_start_date", 
+	    "device_exposure_end_datetime": "device_exposure_end_date"
     }
   },
   "date_field_components": {
@@ -46,6 +50,7 @@
     "person": "person_id",
     "procedure_occurrence": "person_id",
     "specimen": "person_id",
+    "device_exposure": "person_id",
     "visit_occurrence": "person_id"
   },
   "auto_number_field": {
@@ -56,6 +61,7 @@
     "observation": "observation_id",
     "procedure_occurrence": "procedure_occurrence_id",
     "specimen": "specimen_id",
+    "device_exposure": "device_exposure_id",
     "visit_occurrence": "visit_occurrence_id"
   }
 }
