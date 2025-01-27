@@ -86,8 +86,12 @@ def mapstream(rules_file, output_dir, write_mode,
 
 ## check output dir is valid
     if os.path.isdir(output_dir) == False:
-        print("Not a directory, output dir {0}".format(output_dir))
-        sys.exit(1)
+        print("Not a directory, output dir {0}/n Creating directory...".format(output_dir))
+        try:
+            os.makedirs(output_dir)
+        except:
+            print("Failed to create directory. Exiting...")
+            sys.exit(1)
 
 ## check if there is a saved person id file set in options - if not, check if the file exists and remove it
     if saved_person_id_file == None:

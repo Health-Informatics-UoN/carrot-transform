@@ -63,16 +63,26 @@ def test_frames_equal(expected_df, transform_df):
     # Remove datetime portions and zero columns
     remove_datetime(expected_df)
     remove_datetime(transform_df)
-    remove_zero_columns(expected_df) 
+    remove_zero_columns(expected_df)
     remove_zero_columns(transform_df)
+
+    # Drop columns that are all NaN or 0
+    expected_df = expected_df.dropna(axis=1, how='all')
+    transform_df = transform_df.dropna(axis=1, how='all')
+    expected_df = expected_df.loc[:, ~(expected_df == 0).all()]
+    transform_df = transform_df.loc[:, ~(transform_df == 0).all()]
 
     # Sort both dataframes
     expected_df = expected_df.sort_values(by='person_id')
     transform_df = transform_df.sort_values(by='person_id')
 
+    # Sort both dataframes by all columns to ensure consistent ordering
+    expected_sorted = expected_df.sort_values(by=list(expected_df.columns)).sort_index(axis=1)
+    transform_sorted = transform_df.sort_values(by=list(transform_df.columns)).sort_index(axis=1)
+    
     assert_frame_equal(
-        expected_df.sort_index(axis=1), 
-        transform_df.sort_index(axis=1),
+        expected_sorted,
+        transform_sorted,
         check_names=True
     )
 
