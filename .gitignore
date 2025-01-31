@@ -10,3 +10,21 @@ build
 *.env
 temp
 .python-version
+
+# VS Code specific
+.vscode/
+.history/
+*.code-workspace
+
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
