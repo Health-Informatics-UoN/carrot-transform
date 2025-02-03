@@ -6,25 +6,39 @@
   </picture>
   </a>
 </p>
+
+<p align="center">
+
+<a href="https://github.com/Health-Informatics-UoN/carrot-transform/releases">
+  <img src="https://img.shields.io/github/v/release/Health-Informatics-UoN/carrot-transform" alt="Release">
+</a>
+<a href="https://opensource.org/license/mit">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
+</a>
+</p>
+
 <div align="center">
   <strong>
-  <h2>Streamlined Data Mapping to OMOP</h2>
-  <a href="https://carrot.ac.uk/">Carrot Tranform</a> executes the conversion of the data to the OMOP CDM.<br />
+  <h2>Streamlined Data Transformation to OMOP</h2><br />
+<a href="https://carrot.ac.uk/">Carrot Transform</a> automates data transformation processes and facilitates the standardisation of datasets to the OMOP vocabulary, simplifying the integration of diverse data sources.
+  <br />
   </strong>
 </div>
 
-TODO:
+<p align="center">
+  <br />
+  <a href="https://carrot.ac.uk/transform" rel="dofollow"><strong>Explore the docs »</strong></a>
+  <br />
+<br />  
 
-- Document carrot-transform
-- Add more comments in-code
-- Handle capture of ddl and json config via the command-line as optional args
+<a href="https://carrot.ac.uk/">Carrot Mapper</a> is a webapp which allows the user to use the metadata (as output by [WhiteRabbit](https://github.com/OHDSI/WhiteRabbit)) from a dataset to produce mapping rules to the OMOP standard, in the JSON format. These can be ingested by [Carrot Transform](https://carrot.ac.uk/transform/quickstart) to perform the mapping of the contents of the dataset to OMOP.
 
-Reduction in complexity over the original CaRROT-CDM version for the Transform part of _ETL_ - In practice _Extract_ is always
-performed by Data Partners, _Load_ by database bulk-load software.
+Carrot Transform transforms input data into tab separated variable files of standard OMOP tables, with  concepts mapped according to the provided rules (generated from Carrot Mapper).
 
-Statistics
+## Quick Start for Developers
 
-External libraries imported (approximate)
+To have the project up and running, please follow the [Quick Start Guide](https://carrot.ac.uk/transform/quickstart).
 
-carrot-cdm 61
-carrot-transform 12
+## License
+
+This repository's source code is available under the [MIT license](LICENSE).
