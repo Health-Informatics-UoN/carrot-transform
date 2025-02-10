@@ -48,7 +48,7 @@ class OmopCDM:
         output_dict["date_fields"] = {}
 
         ver_rgx = re.compile(r'^--postgresql.*(\d+\.\d+)$')
-        start_rgx = re.compile(r'^CREATE\s*TABLE\s*(\@?[a-zA-Z]+\.)?([A-Z_]+)')
+        start_rgx = re.compile(r'^CREATE\s*TABLE\s*(\@?[a-zA-Z]+\.)?([a-zA-Z_]+)')
         datatype_rgx = re.compile(r'^\s*([a-z_]+)\s+([a-zA-Z_]+)')
         end_rgx = re.compile(r'.*[)];$')
         vermatched = False

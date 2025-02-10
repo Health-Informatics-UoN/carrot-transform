@@ -17,6 +17,7 @@
 </a>
 </p>
 
+
 <div align="center">
   <strong>
   <h2>Streamlined Data Transformation to OMOP</h2><br />
@@ -42,3 +43,4 @@ To have the project up and running, please follow the [Quick Start Guide](https:
 ## License
 
 This repository's source code is available under the [MIT license](LICENSE).
+
