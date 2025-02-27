@@ -8,6 +8,7 @@ import json
 import importlib.resources
 import carrottransform
 import carrottransform.tools as tools
+import re
 
 @click.group(help="Commands for mapping data to the OMOP CommonDataModel (CDM).")
 def run():
@@ -15,7 +16,7 @@ def run():
 
 @click.command()
 @click.option("--rules-file",
-              required=True,
+              required=False,
               help="json file containing mapping rules")
 @click.option("--output-dir",
               default=None,
@@ -66,22 +67,58 @@ def mapstream(rules_file, output_dir, write_mode,
     # - check for values in optional arguments
     # - read in configuration files
     # - check main directories for existence
-    # - handle saved persion ids
-    # - initialise metrics 
-    if (omop_ddl_file == None) and (omop_config_file == None) and (omop_version != None):
-      omop_config_file = str(importlib.resources.files('carrottransform')) + '/' + 'config/omop.json'
-      omop_ddl_file_name = "OMOPCDM_postgresql_" + omop_version + "_ddl.sql"
-      omop_ddl_file = str(importlib.resources.files('carrottransform')) + '/' + 'config/' + omop_ddl_file_name
+    # - handle saved person ids
+    # - initialise metrics
 
-    if os.path.isdir(input_dir[0]) == False:
+## add checks for existence of files and dirs - especially as some aren't required!
+
+    omop_default_dir = os.path.join(str(importlib.resources.files('carrottransform')), "config")
+    if omop_config_file is None:
+        omop_config_file = os.path.join(omop_default_dir + 'omop.json')
+    omop_ddl_file = set_omop_ddl_file(omop_ddl_file, omop_version, omop_default_dir)
+    if not os.path.isfile(omop_ddl_file):
+        print("No omop ddl file found, {0}".format(omop_ddl_file))
+        sys.exit(1)
+
+    if rules_file is None:
+        ### pick a default rules file
+        default_rules_dir = os.path.join(str(importlib.resources.files('carrottransform')), "rules")
+        rules_file = set_rules_default_file(default_rules_dir)
+    if not os.path.isfile(rules_file):
+        print("No rules file found, {0}".format(rules_file))
+        sys.exit(1)
+
+
+    # if (omop_ddl_file == None) and (omop_config_file == None) and (omop_version != None):
+    #   omop_config_file = str(importlib.resources.files('carrottransform')) + os.pathsep + 'config/omop.json'
+    #   omop_ddl_file_name = "OMOPCDM_postgresql_" + omop_version + "_ddl.sql"
+    #   omop_ddl_file = str(importlib.resources.files('carrottransform')) + os.pathsep + 'config/' + omop_ddl_file_name
+
+    if os.path.isdir(input_dir) is None:
+        ### use default
+        input_dir = str(importlib.resources.files('carrottransform')) + os.pathsep + "outputs"
+    if not os.path.isdir(input_dir[0]):
         print("Not a directory, input dir {0}".format(input_dir[0]))
         sys.exit(1)
 
-    if os.path.isdir(output_dir) == False:
-        print("Not a directory, output dir {0}".format(output_dir))
+    if os.path.isdir(output_dir) is None:
+        ### use default
+        output_dir = str(importlib.resources.files('carrottransform')) + os.pathsep + "outputs"
+    if not os.path.isdir(output_dir):
+        print("Not a directory, output dir {0}/n Creating directory...".format(output_dir))
+        try:
+            os.makedirs(output_dir)
+        except OSError:
+            print("Failed to create directory. Exiting...")
+            sys.exit(1)
+
+    if person_file is None:
+        person_file = input_dir + os.pathsep + "Demographics.csv"
+    if not os.path.isfile(person_file):
+        print("No person file found: {0}".format(input_dir[0]))
         sys.exit(1)
 
-    if saved_person_id_file == None:
+    if saved_person_id_file is None:
         saved_person_id_file = output_dir + "/" + "person_ids.tsv"
         if os.path.exists(saved_person_id_file):
             os.remove(saved_person_id_file)
@@ -488,6 +525,81 @@ def load_person_ids(person_file, person_ids, mappingrules, use_input_person_ids,
     fh.close()
 
     return person_ids, reject_count
+
+
+def set_omop_ddl_file(omop_ddl_file, omop_version, omop_default_dir):
+    omop_ddl_filename = None
+    ### only hit these defaults in this order (check specified version number, check all omop files in directory and use highest version), if there's no specified omop ddl file:
+    if omop_ddl_file is None:
+        if omop_version is not None:
+            omop_ddl_filename = "OMOPCDM_postgresql_" + omop_version + "_ddl.sql"
+        else:
+            ### ewe now need to check for a default omop file
+            #omop_ddl_file_name = "OMOPCDM_postgresql_" + omop_version + "_ddl.sql"
+            omop_ddl_filename = set_omop_default_file(omop_default_dir)
+
+
+    if omop_ddl_filename is None:
+        ### no omop file found, either as default or set
+        print("No OMOP ddl file found! Exiting...")
+        sys.exit(1)
+
+    else:
+        omop_ddl_file = os.path.join(omop_default_dir, omop_ddl_filename)
+
+    return omop_ddl_file
+
+def set_omop_default_file(omop_default_dir):
+    ### use default omop file
+    omop_ddl_file_name = None
+    files = os.listdir(omop_default_dir)
+    # Filtering only the files.
+    files = [f for f in files if os.path.isfile(os.path.join(omop_default_dir, f))]
+    ### check files for conformity to default omop filenames (OMOPCDM_postgresql_DIGITS.DIGITS_ddl.sql)
+    highest_omop_version = 0
+    pattern = r"(^OMOPCDM_postgresql_)(\d*.\d*)(_ddl.sql)"
+    for file in files:
+        match = re.match(pattern, file)
+        if match:
+            version = match.group(1)
+            if version > highest_omop_version:
+                highest_omop_version = version
+                omop_ddl_file_name = file
+
+    if highest_omop_version == 0:
+        return None
+    else:
+        return omop_ddl_file_name
+
+def set_rules_default_file(rules_default_dir):
+    ### use default omop file
+    rules_file_name = None
+    files = os.listdir(rules_default_dir)
+    # Filtering only the files.
+    files = [f for f in files if os.path.isfile(os.path.join(rules_default_dir, f))]
+    ### check files for conformity to default omop filenames (OMOPCDM_postgresql_DIGITS.DIGITS_ddl.sql)
+    newest_datetime = datetime.datetime.fromtimestamp(0)
+    #pattern = r"^Rules - [^-]* - \d* - (\d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2}\.\d{6}\.json)$"
+    pattern = pattern = r"^Rules - [^-]* - \d+ - (\d{4}-\d{2}-\d{2} \d{2}_\d{2}_\d{2})\.\d{6}\.json$"
+
+    for file in files:
+        match = re.match(pattern, file)
+        if match:
+            dt_string = match.group(1)
+
+            ### sample dt sting: 2025-02-21 07-19-57
+            dt = datetime.datetime.strptime(dt_string, '%Y-%m-%d %H_%M_%S')
+
+            if dt > newest_datetime:
+                newest_datetime = dt
+                rules_file_name = file
+
+    if newest_datetime == 0:
+        return None
+    else:
+        return rules_file_name
+
+
 
 @click.group(help="Commands for using python configurations to run the ETL transformation.")
 def py():
