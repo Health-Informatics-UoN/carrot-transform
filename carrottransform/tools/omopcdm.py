@@ -53,7 +53,7 @@ class OmopCDM:
         ## matching for version number - matches '--postgres', any number of chars and some digits of the form X.Y, plus an end of string or end of line
         ver_rgx = re.compile(r'^--postgresql.*(\d+\.\d+)$')
         ## matching for table name - matches 'CREATE TABLE @', some letters (upper and lower case), '.' and some more letters (lower case)
-        start_rgx = re.compile(r'^CREATE\s*TABLE\s*(\@?[a-zA-Z]+\.)?([A-Z_]+)')
+        start_rgx = re.compile(r'^CREATE\s*TABLE\s*(\@?[a-zA-Z]+\.)?([a-zA-Z_]+)')
         ## matches some whitespace, lower case letters(or underscores), whitespace, letters (upper/lower and underscores)
         datatype_rgx = re.compile(r'^\s*([a-z_]+)\s+([a-zA-Z_]+)')
         ## matching for end of file - matches close bracket, semi colon, end of file or line
