@@ -67,7 +67,7 @@ git push
 ### 4. Create pull request 
 - Open a pull request from `release/v$NEW_VERSION` to `main` and await approval.
 ### 5. Merge and tag 
-- After approval merge the the feature branch. 
+- After approval merge the the feature branch to `main`. 
 - Checkout to `main`, pull updates, and create a tag corresponding to the new version number. 
 ```bash 
 git checkout main
