@@ -82,7 +82,7 @@ git push origin "$NEW_VERSION"
 gh release create "$TAG" --title "$TAG" --notes "Automated release for $VERSION"
 ```
 
-- Alternatively, follow the instructions [in GitHub documentation](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to manually create a release. 
+- Alternatively, follow the instructions in the [GitHub documentation](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to manually create a release. 
 ## License
 
 This repository's source code is available under the [MIT license](LICENSE).
