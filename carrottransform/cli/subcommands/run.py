@@ -8,6 +8,9 @@ import json
 import importlib.resources
 import carrottransform
 import carrottransform.tools as tools
+from carrottransform.tools.omopcdm import OmopCDM
+from typing import Iterator, IO
+
 
 @click.group(help="Commands for mapping data to the OMOP CommonDataModel (CDM).")
 def run():
@@ -247,7 +250,7 @@ def mapstream(rules_file, output_dir, write_mode,
     nowtime = time.time()
     print("Elapsed time = {0:.5f} secs".format(nowtime - starttime))
 
-def increment_key_counts(srcfilename, metrics, tgtfile, datacol, outrecord):
+def increment_key_counts(srcfilename: str, metrics: tools.metrics.Metrics, tgtfile: str, datacol: str, outrecord: list[str]) -> None:
     key = srcfilename + "~all~all~all~"
     metrics.increment_key_count(key, "output_count")
 
@@ -278,7 +281,8 @@ def increment_key_counts(srcfilename, metrics, tgtfile, datacol, outrecord):
     return
 
 
-def get_target_records(tgtfilename, tgtcolmap, rulesmap, srcfield, srcdata, srccolmap, srcfilename, omopcdm, metrics):
+def get_target_records(tgtfilename: str, tgtcolmap: dict[str, dict[str, int]], rulesmap: dict[str, list[dict[str, list[str]]]], srcfield: str, srcdata: list[str], srccolmap: dict[str, int], srcfilename: str, omopcdm: OmopCDM, metrics: tools.metrics.Metrics) -> \
+tuple[bool, list[str], tools.metrics.Metrics]:
     """
     build all target records for a given input field
     """
@@ -512,7 +516,7 @@ def load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_p
 def py():
     pass
 
-def check_dir_isvalid(directory):
+def check_dir_isvalid(directory: str | tuple[str, ...]) -> None:
     ## check output dir is valid
     if type(directory) is tuple:
         directory = directory[0]
@@ -521,7 +525,7 @@ def check_dir_isvalid(directory):
         print("Not a directory, dir {0}".format(directory))
         sys.exit(1)
 
-def set_saved_person_id_file(saved_person_id_file, output_dir):
+def set_saved_person_id_file(saved_person_id_file: str, output_dir: str) -> str:
 ## check if there is a saved person id file set in options - if not, check if the file exists and remove it
     if saved_person_id_file is None:
         saved_person_id_file = output_dir + "/" + "person_ids.tsv"
@@ -530,7 +534,7 @@ def set_saved_person_id_file(saved_person_id_file, output_dir):
     return saved_person_id_file
 
 
-def check_files_in_rules_exist(rules_input_files, existing_input_files):
+def check_files_in_rules_exist(rules_input_files: list[str], existing_input_files: list[str]) -> None:
     for infile in existing_input_files:
         if infile not in rules_input_files:
             msg = "WARNING: no mapping rules found for existing input file - {0}".format(infile)
@@ -540,7 +544,8 @@ def check_files_in_rules_exist(rules_input_files, existing_input_files):
             msg = "WARNING: no data for mapped input file - {0}".format(infile)
             print(msg)
 
-def open_file(directory, filename):
+def open_file(directory: str, filename: str) -> tuple[IO[str], Iterator[list[str]]] | None:
+#def open_file(directory: str, filename: str):
     try:
         fh = open(directory + "/" + filename, mode="r", encoding="utf-8-sig")
         csvr = csv.reader(fh)
@@ -550,14 +555,14 @@ def open_file(directory, filename):
         print("I/O error({0}): {1}".format(e.errno, e.strerror))
         return None
 
-def set_omop_filenames(omop_ddl_file, omop_config_file, omop_version):
+def set_omop_filenames(omop_ddl_file: str, omop_config_file: str, omop_version: str) -> tuple[str, str]:
     if (omop_ddl_file is None) and (omop_config_file is None) and (omop_version is not None):
         omop_config_file = str(importlib.resources.files('carrottransform')) + '/' + 'config/omop.json'
         omop_ddl_file_name = "OMOPCDM_postgresql_" + omop_version + "_ddl.sql"
         omop_ddl_file = str(importlib.resources.files('carrottransform')) + '/' + 'config/' + omop_ddl_file_name
     return omop_config_file, omop_ddl_file
 
-def get_person_lookup(saved_person_id_file):
+def get_person_lookup(saved_person_id_file: str) -> tuple[dict[str, str], int]:
     # Saved-person-file existence test, reload if found, return last used integer
     if os.path.isfile(saved_person_id_file):
         person_lookup, last_used_integer = load_saved_person_ids(saved_person_id_file)
