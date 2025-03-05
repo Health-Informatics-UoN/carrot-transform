@@ -14,7 +14,10 @@ class OmopCDM:
         self.numeric_types = ["integer", "numeric"]
         self.datetime_types = ["timestamp"]
         self.date_types = ["date"]
+        ## ddl sets the headers to go in each table, and whether or not to make it null. Also allows for more tables than we will use.
+        ## also adds additional useful keys, like 'all_columns' - before merge
         self.omop_json = self.load_ddl(omopddl)
+        ## adds fields as a dict of dicts - is this so they can get picked up by some of these get_columns?
         self.omop_json = self.merge_json(self.omop_json, omopcfg)
         self.all_columns = self.get_columns("all_columns")
         self.numeric_fields = self.get_columns("numeric_fields")
@@ -47,9 +50,13 @@ class OmopCDM:
         output_dict["datetime_fields"] = {}
         output_dict["date_fields"] = {}
 
+        ## matching for version number - matches '--postgres', any number of chars and some digits of the form X.Y, plus an end of string or end of line
         ver_rgx = re.compile(r'^--postgresql.*(\d+\.\d+)$')
+        ## matching for table name - matches 'CREATE TABLE @', some letters (upper and lower case), '.' and some more letters (lower case)
         start_rgx = re.compile(r'^CREATE\s*TABLE\s*(\@?[a-zA-Z]+\.)?([a-zA-Z_]+)')
+        ## matches some whitespace, lower case letters(or underscores), whitespace, letters (upper/lower and underscores)
         datatype_rgx = re.compile(r'^\s*([a-z_]+)\s+([a-zA-Z_]+)')
+        ## matching for end of file - matches close bracket, semi colon, end of file or line
         end_rgx = re.compile(r'.*[)];$')
         vermatched = False
         processing_table_data = False
@@ -76,7 +83,7 @@ class OmopCDM:
                     fname = idtmatch.group(1)
                     ftype = idtmatch.group(2)
 
-                    # Check for dictionary element presence
+                    # Check for dictionary element presence, adn start an empty list if it doesn't already exist
                     if tabname not in output_dict["all_columns"]:
                         output_dict["all_columns"][tabname] = []
                     if tabname not in output_dict["numeric_fields"]:
