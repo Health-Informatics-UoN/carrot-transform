@@ -61,7 +61,7 @@ poetry version minor
 NEW_VERSION=$(poetry version -s)
 git add pyproject.toml
 git commit -m "Bump version to $NEW_VERSION"
-git push 
+git push --set-upstream origin release/v$NEW_VERSION
 ```
 
 ### 4. Create pull request 
@@ -79,11 +79,10 @@ git push origin "$NEW_VERSION"
 ### 6. Create a release
 - We must now link the tag to a release in the GitHub repository. To do this from the command line first install GitHub command line tools `gh` and then invoke: 
 ```bash 
-gh release create "$TAG" --title "$TAG" --notes "Automated release for $VERSION"
+gh release create "$TAG" --title "$TAG" --notes "Release for $VERSION"
 ```
 
 - Alternatively, follow the instructions in the [GitHub documentation](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to manually create a release. 
 ## License
 
 This repository's source code is available under the [MIT license](LICENSE).
-
