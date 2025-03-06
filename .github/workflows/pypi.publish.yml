@@ -3,13 +3,9 @@
 
 name: Upload Python Package
 
-# on:
-#   release:
-#     types: [published]
 on:
-  push:
-    branches:
-      - main
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -37,10 +33,33 @@ jobs:
           name: python-package-distributions
           path: dist/
 
+  publish-to-test-pypi: 
+    name: Publish Python distribution to TestPyPI 
+    needs: 
+      - build 
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/carrot-transform
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Publish distribution 📦 to TestPyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
+    
   publish-to-pypi:
     name: Publish Python distribution to PyPI
     needs:
       - build
+      - publish-to-test-pypi 
     runs-on: ubuntu-latest
     environment:
       name: pypi
