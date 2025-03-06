@@ -7,11 +7,6 @@ on:
   release:
     types: [published]
 
-#on:
-#  push:
-#    branches:
-#      - main
-
 permissions:
   contents: read
 
