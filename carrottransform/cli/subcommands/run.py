@@ -10,6 +10,7 @@ import carrottransform
 import carrottransform.tools as tools
 from carrottransform.tools.omopcdm import OmopCDM
 from typing import Iterator, IO
+from ...tools.file_helpers import resolve_paths
 
 
 @click.group(help="Commands for mapping data to the OMOP CommonDataModel (CDM).")
@@ -65,6 +66,26 @@ def mapstream(rules_file, output_dir, write_mode,
     """
     Map to output using input streams
     """
+    # Resolve any @package paths in the arguments
+    resolved_paths = resolve_paths([
+        rules_file,
+        output_dir,
+        person_file,
+        omop_ddl_file,
+        omop_config_file,
+        saved_person_id_file,
+        last_used_ids_file,
+        input_dir[0] if input_dir else None  # Take first element of input_dir tuple
+    ])
+    
+    # Assign back resolved paths
+    [rules_file, output_dir, person_file, omop_ddl_file, 
+     omop_config_file, saved_person_id_file, last_used_ids_file, 
+     input_dir] = resolved_paths
+    
+    # Convert input_dir back to tuple format expected by later code
+    input_dir = (input_dir,) if input_dir else ()
+
     # Initialisation 
     # - check for values in optional arguments
     # - read in configuration files
@@ -518,10 +539,19 @@ def py():
 
 def check_dir_isvalid(directory: str | tuple[str, ...]) -> None:
     ## check output dir is valid
-    if type(directory) is tuple:
+    if directory is None:
+        print("Directory is None")
+        sys.exit(1)
+        
+    # Handle tuple input (like input_dir)
+    if isinstance(directory, tuple):
+        if not directory:  # Empty tuple
+            print("No directory provided")
+            sys.exit(1)
         directory = directory[0]
-
-    if not os.path.isdir(directory):
+    
+    # Handle string input
+    if not os.path.isdir(str(directory)):
         print("Not a directory, dir {0}".format(directory))
         sys.exit(1)
 
