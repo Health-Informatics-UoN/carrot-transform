@@ -188,7 +188,7 @@ def mapstream(rules_file, output_dir, write_mode,
         for indata in csvr:
             metrics.increment_key_count(
                     source=srcfilename,
-            fieldname="all",
+                    fieldname="all",
                     tablename="all",
                     concept_id="all",
                     additional="",

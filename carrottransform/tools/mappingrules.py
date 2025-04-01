@@ -2,6 +2,7 @@ import os
 import json
 import carrottransform.tools as tools
 from .omopcdm import OmopCDM
+from dataclasses import dataclass
 
 class MappingRules:
     """
@@ -40,9 +41,9 @@ class MappingRules:
     def get_all_infile_names(self):
         file_list = []
 
-        for outfilename, conditions in self.rules_data["cdm"].items():
-            for outfield, source_field in conditions.items():
-                for source_field_name, source_data in source_field.items():
+        for conditions in self.rules_data["cdm"].values():
+            for source_field in conditions.values():
+                for source_data in source_field.values():
                     if "source_table" in source_data:
                         if source_data["source_table"] not in file_list:
                             file_list.append(source_data["source_table"])
@@ -71,7 +72,7 @@ class MappingRules:
         return data_fields_lists
 
     def get_infile_date_person_id(self, infilename):
-        outfilenames, outdata = self.parse_rules_src_to_tgt(infilename)
+        _, outdata = self.parse_rules_src_to_tgt(infilename)
         datetime_source = ""
         person_id_source = ""
 
@@ -111,13 +112,14 @@ class MappingRules:
         Parse rules to produce a map of source to target data for a given input file
         """
         ## creates a dict of dicts that has input files as keys, and infile~field~data~target as keys for the underlying keys, which contain a list of dicts of lists
+        # Good god, why?
         if infilename in self.outfile_names and infilename in self.parsed_rules:
             return self.outfile_names[infilename], self.parsed_rules[infilename]
         outfilenames = []
         outdata = {}
 
         for outfilename, rules_set in self.rules_data["cdm"].items():
-            for datatype, rules in rules_set.items():
+            for rules in rules_set.values():
                 key, data = self.process_rules(infilename, outfilename, rules)
                 if key != "":
                     if key not in outdata:
@@ -134,7 +136,6 @@ class MappingRules:
         """
         Process rules for an infile, outfile combination
         """
-        outkey = ""
         data = {}
         plain_key = ""
         term_value_key = ""
@@ -146,7 +147,7 @@ class MappingRules:
             if source_info["source_table"] == infilename:
                 if "term_mapping" in source_info:
                     if type(source_info["term_mapping"]) is dict:
-                        for inputvalue, term in source_info["term_mapping"].items():
+                        for inputvalue in source_info["term_mapping"].keys():
                             ## add a key/add to the list of data in the dict for the given input file
                             term_value_key = infilename + "~" + source_info["source_field"] + "~" + str(inputvalue) + "~" + outfilename
                             data[source_info["source_field"]].append(outfield + "~" + str(source_info["term_mapping"][str(inputvalue)]))
@@ -159,3 +160,8 @@ class MappingRules:
             return term_value_key, data
 
         return plain_key, data
+
+
+#@dataclass
+#class Rule:
+#    input_name
