@@ -2,15 +2,20 @@ from carrottransform.cli.subcommands.run import *
 import pytest
 from unittest.mock import patch
 
+
 ### check_dir_isvalid(directory)
 @pytest.mark.unit
 def test_valid_directory(tmp_path):
     """Test with a valid directory path"""
     check_dir_isvalid(str(tmp_path))  # Should not raise any exception
+
+
 @pytest.mark.unit
 def test_directory_as_tuple(tmp_path):
     """Test with a directory path wrapped in a tuple"""
     check_dir_isvalid((str(tmp_path),))  # Should not raise any exception
+
+
 @pytest.mark.unit
 def test_invalid_directory(tmp_path):
     """Test with a non-existent directory"""
@@ -28,75 +33,97 @@ def test_explicit_file_path(tmp_path):
     result = set_saved_person_id_file(explicit_path, str(tmp_path))
     assert result == explicit_path
 
+
 @pytest.mark.unit
 def test_default_file_creation(tmp_path):
     """Test when no file is specified (None case)"""
     output_dir = str(tmp_path)
-    result = set_saved_person_id_file(None, output_dir).replace('\\','/')
-    expected_path = os.path.join(output_dir, "person_ids.tsv").replace('\\','/')
+    result = set_saved_person_id_file(None, output_dir).replace("\\", "/")
+    expected_path = os.path.join(output_dir, "person_ids.tsv").replace("\\", "/")
     assert result == expected_path
+
 
 @pytest.mark.unit
 def test_existing_file_removal(tmp_path):
     """Test that existing file is removed when None is passed"""
     output_dir = str(tmp_path)
-    existing_file = os.path.join(output_dir, "person_ids.tsv").replace('\\','/')
+    existing_file = os.path.join(output_dir, "person_ids.tsv").replace("\\", "/")
 
     # Create a dummy file
-    with open(existing_file, 'w') as f:
+    with open(existing_file, "w") as f:
         f.write("test")
 
     assert os.path.exists(existing_file)  # Verify file exists
 
-    result = set_saved_person_id_file(None, output_dir).replace('\\','/')
+    result = set_saved_person_id_file(None, output_dir).replace("\\", "/")
     assert result == existing_file  # Check returned path
     assert not os.path.exists(existing_file)  # Verify file was removed
 
+
 ### check_files_in_rules_exist(rules_input_files, existing_input_files):
 @pytest.mark.unit
-def test_matching_files(capsys):
+def test_matching_files(caplog):
     """Test when all files match between rules and existing files"""
-    rules_files = ["file1.txt", "file2.txt"]
-    existing_files = ["file1.txt", "file2.txt"]
+    with caplog.at_level(logging.INFO):
 
-    check_files_in_rules_exist(rules_files, existing_files)
-    captured = capsys.readouterr()
-    assert captured.out == ""  # No warnings should be printed
+        rules_files = ["file1.txt", "file2.txt"]
+        existing_files = ["file1.txt", "file2.txt"]
+
+        check_files_in_rules_exist(rules_files, existing_files)
+
+    assert 0 == len(caplog.text)  # No warnings should be printed
+
 
 @pytest.mark.unit
-def test_extra_existing_file(capsys):
+def test_extra_existing_file(caplog):
     """Test when there's an existing file not in rules"""
-    rules_files = ["file1.txt"]
-    existing_files = ["file1.txt", "extra.txt"]
+    with caplog.at_level(logging.WARNING):
 
-    check_files_in_rules_exist(rules_files, existing_files)
-    captured = capsys.readouterr()
-    assert "WARNING: no mapping rules found for existing input file - extra.txt" in captured.out
+        rules_files = ["file1.txt"]
+        existing_files = ["file1.txt", "extra.txt"]
+
+        check_files_in_rules_exist(rules_files, existing_files)
+
+    assert (
+        "WARNING: no mapping rules found for existing input file - extra.txt"
+        in caplog.text
+    )
+
 
 @pytest.mark.unit
-def test_extra_rules_file(capsys):
+def test_extra_rules_file(caplog):
     """Test when there's a rules file with no existing data"""
-    rules_files = ["file1.txt", "missing.txt"]
-    existing_files = ["file1.txt"]
+    with caplog.at_level(logging.WARNING):
 
-    check_files_in_rules_exist(rules_files, existing_files)
-    captured = capsys.readouterr()
-    assert "WARNING: no data for mapped input file - missing.txt" in captured.out
+        rules_files = ["file1.txt", "missing.txt"]
+        existing_files = ["file1.txt"]
+
+        check_files_in_rules_exist(rules_files, existing_files)
+
+    assert "WARNING: no data for mapped input file - missing.txt" in caplog.text
+
 
 @pytest.mark.unit
-def test_multiple_mismatches(capsys):
+def test_multiple_mismatches(caplog):
     """Test when there are multiple mismatches in both directions"""
-    rules_files = ["file1.txt", "missing1.txt", "missing2.txt"]
-    existing_files = ["file1.txt", "extra1.txt", "extra2.txt"]
+    with caplog.at_level(logging.WARNING):
 
-    check_files_in_rules_exist(rules_files, existing_files)
-    captured = capsys.readouterr()
-    output = captured.out
+        rules_files = ["file1.txt", "missing1.txt", "missing2.txt"]
+        existing_files = ["file1.txt", "extra1.txt", "extra2.txt"]
 
-    assert "WARNING: no mapping rules found for existing input file - extra1.txt" in output
-    assert "WARNING: no mapping rules found for existing input file - extra2.txt" in output
-    assert "WARNING: no data for mapped input file - missing1.txt" in output
-    assert "WARNING: no data for mapped input file - missing2.txt" in output
+        check_files_in_rules_exist(rules_files, existing_files)
+
+    assert (
+        "WARNING: no mapping rules found for existing input file - extra1.txt"
+        in caplog.text
+    )
+    assert (
+        "WARNING: no mapping rules found for existing input file - extra2.txt"
+        in caplog.text
+    )
+    assert "WARNING: no data for mapped input file - missing1.txt" in caplog.text
+    assert "WARNING: no data for mapped input file - missing2.txt" in caplog.text
+
 
 ### open_file(directory, filename):
 @pytest.mark.unit
@@ -122,25 +149,30 @@ def test_successful_file_open(tmp_path):
         if file_handle:
             file_handle.close()
 
+
 @pytest.mark.unit
-def test_nonexistent_file(tmp_path, capsys):
+def test_nonexistent_file(tmp_path, caplog):
     """Test attempting to open a non-existent file"""
-    result = open_file(str(tmp_path), "nonexistent.csv")
+    with caplog.at_level(logging.ERROR):
 
-    assert result is None
-    captured = capsys.readouterr()
-    assert "Unable to open:" in captured.out
-    assert "nonexistent.csv" in captured.out
+        result = open_file(str(tmp_path), "nonexistent.csv")
+
+        assert result is None
+    assert "Unable to open:" in caplog.text
+    assert "nonexistent.csv" in caplog.text
+
 
 @pytest.mark.unit
-def test_directory_not_found(capsys):
+def test_directory_not_found(caplog):
     """Test attempting to open a file in a non-existent directory"""
-    result = open_file("/nonexistent/directory", "test.csv")
+    with caplog.at_level(logging.ERROR):
 
-    assert result is None
-    captured = capsys.readouterr()
-    assert "Unable to open:" in captured.out
-    assert "No such file or directory" in captured.out
+        result = open_file("/nonexistent/directory", "test.csv")
+
+        assert result is None
+
+    assert "Unable to open:" in caplog.text
+    assert "No such file or directory" in caplog.text
 
 
 @pytest.mark.unit
@@ -153,8 +185,8 @@ def test_utf8_with_bom(tmp_path):
 
     # Write with UTF-8-BOM encoding
     with open(file_path, "wb") as f:
-        f.write(b'\xef\xbb\xbf')  # UTF-8 BOM
-        f.write(content.encode('utf-8'))
+        f.write(b"\xef\xbb\xbf")  # UTF-8 BOM
+        f.write(content.encode("utf-8"))
 
     file_handle, csv_reader = open_file(str(tmp_path), test_file)
 
@@ -186,7 +218,7 @@ def test_explicit_filenames():
 def test_auto_filenames_from_version():
     """Test when version is provided but no files"""
     version = "5.4"
-    expected_base = str(importlib.resources.files('carrottransform'))
+    expected_base = str(importlib.resources.files("carrottransform"))
     expected_config = f"{expected_base}/config/omop.json"
     expected_ddl = f"{expected_base}/config/OMOPCDM_postgresql_{version}_ddl.sql"
 

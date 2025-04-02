@@ -11,6 +11,8 @@ import carrottransform.tools as tools
 from carrottransform.tools.omopcdm import OmopCDM
 from typing import Iterator, IO
 
+import logging
+logger = logging.getLogger(__name__)
 
 @click.group(help="Commands for mapping data to the OMOP CommonDataModel (CDM).")
 def run():
@@ -71,10 +73,10 @@ def mapstream(rules_file, output_dir, write_mode,
     # - check main directories for existence
     # - handle saved person ids
     # - initialise metrics
-    print(rules_file, output_dir, write_mode,
+    logger.info(', '.join(rules_file, output_dir, write_mode,
               person_file, omop_ddl_file, omop_config_file,
               omop_version, saved_person_id_file, use_input_person_ids,
-              last_used_ids_file, log_file_threshold, input_dir)
+              last_used_ids_file, log_file_threshold, input_dir))
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(omop_ddl_file, omop_config_file, omop_version)
@@ -93,8 +95,8 @@ def mapstream(rules_file, output_dir, write_mode,
     metrics = tools.metrics.Metrics(mappingrules.get_dataset_name(), log_file_threshold)
     nowtime = time.time()
 
-    print("--------------------------------------------------------------------------------")
-    print("Loaded mapping rules from: {0} in {1:.5f} secs".format(rules_file, (nowtime - starttime)))
+    logger.info("--------------------------------------------------------------------------------")
+    logger.info("Loaded mapping rules from: {0} in {1:.5f} secs".format(rules_file, (nowtime - starttime)))
     output_files = mappingrules.get_all_outfile_names()
 
     ## set record number
@@ -134,10 +136,10 @@ def mapstream(rules_file, output_dir, write_mode,
             tgtcolmaps[tgtfile] = omopcdm.get_omop_column_map(tgtfile)
 
     except IOError as e:
-        print("I/O - error({0}): {1} -> {2}".format(e.errno, e.strerror, str(e)))
+        logger.exception("I/O - error({0}): {1} -> {2}".format(e.errno, e.strerror, str(e)))
         exit()
 
-    print("person_id stats: total loaded {0}, reject count {1}".format(len(person_lookup), rejected_person_count))
+    logger.info("person_id stats: total loaded {0}, reject count {1}".format(len(person_lookup), rejected_person_count))
 
     ## Compare files found in the input_dir with those expected based on mapping rules
     existing_input_files = fnmatch.filter(os.listdir(input_dir[0]), '*.csv')
@@ -149,7 +151,7 @@ def mapstream(rules_file, output_dir, write_mode,
     ## set up overall counts
     rejidcounts = {}
     rejdatecounts = {}
-    print(rules_input_files)
+    logger.info(rules_input_files)
 
     ## set up per-input counts
     for srcfilename in rules_input_files:
@@ -181,8 +183,8 @@ def mapstream(rules_file, output_dir, write_mode,
         inputcolmap = omopcdm.get_column_map(hdrdata)
         pers_id_col = inputcolmap[infile_person_id_source]
         datetime_col = inputcolmap[infile_datetime_source]
-        print("--------------------------------------------------------------------------------")
-        print("Processing input: {0}".format(srcfilename))
+        logger.info("--------------------------------------------------------------------------------")
+        logger.info("Processing input: {0}".format(srcfilename))
 
         # for each input record
         for indata in csvr:
@@ -231,24 +233,25 @@ def mapstream(rules_file, output_dir, write_mode,
         fh.close()
 
         nowtime= time.time()
-        print("INPUT file data : {0}: input count {1}, time since start {2:.5} secs".format(srcfilename, str(rcount), (nowtime - starttime)))
+        logger.info("INPUT file data : {0}: input count {1}, time since start {2:.5} secs".format(srcfilename, str(rcount), (nowtime - starttime)))
         for outtablename, count in outcounts.items():
-            print("TARGET: {0}: output count {1}".format(outtablename, str(count)))
+            logger.info("TARGET: {0}: output count {1}".format(outtablename, str(count)))
     # END main processing loop
 
-    print("--------------------------------------------------------------------------------")
+    logger.info("--------------------------------------------------------------------------------")
     data_summary = metrics.get_mapstream_summary()
     try:
         dsfh = open(output_dir + "/summary_mapstream.tsv", mode="w")
         dsfh.write(data_summary)
         dsfh.close()
     except IOError as e:
-        print("I/O error({0}): {1}".format(e.errno, e.strerror))
-        print("Unable to write file")
+        logger.exception("I/O error({0}): {1}".format(e.errno, e.strerror))
+        logger.exception("Unable to write file")
+        raise e
 
     # END mapstream
     nowtime = time.time()
-    print("Elapsed time = {0:.5f} secs".format(nowtime - starttime))
+    logger.info("Elapsed time = {0:.5f} secs".format(nowtime - starttime))
 
 def increment_key_counts(srcfilename: str, metrics: tools.metrics.Metrics, tgtfile: str, datacol: str, outrecord: list[str]) -> None:
     key = srcfilename + "~all~all~all~"
@@ -280,9 +283,7 @@ def increment_key_counts(srcfilename: str, metrics: tools.metrics.Metrics, tgtfi
         metrics.increment_key_count(key, "output_count")
     return
 
-
-def get_target_records(tgtfilename: str, tgtcolmap: dict[str, dict[str, int]], rulesmap: dict[str, list[dict[str, list[str]]]], srcfield: str, srcdata: list[str], srccolmap: dict[str, int], srcfilename: str, omopcdm: OmopCDM, metrics: tools.metrics.Metrics) -> \
-tuple[bool, list[str], tools.metrics.Metrics]:
+def get_target_records(tgtfilename: str, tgtcolmap: dict[str, dict[str, int]], rulesmap: dict[str, list[dict[str, list[str]]]], srcfield: str, srcdata: list[str], srccolmap: dict[str, int], srcfilename: str, omopcdm: OmopCDM, metrics: tools.metrics.Metrics) -> tuple[bool, list[str], tools.metrics.Metrics]:
     """
     build all target records for a given input field
     """
@@ -363,7 +364,7 @@ def valid_date_value(item):
     if item.strip() == "":
         return(False)
     if not valid_iso_date(item) and not valid_reverse_iso_date(item) and not valid_uk_date(item):
-        #print("Bad date : {0}".format(item))
+        logger.warning("Bad date : {0}".format(item))
         return(False)
     return(True)
 
@@ -413,7 +414,6 @@ def parse_date(item):
     if len(datedata[2]) == 4:
         return("{0}-{1}-{2}".format(datedata[2], datedata[1], datedata[0]))
     return("{0}-{1}-{2}".format(datedata[0], datedata[1], datedata[2]))
-
 
 def valid_iso_date(item):
     """
@@ -482,16 +482,16 @@ def load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_p
     reject_count = 0
 
     personhdr = next(csvr)
-    print(personhdr)
+    logger.info(personhdr)
 
     # Make a dictionary of column names vs their positions
     for col in personhdr:
         person_columns[col] = person_col_in_hdr_number
         person_col_in_hdr_number += 1
 
-## check the mapping rules for person to find where to get the person data) i.e., which column in the person file contains dob, sex
+    ## check the mapping rules for person to find where to get the person data) i.e., which column in the person file contains dob, sex
     birth_datetime_source, person_id_source = mappingrules.get_person_source_field_info("person")
-    print("Load Person Data {0}, {1}".format(birth_datetime_source, person_id_source))
+    logger.info("Load Person Data {0}, {1}".format(birth_datetime_source, person_id_source))
     ## get the column index of the PersonID from the input file
     person_col = person_columns[person_id_source]
 
@@ -522,37 +522,35 @@ def check_dir_isvalid(directory: str | tuple[str, ...]) -> None:
         directory = directory[0]
 
     if not os.path.isdir(directory):
-        print("Not a directory, dir {0}".format(directory))
+        logger.warning("Not a directory, dir {0}".format(directory))
         sys.exit(1)
 
 def set_saved_person_id_file(saved_person_id_file: str, output_dir: str) -> str:
-## check if there is a saved person id file set in options - if not, check if the file exists and remove it
+    ## check if there is a saved person id file set in options - if not, check if the file exists and remove it
     if saved_person_id_file is None:
         saved_person_id_file = output_dir + "/" + "person_ids.tsv"
         if os.path.exists(saved_person_id_file):
             os.remove(saved_person_id_file)
     return saved_person_id_file
 
-
 def check_files_in_rules_exist(rules_input_files: list[str], existing_input_files: list[str]) -> None:
     for infile in existing_input_files:
         if infile not in rules_input_files:
             msg = "WARNING: no mapping rules found for existing input file - {0}".format(infile)
-            print(msg)
+            logger.warning(msg)
     for infile in rules_input_files:
         if infile not in existing_input_files:
             msg = "WARNING: no data for mapped input file - {0}".format(infile)
-            print(msg)
+            logger.warning(msg)
 
 def open_file(directory: str, filename: str) -> tuple[IO[str], Iterator[list[str]]] | None:
-#def open_file(directory: str, filename: str):
     try:
         fh = open(directory + "/" + filename, mode="r", encoding="utf-8-sig")
         csvr = csv.reader(fh)
         return fh, csvr
     except IOError as e:
-        print("Unable to open: {0}".format(directory + "/" + filename))
-        print("I/O error({0}): {1}".format(e.errno, e.strerror))
+        logger.exception("Unable to open: {0}".format(directory + "/" + filename))
+        logger.exception("I/O error({0}): {1}".format(e.errno, e.strerror))
         return None
 
 def set_omop_filenames(omop_ddl_file: str, omop_config_file: str, omop_version: str) -> tuple[str, str]:

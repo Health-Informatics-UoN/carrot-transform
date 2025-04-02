@@ -1,3 +1,7 @@
+
+import logging
+logger = logging.getLogger(__name__)
+
 class Metrics():
     """
     Capture metrics for output to a summary tsv file, record counts at multiple levels
@@ -72,7 +76,7 @@ class Metrics():
         summary_str = "source\ttablename\tname\tcolumn name\tbefore\tafter content check\tpct reject content check\tafter date format check\tpct reject date format\n"
 
         for dkey in self.datasummary:
-            #print(dkey)
+            logger.info(dkey)
             source, tablename, name, colname = dkey.split('.')
             before_count = int(self.datasummary[dkey]["before"])
             after_count = int(self.datasummary[dkey]["after"])
@@ -97,7 +101,7 @@ class Metrics():
             try:
                 source, fieldname, tablename, concept_id, additional = dkey.split('~')
             except ValueError:
-                print("get_mapstream_summary - ValueError: {0}".format(dkey))
+                logger.error("get_mapstream_summary - ValueError: {0}".format(dkey))
                 break
               
             source = self.get_prefix(source)
