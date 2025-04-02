@@ -2,8 +2,43 @@ import os
 import json
 import carrottransform.tools as tools
 from .omopcdm import OmopCDM
-from dataclasses import dataclass
+from pydantic import BaseModel, Field, ValidationError
+from typing import Union, Dict, Optional
+from pathlib import Path
 
+class RuleSetLoadingError(Exception):
+    """Custom exception for errors during ruleset loading."""
+    pass
+
+class Metadata(BaseModel):
+    date_created: str
+    dateset: str
+
+TermMapping = Union[int, float, Dict[str, int]]
+
+class CdmField(BaseModel):
+    source_table: str
+    source_field: str
+    term_mapping: Optional[TermMapping] = None
+
+class RuleSet(BaseModel):
+    metadata: Metadata
+    cdm: Dict[str, Dict[str, Dict[str, CdmField]]]
+
+def load_ruleset_from_file(path: Union[str, Path]) -> RuleSet:
+    path = Path(path)
+    try:
+        with path.open('r', encoding='utf-8') as f:
+            return RuleSet.model_validate_json(f.read())
+    except FileNotFoundError:
+        raise RuleSetLoadingError(f"Ruleset file not found: {path}")
+    except json.JSONDecodeError:
+        raise RuleSetLoadingError(f"Invalid JSON file in {path}")
+    except ValidationError:
+        raise RuleSetLoadingError(f"Schema validation failed for {path}")
+    except Exception as e:
+        raise RuleSetLoadingError(f"Error raised parsing file {path}: {e}")
+        
 class MappingRules:
     """
     self.rules_data stores the mapping rules as untransformed json, as each input file is processed rules are reorganised 
@@ -44,7 +79,7 @@ class MappingRules:
         for conditions in self.rules_data["cdm"].values():
             for source_field in conditions.values():
                 for source_data in source_field.values():
-                    if "source_table" in source_data:
+if "source_table" in source_data:
                         if source_data["source_table"] not in file_list:
                             file_list.append(source_data["source_table"])
 
