@@ -100,8 +100,8 @@ def mapstream(rules_file, output_dir, write_mode,
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(omop_ddl_file, omop_config_file, omop_version)
     ## check directories are valid
-    check_dir_isvalid(input_dir)
-    check_dir_isvalid(output_dir)
+    check_dir_isvalid(input_dir)  # Input directory must exist
+    check_dir_isvalid(output_dir, create_if_missing=True)  # Create output directory if needed
 
     saved_person_id_file = set_saved_person_id_file(saved_person_id_file, output_dir)
    
@@ -537,8 +537,13 @@ def load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_p
 def py():
     pass
 
-def check_dir_isvalid(directory: str | tuple[str, ...]) -> None:
-    ## check output dir is valid
+def check_dir_isvalid(directory: str | tuple[str, ...], create_if_missing: bool = False) -> None:
+    """Check if directory is valid, optionally create it if missing.
+    
+    Args:
+        directory: Directory path as string or tuple
+        create_if_missing: If True, create directory if it doesn't exist
+    """
     if directory is None:
         print("Directory is None")
         sys.exit(1)
@@ -551,9 +556,18 @@ def check_dir_isvalid(directory: str | tuple[str, ...]) -> None:
         directory = directory[0]
     
     # Handle string input
-    if not os.path.isdir(str(directory)):
-        print("Not a directory, dir {0}".format(directory))
-        sys.exit(1)
+    dir_path = str(directory)
+    if not os.path.isdir(dir_path):
+        if create_if_missing:
+            try:
+                os.makedirs(dir_path)
+                print(f"Created directory: {dir_path}")
+            except OSError as e:
+                print(f"Failed to create directory {dir_path}: {e}")
+                sys.exit(1)
+        else:
+            print(f"Not a directory, dir {dir_path}")
+            sys.exit(1)
 
 def set_saved_person_id_file(saved_person_id_file: str, output_dir: str) -> str:
 ## check if there is a saved person id file set in options - if not, check if the file exists and remove it
