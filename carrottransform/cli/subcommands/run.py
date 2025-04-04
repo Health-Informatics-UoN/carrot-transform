@@ -67,16 +67,33 @@ def mapstream(rules_file, output_dir, write_mode,
     """
     Map to output using input streams
     """
-    # Initialisation 
+    # Initialisation
     # - check for values in optional arguments
     # - read in configuration files
     # - check main directories for existence
     # - handle saved person ids
     # - initialise metrics
-    logger.info(', '.join(rules_file, output_dir, write_mode,
-              person_file, omop_ddl_file, omop_config_file,
-              omop_version, saved_person_id_file, use_input_person_ids,
-              last_used_ids_file, log_file_threshold, input_dir))
+    logger.info(
+        ",".join(
+            map(
+                str,
+                [
+                    rules_file,
+                    output_dir,
+                    write_mode,
+                    person_file,
+                    omop_ddl_file,
+                    omop_config_file,
+                    omop_version,
+                    saved_person_id_file,
+                    use_input_person_ids,
+                    last_used_ids_file,
+                    log_file_threshold,
+                    input_dir,
+                ],
+            )
+        )
+    )
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(omop_ddl_file, omop_config_file, omop_version)
