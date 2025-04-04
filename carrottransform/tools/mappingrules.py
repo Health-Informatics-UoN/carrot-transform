@@ -83,7 +83,7 @@ class MappingRules:
             outfile = keydata[-1]
             for outfield_elem in outfield_data:
                 for infield, outfield_list in outfield_elem.items():
-                    logger.info("{0}, {1}, {2}".format(outfile, infield, str(outfield_list)))
+                    logger.debug("{0}, {1}, {2}".format(outfile, infield, str(outfield_list)))
                     for outfield in outfield_list:
                         if outfield.split('~')[0] in self.omopcdm.get_omop_datetime_fields(outfile):
                             datetime_source = infield

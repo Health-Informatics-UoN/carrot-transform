@@ -76,7 +76,7 @@ class Metrics():
         summary_str = "source\ttablename\tname\tcolumn name\tbefore\tafter content check\tpct reject content check\tafter date format check\tpct reject date format\n"
 
         for dkey in self.datasummary:
-            logger.info(dkey)
+            logger.debug(dkey)
             source, tablename, name, colname = dkey.split('.')
             before_count = int(self.datasummary[dkey]["before"])
             after_count = int(self.datasummary[dkey]["after"])
