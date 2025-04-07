@@ -63,6 +63,7 @@ class MapstreamSummaryRow:
             self.invalid_source_fields,
             self.output_count
             ]]
+        # If python gets updated, you can move the row_str expression into the f-string
         row_str = '\t'.join(row_list)
         return f"{row_str}\n"
     
@@ -82,7 +83,8 @@ class MapstreamSummaryRow:
                 "invalid_source",
                 "outcount"
                 ]
-        return f"{'\t'.join(header)}\n"
+        header_str = '\t'.join(header)
+        return f"{header_str}\n"
 
 class Metrics():
     """
