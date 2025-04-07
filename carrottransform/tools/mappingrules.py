@@ -12,7 +12,7 @@ class MappingRules:
     as a file-specific dictionary allowing rules to be "looked-up" depending on data content
     """
 
-    def __init__(self, rulesfilepath, omopcdm):
+    def __init__(self, rulesfilepath: os.PathLike, omopcdm: OmopCDM):
         ## just loads the json directly
         self.rules_data = tools.load_json(rulesfilepath)
         self.omopcdm = omopcdm
