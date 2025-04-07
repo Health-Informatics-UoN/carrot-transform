@@ -63,7 +63,8 @@ class MapstreamSummaryRow:
             self.invalid_source_fields,
             self.output_count
             ]]
-        return f"{'\t'.join(row_list)}\n"
+        row_str = '\t'.join(row_list)
+        return f"{row_str}\n"
     
     @classmethod
     def get_header(cls) -> str:
