@@ -32,15 +32,15 @@ def test_explicit_file_path(tmp_path):
 def test_default_file_creation(tmp_path):
     """Test when no file is specified (None case)"""
     output_dir = str(tmp_path)
-    result = set_saved_person_id_file(None, output_dir)
-    expected_path = os.path.join(output_dir, "person_ids.tsv")
+    result = set_saved_person_id_file(None, output_dir).replace('\\','/')
+    expected_path = os.path.join(output_dir, "person_ids.tsv").replace('\\','/')
     assert result == expected_path
 
 @pytest.mark.unit
 def test_existing_file_removal(tmp_path):
     """Test that existing file is removed when None is passed"""
     output_dir = str(tmp_path)
-    existing_file = os.path.join(output_dir, "person_ids.tsv")
+    existing_file = os.path.join(output_dir, "person_ids.tsv").replace('\\','/')
 
     # Create a dummy file
     with open(existing_file, 'w') as f:
@@ -48,7 +48,7 @@ def test_existing_file_removal(tmp_path):
 
     assert os.path.exists(existing_file)  # Verify file exists
 
-    result = set_saved_person_id_file(None, output_dir)
+    result = set_saved_person_id_file(None, output_dir).replace('\\','/')
     assert result == existing_file  # Check returned path
     assert not os.path.exists(existing_file)  # Verify file was removed
 
