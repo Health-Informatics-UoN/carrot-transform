@@ -63,7 +63,9 @@ class MapstreamSummaryRow:
                 self.invalid_source_fields,
                 self.output_count
                 ]
-        return f"{'\t'.join(row_list)}\n"
+        # In later python versions, you can put the join expression right in the f-string
+        row_str = '\t'.join(row_list)
+        return f"{row_str}\n"
     
     @classmethod
     def get_header(cls) -> str:
@@ -81,7 +83,8 @@ class MapstreamSummaryRow:
                 "invalid_source",
                 "outcount"
                 ]
-        return f"{'\t'.join(header)}\n"
+        header_str = '\t'.join(header)
+        return f"{header_str}\n"
 
 class Metrics():
     """
