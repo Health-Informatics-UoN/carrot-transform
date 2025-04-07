@@ -25,6 +25,8 @@ class Mapping(BaseModel):
     source_table: str
     source_field: str
     omop_table: str
+    target_field: str
+    rule_label: str
     term_mapping: Dict[str, int]
 
 class RuleSet(BaseModel):
@@ -62,9 +64,9 @@ class RuleSet(BaseModel):
     def mappings(self) -> List[Mapping]:
         mappings = []
         for table_name, omop_table in self.cdm.items():
-            for rule_group in omop_table.values():
-                for rule in rule_group.values():
-                    if type(rule.term_mapping) == int:
+            for rule_label, rule_group in omop_table.items():
+                for target_field, rule in rule_group.items():
+                    if isinstance(rule.term_mapping, int):
                         term_mapping = {str(rule.term_mapping), rule.term_mapping}
                     else:
                         term_mapping = rule.term_mapping
@@ -73,6 +75,8 @@ class RuleSet(BaseModel):
                                 source_table=rule.source_table,
                                 source_field=rule.source_field,
                                 omop_table=table_name,
+                                target_field=target_field,
+                                rule_label=rule_label,
                                 term_mapping=term_mapping,
                                 )
                             )
