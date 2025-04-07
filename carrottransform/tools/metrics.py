@@ -1,3 +1,91 @@
+from dataclasses import dataclass, field
+from typing import Dict, List
+
+@dataclass
+class DataKey:
+    source: str
+    fieldname:str
+    tablename:str
+    concept_id:str
+    additional:str
+
+    def __str__(self) -> str:
+        """
+        The original implementation used strings as keys, then split by `~`.
+        This is here in case that representation is needed somewhere
+        """
+        return f"{self.source}~{self.fieldname}~{self.tablename}~{self.concept_id}~{self.additional}"
+    def __hash__(self) -> int:
+        """
+        The DataKey is used as a key for a dictionary of key counts
+        """
+        return hash((self.source, self.fieldname, self.tablename, self.concept_id, self.additional))
+
+@dataclass
+class CountData:
+    counts: Dict[str, int] = field(default_factory=dict)
+
+    def increment(self, count_type: str):
+        if count_type not in self.counts:
+            self.counts[count_type] = 0
+        self.counts[count_type] += 1
+    
+    def get_count(self, count_type: str, default: int=0):
+        return self.counts.get(count_type, default)
+
+@dataclass
+class MapstreamSummaryRow:
+    """Represents a single row in the mapstream summary"""
+    dataset_name: str
+    source: str
+    fieldname: str
+    tablename: str
+    concept_id: str
+    additional: str
+    input_count: int = 0
+    invalid_person_ids: int = 0
+    invalid_date_fields: int = 0
+    invalid_source_fields: int = 0
+    output_count: int = 0
+    
+    def to_tsv_row(self) -> str:
+        """Convert the row to a tab-separated string"""
+        row_list = [str(col) for col in [
+            self.dataset_name,
+            self.source,
+            self.fieldname,
+            self.tablename,
+            self.concept_id,
+            self.additional,
+            self.input_count,
+            self.invalid_person_ids,
+            self.invalid_date_fields,
+            self.invalid_source_fields,
+            self.output_count
+            ]]
+        # If python gets updated, you can move the row_str expression into the f-string
+        row_str = '\t'.join(row_list)
+        return f"{row_str}\n"
+    
+    @classmethod
+    def get_header(cls) -> str:
+        """Return the TSV header row"""
+        header = [
+                "dsname",
+                "source",
+                "source_field",
+                "target",
+                "concept_id",
+                "additional",
+                "incount",
+                "invalid_persid",
+                "invalid_date",
+                "invalid_source",
+                "outcount"
+                ]
+        header_str = '\t'.join(header)
+        return f"{header_str}\n"
+
 class Metrics():
     """
     Capture metrics for output to a summary tsv file, record counts at multiple levels
@@ -58,15 +146,81 @@ class Metrics():
                 self.datasummary[dkey][counttype] = 0
             self.datasummary[dkey][counttype] += int(count_block[counttype])
 
-    def increment_key_count(self, dkey, count_type):
-        """
-        Intended to work with the mapstream functions
-        """
+    def increment_key_count(self, source, fieldname, tablename, concept_id, additional, count_type):
+        dkey = DataKey(source, fieldname, tablename, concept_id, additional)
+
         if dkey not in self.datasummary:
-            self.datasummary[dkey] = {}
-        if count_type not in self.datasummary[dkey]:
-            self.datasummary[dkey][count_type] = 0
-        self.datasummary[dkey][count_type] += 1
+            self.datasummary[dkey] = CountData()
+
+        self.datasummary[dkey].increment(count_type)
+
+    def increment_with_datacol(
+            self,
+            source_path: str,
+            target_file: str,
+            datacol: str,
+            out_record: List[str],
+            ) -> None:
+        #Are the parameters for DataKeys hierarchical?
+        #If so, a nested structure where a Source contains n Fields etc. and each has a method to sum its children would be better
+        #But I don't know if that's the desired behaviour
+
+        #A lot of these increment the same thing, so I have defined `increment_this`
+        def increment_this(
+                fieldname: str,
+                concept_id: str,
+                additional = "",
+                ) -> None:
+            self.increment_key_count(
+                    source=source_path,
+                    fieldname=fieldname,
+                    tablename=target_file,
+                    concept_id=concept_id,
+                    additional=additional,
+                    count_type="output_count"
+                    )
+        self.increment_key_count(
+                source=source_path,
+                fieldname="all",
+                tablename="all",
+                concept_id="all",
+                additional="",
+                count_type="output_count"
+                )
+
+        self.increment_key_count(
+                source="all",
+                fieldname="all",
+                tablename=target_file,
+                concept_id="all",
+                additional="",
+                count_type="output_count"
+                )
+        increment_this(fieldname="all", concept_id="all")
+       
+        if target_file == "person":
+            increment_this(fieldname="all", concept_id=out_record[1])
+            increment_this(fieldname="all", concept_id=out_record[1], additional=out_record[2])
+        else:
+            increment_this(fieldname=datacol, concept_id=out_record[2])
+            increment_this(fieldname="all", concept_id=out_record[2])
+            self.increment_key_count(
+                    source="all",
+                    fieldname="all",
+                    tablename=target_file,
+                    concept_id=out_record[2],
+                    additional="",
+                    count_type="output_count"
+                    )
+            self.increment_key_count(
+                    source="all",
+                    fieldname="all",
+                    tablename="all",
+                    concept_id=out_record[2],
+                    additional="",
+                    count_type="output_count"
+                    )
+
 
     def get_summary(self):
         summary_str = "source\ttablename\tname\tcolumn name\tbefore\tafter content check\tpct reject content check\tafter date format check\tpct reject date format\n"
@@ -90,40 +244,54 @@ class Metrics():
     def get_data_summary(self):
         return self.datasummary
 
-    def get_mapstream_summary(self):
-        summary_str = "dsname\tsource\tsource_field\ttarget\tconcept_id\tadditional\tincount\tinvalid_persid\tinvalid_date\tinvalid_source\toutcount\n"
+    def get_mapstream_summary_rows(self) -> List[MapstreamSummaryRow]:
+        """
+        Creates a list of MapstreamSummaryRow from the datasummary
+        """
+        rows = []
 
-        for dkey in sorted(self.datasummary):
-            try:
-                source, fieldname, tablename, concept_id, additional = dkey.split('~')
-            except ValueError:
-                print("get_mapstream_summary - ValueError: {0}".format(dkey))
-                break
-              
-            source = self.get_prefix(source)
-            dvalue = self.datasummary[dkey]
+        for d_key in sorted(self.datasummary.keys(), key=str):
+            source = self.get_prefix(d_key.source)
+            count_data = self.datasummary[d_key]
 
-            input_count = "0"
-            if "input_count" in dvalue:
-                input_count = str(dvalue["input_count"])
+            row = MapstreamSummaryRow(
+                dataset_name=self.dataset_name,
+                source=source,
+                fieldname=d_key.fieldname,
+                tablename=d_key.tablename,
+                concept_id=d_key.concept_id,
+                additional=d_key.additional,
+                input_count=count_data.get_count("input_count"),
+                invalid_person_ids=count_data.get_count("invalid_person_ids"),
+                invalid_date_fields=count_data.get_count("invalid_date_fields"),
+                invalid_source_fields=count_data.get_count("invalid_source_fields"),
+                output_count=count_data.get_count("output_count")
+            )
 
-            invalid_person_ids = "0"
-            if "invalid_person_ids" in dvalue:
-                invalid_person_ids = str(dvalue["invalid_person_ids"])
+            if row.output_count >= self.log_threshold:
+                rows.append(row)
+        return rows
 
-            invalid_source_fields = "0"
-            if "invalid_source_fields" in dvalue:
-                invalid_source_fields = str(dvalue["invalid_source_fields"])
 
-            invalid_date_fields = "0"
-            if "invalid_date_fields" in dvalue:
-                invalid_date_fields = str(dvalue["invalid_date_fields"])
+    def get_mapstream_summary(self) -> str:
+        """
+        Makes a TSV string of the mapstream summary
+        """
+        summary_rows = self.get_mapstream_summary_rows()
+        result = MapstreamSummaryRow.get_header()
+        
+        for row in summary_rows:
+            result += row.to_tsv_row()
+            
+        return result
 
-            output_count = "0"
-            if "output_count" in dvalue:
-                output_count = str(dvalue["output_count"])
-
-            if (int(output_count) >= self.log_threshold):
-              summary_str += self.dataset_name + "\t" + source + "\t" + fieldname + "\t" + tablename + "\t" + concept_id + "\t" + additional +"\t" + input_count + "\t" + invalid_person_ids + "\t" + invalid_date_fields + "\t" + invalid_source_fields + "\t" + output_count + "\n"
-
-        return summary_str
+    def get_mapstream_summary_dict(self) -> Dict:
+        """
+        Makes a dict of the mapstream summary
+        """
+        rows = self.get_mapstream_summary_rows()
+        return {
+            "dataset": self.dataset_name,
+            "threshold": self.log_threshold,
+            "rows": [vars(row) for row in rows]
+        }
