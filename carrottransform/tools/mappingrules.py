@@ -2,8 +2,8 @@ import os
 import json
 import carrottransform.tools as tools
 from .omopcdm import OmopCDM
-from pydantic import BaseModel, Field, ValidationError
-from typing import Union, Dict, Optional
+from pydantic import BaseModel, ValidationError
+from typing import Set, Tuple, Union, Dict, Optional, List
 from pathlib import Path
 
 class RuleSetLoadingError(Exception):
@@ -12,18 +12,72 @@ class RuleSetLoadingError(Exception):
 
 class Metadata(BaseModel):
     date_created: str
-    dateset: str
+    dataset: str
 
-TermMapping = Union[int, float, Dict[str, int]]
+TermMapping = Union[int, Dict[str, int]]
 
 class CdmField(BaseModel):
     source_table: str
     source_field: str
     term_mapping: Optional[TermMapping] = None
 
+class Mapping(BaseModel):
+    source_table: str
+    source_field: str
+    omop_table: str
+    term_mapping: Dict[str, int]
+
 class RuleSet(BaseModel):
     metadata: Metadata
+    # If I'm interpreting the code right, the CDM object has
+    # 1st level: "outfile" - OMOP tables
+    # 2nd level: "conditions" - group of rules
+    # 3rd level: "source_data" - rule
+    # 4th level: CdmField - triple of source table, source field and term mapping
     cdm: Dict[str, Dict[str, Dict[str, CdmField]]]
+
+    @property
+    def dataset_name(self) -> str:
+        return self.metadata.dataset
+
+    @property
+    def omop_tables(self) -> List[str]:
+        """List the OMOP CDM tables mapped to"""
+        # This replaces `get_all_outfile_names`
+        return list(self.cdm.keys())
+
+    @property
+    def source_tables(self) -> Set[str]:
+        """List the unique source tables mapped from"""
+        # This replaces `get_all_infile_names`
+        source_tables = set()
+
+        for omop_table in self.cdm.values():
+            for rule_group in omop_table.values():
+                for rule in rule_group.values():
+                    source_tables.add(rule.source_table)
+        return source_tables
+
+    @property
+    def mappings(self) -> List[Mapping]:
+        mappings = []
+        for table_name, omop_table in self.cdm.items():
+            for rule_group in omop_table.values():
+                for rule in rule_group.values():
+                    if type(rule.term_mapping) == int:
+                        term_mapping = {str(rule.term_mapping), rule.term_mapping}
+                    else:
+                        term_mapping = rule.term_mapping
+                    mappings.append(
+                            Mapping(
+                                source_table=rule.source_table,
+                                source_field=rule.source_field,
+                                omop_table=table_name,
+                                term_mapping=term_mapping,
+                                )
+                            )
+        return mappings
+    
 
 def load_ruleset_from_file(path: Union[str, Path]) -> RuleSet:
     path = Path(path)
@@ -79,7 +133,7 @@ class MappingRules:
         for conditions in self.rules_data["cdm"].values():
             for source_field in conditions.values():
                 for source_data in source_field.values():
-if "source_table" in source_data:
+                    if "source_table" in source_data:
                         if source_data["source_table"] not in file_list:
                             file_list.append(source_data["source_table"])
 
@@ -142,7 +196,7 @@ if "source_table" in source_data:
 
         return birth_datetime_source, person_id_source
 
-    def parse_rules_src_to_tgt(self, infilename):
+    def parse_rules_src_to_tgt(self, infilename):# -> Tuple[List[str], Dict[str, List[]]]:
         """
         Parse rules to produce a map of source to target data for a given input file
         """
