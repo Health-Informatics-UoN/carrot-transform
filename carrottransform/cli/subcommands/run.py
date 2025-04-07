@@ -227,6 +227,8 @@ def mapstream(rules_file, output_dir, write_mode,
                                 key = srcfilename + "~all~" + tgtfile + "~all~"
                                 metrics.increment_key_count(key, "invalid_person_ids")
                                 rejidcounts[srcfilename] += 1
+                    if tgtfile == "person":
+                        break
 
         fh.close()
 
@@ -288,37 +290,55 @@ tuple[bool, list[str], tools.metrics.Metrics]:
     """
     build_records = False
     tgtrecords = []
+    # Get field definitions from OMOP CDM
     date_col_data = omopcdm.get_omop_datetime_linked_fields(tgtfilename)
     date_component_data = omopcdm.get_omop_date_field_components(tgtfilename)
     notnull_numeric_fields = omopcdm.get_omop_notnull_numeric_fields(tgtfilename)
 
+    # Build keys to look up rules
     srckey = srcfilename + "~" + srcfield + "~" + tgtfilename
     summarykey = srcfilename + "~" + srcfield + "~" + tgtfilename + "~all~"
+
+    # Check if source field has a value
     if valid_value(str(srcdata[srccolmap[srcfield]])):
         ## check if either or both of the srckey and summarykey are in the rules
         srcfullkey = srcfilename + "~" + srcfield + "~" + str(srcdata[srccolmap[srcfield]]) + "~" + tgtfilename
+        
         dictkeys = []
-        if srcfullkey in rulesmap:
+        # Check if we have rules for either the full key or just the source field
+        if tgtfilename == "person":
+            build_records = True
+            dictkeys.append(srcfilename + "~person")
+        elif srcfullkey in rulesmap:
             build_records = True
             dictkeys.append(srcfullkey)
         if srckey in rulesmap:
             build_records = True
             dictkeys.append(srckey)
-        if build_records == True:
+
+        if build_records:
+            # Process each matching rule
             for dictkey in dictkeys:
                 for out_data_elem in rulesmap[dictkey]:
                     valid_data_elem = True
                     ## create empty list to store the data. Populate numerical data elements with 0 instead of empty string.
                     tgtarray = ['']*len(tgtcolmap)
+                    # Initialize numeric fields to 0
                     for req_integer in notnull_numeric_fields:
                         tgtarray[tgtcolmap[req_integer]] = "0"
+
+                    # Process each field mapping
                     for infield, outfield_list in out_data_elem.items():
                         for output_col_data in outfield_list:
                             if "~" in output_col_data:
+                                # Handle mapped values (like gender codes)
                                 outcol, term = output_col_data.split("~")
                                 tgtarray[tgtcolmap[outcol]] = term
                             else:
+                                # Direct field copy
                                 tgtarray[tgtcolmap[output_col_data]] = srcdata[srccolmap[infield]]
+
+                            # Special handling for date fields
                             if output_col_data in date_component_data:
                                 ## parse the date and store it in the proper format
                                 strdate = srcdata[srccolmap[infield]].split(" ")[0]
