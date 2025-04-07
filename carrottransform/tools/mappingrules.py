@@ -3,7 +3,7 @@ import json
 import carrottransform.tools as tools
 from .omopcdm import OmopCDM
 from pydantic import BaseModel, ValidationError
-from typing import Set, Tuple, Union, Dict, Optional, List
+from typing import Set, Union, Dict, Optional, List
 from pathlib import Path
 
 class RuleSetLoadingError(Exception):
@@ -21,6 +21,20 @@ class CdmField(BaseModel):
     source_field: str
     term_mapping: Optional[TermMapping] = None
 
+
+# If we want to keep the idea of a dictionary for fast lookup of mappings, this key captures the info
+# This is basically synonymous with the DataKey class from Metrics, and bringing these together would be useful
+class MappingKey(BaseModel):
+    source_table: str
+    source_field: str
+    omop_table: str
+    target_field: str
+    rule_label: str
+
+    def __hash__(self) -> int:
+        return hash((self.source_table, self.source_field, self.omop_table, self.target_field, self.rule_label))
+
+# There's some data duplication here, but leaving it in for flexibility
 class Mapping(BaseModel):
     source_table: str
     source_field: str
@@ -38,6 +52,7 @@ class RuleSet(BaseModel):
     # 4th level: CdmField - triple of source table, source field and term mapping
     cdm: Dict[str, Dict[str, Dict[str, CdmField]]]
 
+    # You can get the JSON out with RuleSet.model_dump_json()
     @property
     def dataset_name(self) -> str:
         return self.metadata.dataset
@@ -61,8 +76,8 @@ class RuleSet(BaseModel):
         return source_tables
 
     @property
-    def mappings(self) -> List[Mapping]:
-        mappings = []
+    def mappings(self) -> Dict[MappingKey, Mapping]:
+        mappings = {}
         for table_name, omop_table in self.cdm.items():
             for rule_label, rule_group in omop_table.items():
                 for target_field, rule in rule_group.items():
@@ -70,15 +85,21 @@ class RuleSet(BaseModel):
                         term_mapping = {str(rule.term_mapping), rule.term_mapping}
                     else:
                         term_mapping = rule.term_mapping
-                    mappings.append(
-                            Mapping(
-                                source_table=rule.source_table,
-                                source_field=rule.source_field,
-                                omop_table=table_name,
-                                target_field=target_field,
-                                rule_label=rule_label,
-                                term_mapping=term_mapping,
-                                )
+                    m_key = MappingKey(
+                            source_table=rule.source_table,
+                            source_field=rule.source_field,
+                            omop_table=table_name,
+                            target_field=target_field,
+                            rule_label=rule_label,
+                            )
+                    # Obviously there's some duplication here, but this way we have a fast lookup for the mappings, and if any methods that need the extra parameters need to be added to the Mapping class, it's still there.
+                    mappings[m_key] = Mapping(
+                            source_table=rule.source_table,
+                            source_field=rule.source_field,
+                            omop_table=table_name,
+                            target_field=target_field,
+                            rule_label=rule_label,
+                            term_mapping=term_mapping,
                             )
         return mappings
     
