@@ -1,5 +1,6 @@
 import csv
-import os, time
+import os
+import time
 import datetime
 import fnmatch
 import sys
@@ -333,7 +334,14 @@ def get_target_records(
                                     fulldate = "{0}-{1:02}-{2:02}".format(dt.year, dt.month, dt.day)
                                     tgtarray[tgtcolmap[output_col_data]] = fulldate
                                 else:
-                                    metrics.increment_key_count(summarykey, "invalid_date_fields")
+                                    metrics.increment_key_count(
+                                            source=srcfilename,
+                                            fieldname=srcfield,
+                                            tablename=tgtfilename,
+                                            concept_id="all",
+                                            additional="",
+                                            count_type="invalid_date_fields"
+                                            )
                                     valid_data_elem = False
                             elif output_col_data in date_col_data:
                                 fulldate = srcdata[srccolmap[infield]]
@@ -342,7 +350,14 @@ def get_target_records(
                     if valid_data_elem:
                         tgtrecords.append(tgtarray)
     else:
-        metrics.increment_key_count(summarykey, "invalid_source_fields")
+        metrics.increment_key_count(
+                source=srcfilename,
+                fieldname=srcfield,
+                tablename=tgtfilename,
+                concept_id="all",
+                additional="",
+                count_type="invalid_source_fields"
+                )
 
 
     return build_records, tgtrecords, metrics

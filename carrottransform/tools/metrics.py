@@ -50,20 +50,20 @@ class MapstreamSummaryRow:
     
     def to_tsv_row(self) -> str:
         """Convert the row to a tab-separated string"""
-        row_list = [
-                self.dataset_name,
-                self.source,
-                self.fieldname,
-                self.tablename,
-                self.concept_id,
-                self.additional,
-                self.input_count,
-                self.invalid_person_ids,
-                self.invalid_date_fields,
-                self.invalid_source_fields,
-                self.output_count
-                ]
-        # In later python versions, you can put the join expression right in the f-string
+        row_list = [str(col) for col in [
+            self.dataset_name,
+            self.source,
+            self.fieldname,
+            self.tablename,
+            self.concept_id,
+            self.additional,
+            self.input_count,
+            self.invalid_person_ids,
+            self.invalid_date_fields,
+            self.invalid_source_fields,
+            self.output_count
+            ]]
+        # If python gets updated, you can move the row_str expression into the f-string
         row_str = '\t'.join(row_list)
         return f"{row_str}\n"
     
