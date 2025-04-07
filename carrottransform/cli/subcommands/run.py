@@ -14,6 +14,17 @@ from typing import Iterator, IO
 import logging
 logger = logging.getLogger(__name__)
 
+if not logger.handlers:
+    logger.setLevel(logging.INFO)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+
+    logger.addHandler(console_handler)
+
 @click.group(help="Commands for mapping data to the OMOP CommonDataModel (CDM).")
 def run():
     pass
@@ -587,6 +598,3 @@ def get_person_lookup(saved_person_id_file: str) -> tuple[dict[str, str], int]:
     return person_lookup, last_used_integer
 
 run.add_command(mapstream,"mapstream")
-
-if __name__== '__main__':
-    mapstream()

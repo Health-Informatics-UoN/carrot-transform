@@ -13,6 +13,20 @@ To run them (liek we/I do on Windows)
     - `poetry install` [from root](.)
 3. run `poetry pytest`
     - ... or `nodemon -x "poetry run pytest" --ext py`
-    - at time of writing there's a unit test failure related to the `/` `\` thing on file paths
 
-##
+## running from source
+
+1. setup the venv (as for pytest above)
+2. install the dependencies
+    - `poetry install` [from root](.)
+3. make the output dir `mkdir build` or something
+3. run the command
+    ```
+    carrot-transform run mapstream
+        carrottransform/examples/test/inputs
+        --rules-file  carrottransform/examples/test/rules/rules_14June2021.json
+        --person-file carrottransform/examples/test/inputs/Demographics.csv
+        --output-dir build
+        --omop-ddl-file carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql
+        --omop-config-file carrottransform/config/omop.json
+    ```
