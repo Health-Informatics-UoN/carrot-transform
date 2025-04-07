@@ -122,7 +122,13 @@ class MappingRules:
                 if key != "":
                     if key not in outdata:
                         outdata[key] = []
-                    outdata[key].append(data)
+                        if key.split("~")[-1] == "person":
+                            outdata[key].append(data)
+
+                    if key.split("~")[-1] == "person":
+                        outdata[key][0].update(data)
+                    else:
+                        outdata[key].append(data)
                     if outfilename not in outfilenames:
                         outfilenames.append(outfilename)
 
@@ -130,25 +136,71 @@ class MappingRules:
         self.outfile_names[infilename] = outfilenames
         return outfilenames, outdata
 
+# def process_person_rules(self, infilename, rules):
+#         outfile = "person"
+#         outkey = ""
+#         data = {}
+#         plain_key = ""
+#         term_value_key = ""
+#         for outfield, source_info in rules.items():
+#             if source_info["source_field"] not in data:
+#                 data[source_info["source_field"]] = []
+#             if source_info["source_table"] == infilename:
+#                 ## if it's an actual mapping term, like ethnicity, gender, etc. and not a field like DOB
+#                 if "term_mapping" in source_info:
+#                     if type(source_info["term_mapping"]) is dict:
+#                         term_value_key = infilename + "~person"
+#                         if "person" not in data:
+#                             data["person"]={}
+#                         if source_info["source_field"] not in data["person"]:
+#                             data["person"][source_info["source_field"]] = []  # Initialize the list
+#                         for inputvalue, term in source_info["term_mapping"].items():
+#                             data["person"][source_info["source_field"]].append(outfield + "~" + str(source_info["term_mapping"][str(inputvalue)]))
+                    
+
+#                     else:
+#                         plain_key = infilename + "~" + source_info["source_field"] + "~" + outfilename
+#                         data[source_info["source_field"]].append(outfield + "~" + str(source_info["term_mapping"]))
+#                 else:
+#                     data[source_info["source_field"]].append(outfield)
+#         if term_value_key != "":
+#             return term_value_key, data
+
+#         return plain_key, data
+        
+        
+#         pass 
+
+
+
     def process_rules(self, infilename, outfilename, rules):
         """
         Process rules for an infile, outfile combination
         """
+        #if outfilename == "person":
+            #return self.process_person_rules(infilename, rules)
+        
+        #else:
         outkey = ""
         data = {}
-        plain_key = ""
-        term_value_key = ""
+        plain_key = ""  ### used for mapping simple fields that are always mapped (e.g., dob)
+        term_value_key = ""  ### used for mapping terms (e.g., gender, race, ethnicity)
 
         ## iterate through the rules, looking for rules that apply to the input file.
         for outfield, source_info in rules.items():
+            # Initialize list for each source field
             if source_info["source_field"] not in data:
                 data[source_info["source_field"]] = []
+            # Check if this rule applies to our input file
             if source_info["source_table"] == infilename:
                 if "term_mapping" in source_info:
                     if type(source_info["term_mapping"]) is dict:
                         for inputvalue, term in source_info["term_mapping"].items():
                             ## add a key/add to the list of data in the dict for the given input file
-                            term_value_key = infilename + "~" + source_info["source_field"] + "~" + str(inputvalue) + "~" + outfilename
+                            if outfilename == "person":
+                                term_value_key = infilename + "~person"
+                            else:
+                                term_value_key = infilename + "~" + source_info["source_field"] + "~" + str(inputvalue) + "~" + outfilename
                             data[source_info["source_field"]].append(outfield + "~" + str(source_info["term_mapping"][str(inputvalue)]))
                     else:
                         plain_key = infilename + "~" + source_info["source_field"] + "~" + outfilename
