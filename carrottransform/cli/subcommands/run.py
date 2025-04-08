@@ -1,5 +1,6 @@
 import csv
-import os, time
+import os
+import time
 import datetime
 import fnmatch
 import sys
@@ -15,6 +16,16 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+if not logger.handlers:
+    logger.setLevel(logging.INFO)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    console_handler.setFormatter(formatter)
+
+    logger.addHandler(console_handler)
 
 @click.group(help="Commands for mapping data to the OMOP CommonDataModel (CDM).")
 def run():
@@ -125,23 +136,19 @@ def mapstream(rules_file, output_dir, write_mode,
 
     saved_person_id_file = set_saved_person_id_file(saved_person_id_file, output_dir)
 
-    starttime = time.time()
+    start_time = time.time()
     ## create OmopCDM object, which contains attributes and methods for the omop data tables.
     omopcdm = tools.omopcdm.OmopCDM(omop_ddl_file, omop_config_file)
 
     ## mapping rules determine the ouput files? which input files and fields in the source data, AND the mappings to omop concepts
     mappingrules = tools.mappingrules.MappingRules(rules_file, omopcdm)
     metrics = tools.metrics.Metrics(mappingrules.get_dataset_name(), log_file_threshold)
-    nowtime = time.time()
 
     logger.info(
         "--------------------------------------------------------------------------------"
     )
-    logger.info(
-        "Loaded mapping rules from: {0} in {1:.5f} secs".format(
-            rules_file, (nowtime - starttime)
-        )
-    )
+    logger.info(f"Loaded mapping rules from: {rules_file} in {time.time() - start_time:.5f} secs")
+    
     output_files = mappingrules.get_all_outfile_names()
 
     ## set record number
@@ -149,9 +156,8 @@ def mapstream(rules_file, output_dir, write_mode,
     record_numbers = {}
     for output_file in output_files:
         record_numbers[output_file] = 1
-    if last_used_ids_file != None:
-        if os.path.isfile(last_used_ids_file):
-            record_numbers = load_last_used_ids(last_used_ids_file, record_numbers)
+    if (last_used_ids_file is not None) and (os.path.isfile(last_used_ids_file)):
+        record_numbers = load_last_used_ids(last_used_ids_file, record_numbers)
 
     fhd = {}
     tgtcolmaps = {}
@@ -160,14 +166,16 @@ def mapstream(rules_file, output_dir, write_mode,
 
     try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
-        person_lookup, rejected_person_count = load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_person_ids)
+        person_lookup, rejected_person_count = load_person_ids(saved_person_id_file,
+                                                               person_file, mappingrules,
+                                                               use_input_person_ids)
         ## open person_ids output file
         with open(saved_person_id_file, mode="w") as fhpout:
             ## write the header to the file
             fhpout.write("SOURCE_SUBJECT\tTARGET_SUBJECT\n")
             ##iterate through the ids and write them to the file.
             for person_id, person_assigned_id in person_lookup.items():
-                fhpout.write("{0}\t{1}\n".format(str(person_id), str(person_assigned_id)))
+                fhpout.write(f"{str(person_id)}\t{str(person_assigned_id)}")
 
         ## Initialise output files (adding them to a dict), output a header for each
         ## these aren't being closed deliberately
@@ -181,16 +189,10 @@ def mapstream(rules_file, output_dir, write_mode,
             tgtcolmaps[tgtfile] = omopcdm.get_omop_column_map(tgtfile)
 
     except IOError as e:
-        logger.exception(
-            "I/O - error({0}): {1} -> {2}".format(e.errno, e.strerror, str(e))
-        )
+        logger.exception(f"I/O - error({e.errno}): {e.strerror} -> {str(e)}")
         exit()
 
-    logger.info(
-        "person_id stats: total loaded {0}, reject count {1}".format(
-            len(person_lookup), rejected_person_count
-        )
-    )
+    logger.info(f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}")
 
     ## Compare files found in the input_dir with those expected based on mapping rules
     existing_input_files = fnmatch.filter(os.listdir(input_dir[0]), "*.csv")
@@ -237,20 +239,33 @@ def mapstream(rules_file, output_dir, write_mode,
         logger.info(
             "--------------------------------------------------------------------------------"
         )
-        logger.info("Processing input: {0}".format(srcfilename))
+        logger.info(f"Processing input: {srcfilename}")
 
         # for each input record
         for indata in csvr:
-            key = srcfilename + "~all~all~all~"
-            metrics.increment_key_count(key, "input_count")
+            metrics.increment_key_count(
+                    source=srcfilename,
+            fieldname="all",
+                    tablename="all",
+                    concept_id="all",
+                    additional="",
+                    count_type="input_count"
+                    )
             rcount += 1
             # if there is a date, parse it - read it is a string and convert to YYYY-MM-DD
             strdate = indata[datetime_col].split(" ")[0]
             fulldate = parse_date(strdate)
-            if fulldate != None:
+            if fulldate is not None:
                 indata[datetime_col] = fulldate
             else:
-                metrics.increment_key_count(key, "invalid_date_fields")
+                metrics.increment_key_count(
+                    source=srcfilename,
+                    fieldname="all",
+                    tablename="all",
+                    concept_id="all",
+                    additional="",
+                    count_type="input_date_fields"
+                    )
                 continue
 
             for tgtfile in tgtfiles:
@@ -264,9 +279,9 @@ def mapstream(rules_file, output_dir, write_mode,
 
                 for datacol in datacols:
                     built_records, outrecords, metrics = get_target_records(tgtfile, tgtcolmap, src_to_tgt, datacol, indata, inputcolmap, srcfilename, omopcdm, metrics)
-                    if built_records == True:
+                    if built_records:
                         for outrecord in outrecords:
-                            if auto_num_col != None:
+                            if auto_num_col is not None:
                                 outrecord[tgtcolmap[auto_num_col]] = str(record_numbers[tgtfile])
                                 ### most of the rest of this section is actually to do with metrics
                                 record_numbers[tgtfile] += 1
@@ -274,27 +289,31 @@ def mapstream(rules_file, output_dir, write_mode,
                                 outrecord[tgtcolmap[pers_id_col]] = person_lookup[outrecord[tgtcolmap[pers_id_col]]]
                                 outcounts[tgtfile] += 1
 
-                                increment_key_counts(srcfilename, metrics, tgtfile, datacol, outrecord)
+                                metrics.increment_with_datacol(
+                                        source_path=srcfilename,
+                                        target_file=tgtfile,
+                                        datacol=datacol,
+                                        out_record=outrecord
+                                        )
 
                                 # write the line to the file
                                 fhd[tgtfile].write("\t".join(outrecord) + "\n")
                             else:
-                                key = srcfilename + "~all~" + tgtfile + "~all~"
-                                metrics.increment_key_count(key, "invalid_person_ids")
+                                metrics.increment_key_count(
+                                        source=srcfilename,
+                                        fieldname="all",
+                                        tablename=tgtfile,
+                                        concept_id="all",
+                                        additional="",
+                                        count_type="invalid_person_ids",
+                                        )
                                 rejidcounts[srcfilename] += 1
 
         fh.close()
 
-        nowtime = time.time()
-        logger.info(
-            "INPUT file data : {0}: input count {1}, time since start {2:.5} secs".format(
-                srcfilename, str(rcount), (nowtime - starttime)
-            )
-        )
+        logger.info(f"INPUT file data : {srcfilename}: input count {str(rcount)}, time since start {time.time() - start_time:.5} secs")
         for outtablename, count in outcounts.items():
-            logger.info(
-                "TARGET: {0}: output count {1}".format(outtablename, str(count))
-            )
+            logger.info(f"TARGET: {outtablename}: output count {str(count)}")
     # END main processing loop
 
     logger.info(
@@ -306,45 +325,24 @@ def mapstream(rules_file, output_dir, write_mode,
         dsfh.write(data_summary)
         dsfh.close()
     except IOError as e:
-        logger.exception("I/O error({0}): {1}".format(e.errno, e.strerror))
+        logger.exception(f"I/O error({e.errno}): {e.strerror}")
         logger.exception("Unable to write file")
         raise e
 
     # END mapstream
-    nowtime = time.time()
-    logger.info("Elapsed time = {0:.5f} secs".format(nowtime - starttime))
+    logger.info(f"Elapsed time = {time.time() - start_time:.5f} secs")
 
-def increment_key_counts(srcfilename: str, metrics: tools.metrics.Metrics, tgtfile: str, datacol: str, outrecord: list[str]) -> None:
-    key = srcfilename + "~all~all~all~"
-    metrics.increment_key_count(key, "output_count")
 
-    key = "all~all~" + tgtfile + "~all~"
-    metrics.increment_key_count(key, "output_count")
-
-    key = srcfilename + "~all~" + tgtfile + "~all~"
-    metrics.increment_key_count(key, "output_count")
-
-    if tgtfile == "person":
-        key = srcfilename + "~all~" + tgtfile + "~" + outrecord[1] + "~"
-        metrics.increment_key_count(key, "output_count")
-
-        key = srcfilename + "~" + datacol + "~" + tgtfile + "~" + outrecord[1] + "~" + outrecord[2]
-        metrics.increment_key_count(key, "output_count")
-    else:
-        key = srcfilename + "~" + datacol + "~" + tgtfile + "~" + outrecord[2] + "~"
-        metrics.increment_key_count(key, "output_count")
-
-        key = srcfilename + "~all~" + tgtfile + "~" + outrecord[2] + "~"
-        metrics.increment_key_count(key, "output_count")
-
-        key = "all~all~" + tgtfile + "~" + outrecord[2] + "~"
-        metrics.increment_key_count(key, "output_count")
-
-        key = "all~all~all~" + outrecord[2] + "~"
-        metrics.increment_key_count(key, "output_count")
-    return
-
-def get_target_records(tgtfilename: str, tgtcolmap: dict[str, dict[str, int]], rulesmap: dict[str, list[dict[str, list[str]]]], srcfield: str, srcdata: list[str], srccolmap: dict[str, int], srcfilename: str, omopcdm: OmopCDM, metrics: tools.metrics.Metrics) -> tuple[bool, list[str], tools.metrics.Metrics]:
+def get_target_records(
+        tgtfilename: str,
+        tgtcolmap: dict[str, dict[str, int]],
+        rulesmap: dict[str, list[dict[str, list[str]]]],
+        srcfield: str,
+        srcdata: list[str],
+        srccolmap: dict[str, int],
+        srcfilename: str,
+        omopcdm: OmopCDM,
+        metrics: tools.metrics.Metrics) -> tuple[bool, list[str], tools.metrics.Metrics]:
     """
     build all target records for a given input field
     """
@@ -354,8 +352,8 @@ def get_target_records(tgtfilename: str, tgtcolmap: dict[str, dict[str, int]], r
     date_component_data = omopcdm.get_omop_date_field_components(tgtfilename)
     notnull_numeric_fields = omopcdm.get_omop_notnull_numeric_fields(tgtfilename)
 
-    srckey = srcfilename + "~" + srcfield + "~" + tgtfilename
-    summarykey = srcfilename + "~" + srcfield + "~" + tgtfilename + "~all~"
+    srckey = f"{srcfilename}~{srcfield}~{tgtfilename}"
+    summarykey = srckey + "~all~"
     if valid_value(str(srcdata[srccolmap[srcfield]])):
         ## check if either or both of the srckey and summarykey are in the rules
         srcfullkey = srcfilename + "~" + srcfield + "~" + str(srcdata[srccolmap[srcfield]]) + "~" + tgtfilename
@@ -366,7 +364,7 @@ def get_target_records(tgtfilename: str, tgtcolmap: dict[str, dict[str, int]], r
         if srckey in rulesmap:
             build_records = True
             dictkeys.append(srckey)
-        if build_records == True:
+        if build_records:
             for dictkey in dictkeys:
                 for out_data_elem in rulesmap[dictkey]:
                     valid_data_elem = True
@@ -395,16 +393,30 @@ def get_target_records(tgtfilename: str, tgtcolmap: dict[str, dict[str, int]], r
                                     fulldate = "{0}-{1:02}-{2:02}".format(dt.year, dt.month, dt.day)
                                     tgtarray[tgtcolmap[output_col_data]] = fulldate
                                 else:
-                                    metrics.increment_key_count(summarykey, "invalid_date_fields")
+                                    metrics.increment_key_count(
+                                            source=srcfilename,
+                                            fieldname=srcfield,
+                                            tablename=tgtfilename,
+                                            concept_id="all",
+                                            additional="",
+                                            count_type="invalid_date_fields"
+                                            )
                                     valid_data_elem = False
                             elif output_col_data in date_col_data:
                                 fulldate = srcdata[srccolmap[infield]]
                                 tgtarray[tgtcolmap[output_col_data]] = fulldate
                                 tgtarray[tgtcolmap[date_col_data[output_col_data]]] = fulldate
-                    if valid_data_elem == True:
+                    if valid_data_elem:
                         tgtrecords.append(tgtarray)
     else:
-        metrics.increment_key_count(summarykey, "invalid_source_fields")
+        metrics.increment_key_count(
+                source=srcfilename,
+                fieldname=srcfield,
+                tablename=tgtfilename,
+                concept_id="all",
+                additional="",
+                count_type="invalid_source_fields"
+                )
 
     return build_records, tgtrecords, metrics
 
@@ -417,6 +429,11 @@ def valid_value(item):
         return False
     return True
 
+
+# DATE TESTING
+# ------------
+# I started by changing the get_datetime_value to be neater.
+# I think it should be handled all as one thing, but I've spent too much time doing this already
 
 def valid_date_value(item):
     """
@@ -433,36 +450,23 @@ def valid_date_value(item):
 
 def get_datetime_value(item):
     """
-    Check if a date item is non null and parses as ISO (YYYY-MM-DD), reverse-ISO
-    or dd/mm/yyyy or mm/dd/yyyy
+    Check if a date item is non-null and parses as ISO (YYYY-MM-DD), reverse-ISO (DD-MM-YYYY),
+    or UK format (DD/MM/YYYY).
+    Returns a datetime object if successful, None otherwise.
     """
-    dt = None
-    # Does the date parse as an ISO date?
-    try:
-        dt = datetime.datetime.strptime(item, "%Y-%m-%d")
-    except ValueError:
-        pass
-    if dt != None:
-        return dt
-
-    # Does the date parse as a reverse ISO date?
-    try:
-        dt = datetime.datetime.strptime(item, "%d-%m-%Y")
-    except ValueError:
-        pass
-
-    if dt != None:
-        return dt
-
-    # Does the date parse as a UK old-style date?
-    try:
-        dt = datetime.datetime.strptime(item, "%d/%m/%Y")
-    except ValueError:
-        pass
-
-    if dt != None:
-        return dt
-
+    date_formats = [
+        "%Y-%m-%d",  # ISO format (YYYY-MM-DD)
+        "%d-%m-%Y",  # Reverse ISO format (DD-MM-YYYY)
+        "%d/%m/%Y",  # UK old-style format (DD/MM/YYYY)
+    ]
+    
+    for date_format in date_formats:
+        try:
+            return datetime.datetime.strptime(item, date_format)
+        except ValueError:
+            continue
+    
+    # If we get here, none of the formats worked
     return None
 
 
@@ -476,8 +480,8 @@ def parse_date(item):
     if len(datedata) != 3:
         return None
     if len(datedata[2]) == 4:
-        return("{0}-{1}-{2}".format(datedata[2], datedata[1], datedata[0]))
-    return("{0}-{1}-{2}".format(datedata[0], datedata[1], datedata[2]))
+        return(f"{datedata[2]}-{datedata[1]}-{datedata[0]}".format(datedata[2], datedata[1], datedata[0]))
+    return "-".join(datedata[:3])
 
 def valid_iso_date(item):
     """
@@ -514,6 +518,8 @@ def valid_uk_date(item):
 
     return True
 
+
+# End of date code
 
 def load_last_used_ids(last_used_ids_file, last_used_ids):
     fh = open(last_used_ids_file, mode="r", encoding="utf-8-sig")
@@ -671,5 +677,4 @@ def get_person_lookup(saved_person_id_file: str) -> tuple[dict[str, str], int]:
 
 run.add_command(mapstream,"mapstream")
 
-if __name__== '__main__':
-    mapstream()
+

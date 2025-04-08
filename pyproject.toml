@@ -17,6 +17,7 @@ numpy = "<2"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.4"
+numpy = "<2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.2.0"

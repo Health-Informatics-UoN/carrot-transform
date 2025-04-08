@@ -33,7 +33,7 @@ def test_with_example(tmp_path: Path, caplog):
     # setup test environment(ish) in the folder
 
     # capture all
-    caplog.set_level(logging.INFO)
+    caplog.set_level(logging.DEBUG)
 
     # rules from carrot mapper
     rules_src = Path("carrottransform/examples/test/rules/rules_14June2021.json")
