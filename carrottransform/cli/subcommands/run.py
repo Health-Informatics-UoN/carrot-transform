@@ -329,14 +329,28 @@ tuple[bool, list[str], tools.metrics.Metrics]:
 
                     # Process each field mapping
                     for infield, outfield_list in out_data_elem.items():
-                        for output_col_data in outfield_list:
-                            if "~" in output_col_data:
-                                # Handle mapped values (like gender codes)
-                                outcol, term = output_col_data.split("~")
-                                tgtarray[tgtcolmap[outcol]] = term
-                            else:
-                                # Direct field copy
-                                tgtarray[tgtcolmap[output_col_data]] = srcdata[srccolmap[infield]]
+                        if tgtfilename == "person" and isinstance(outfield_list, dict):
+                            # Handle term mappings for person records
+                            input_value = srcdata[srccolmap[infield]]
+                            if str(input_value) in outfield_list:
+                                for output_col_data in outfield_list[str(input_value)]:
+                                    if "~" in output_col_data:
+                                        # Handle mapped values (like gender codes)
+                                        outcol, term = output_col_data.split("~")
+                                        tgtarray[tgtcolmap[outcol]] = term
+                                    else:
+                                        # Direct field copy
+                                        tgtarray[tgtcolmap[output_col_data]] = srcdata[srccolmap[infield]]
+                        else:
+                            # Handle direct field copies and non-person records
+                            for output_col_data in outfield_list:
+                                if "~" in output_col_data:
+                                    # Handle mapped values (like gender codes)
+                                    outcol, term = output_col_data.split("~")
+                                    tgtarray[tgtcolmap[outcol]] = term
+                                else:
+                                    # Direct field copy
+                                    tgtarray[tgtcolmap[output_col_data]] = srcdata[srccolmap[infield]]
 
                             # Special handling for date fields
                             if output_col_data in date_component_data:
