@@ -126,7 +126,15 @@ class MappingRules:
                             outdata[key].append(data)
 
                     if key.split("~")[-1] == "person":
-                        outdata[key][0].update(data)
+                        # Find matching source field keys and merge their dictionaries
+                        for source_field, value in data.items():
+                            if source_field in outdata[key][0] and isinstance(outdata[key][0][source_field], dict):
+                                # Merge the dictionaries for this source field
+                                outdata[key][0][source_field].update(value)
+                            else:
+                                # If no matching dict or new source field, just set it
+                                outdata[key][0][source_field] = value
+                            pass
                     else:
                         outdata[key].append(data)
                     if outfilename not in outfilenames:
@@ -177,10 +185,6 @@ class MappingRules:
         """
         Process rules for an infile, outfile combination
         """
-        #if outfilename == "person":
-            #return self.process_person_rules(infilename, rules)
-        
-        #else:
         outkey = ""
         data = {}
         plain_key = ""  ### used for mapping simple fields that are always mapped (e.g., dob)
@@ -188,25 +192,36 @@ class MappingRules:
 
         ## iterate through the rules, looking for rules that apply to the input file.
         for outfield, source_info in rules.items():
-            # Initialize list for each source field
-            if source_info["source_field"] not in data:
-                data[source_info["source_field"]] = []
             # Check if this rule applies to our input file
             if source_info["source_table"] == infilename:
                 if "term_mapping" in source_info:
                     if type(source_info["term_mapping"]) is dict:
                         for inputvalue, term in source_info["term_mapping"].items():
-                            ## add a key/add to the list of data in the dict for the given input file
                             if outfilename == "person":
                                 term_value_key = infilename + "~person"
+                                source_field = source_info["source_field"]
+                                if source_field not in data:
+                                    data[source_field] = {}
+                                if str(inputvalue) not in data[source_field]:
+                                    data[source_field][str(inputvalue)] = []
+                                data[source_field][str(inputvalue)].append(outfield + "~" + str(term))
                             else:
                                 term_value_key = infilename + "~" + source_info["source_field"] + "~" + str(inputvalue) + "~" + outfilename
-                            data[source_info["source_field"]].append(outfield + "~" + str(source_info["term_mapping"][str(inputvalue)]))
+                                if source_info["source_field"] not in data:
+                                    data[source_info["source_field"]] = []
+                                data[source_info["source_field"]].append(outfield + "~" + str(term))
                     else:
                         plain_key = infilename + "~" + source_info["source_field"] + "~" + outfilename
+                        if source_info["source_field"] not in data:
+                            data[source_info["source_field"]] = []
                         data[source_info["source_field"]].append(outfield + "~" + str(source_info["term_mapping"]))
                 else:
-                    data[source_info["source_field"]].append(outfield)
+                    if source_info["source_field"] not in data:
+                        data[source_info["source_field"]] = []
+                    if type(data[source_info["source_field"]]) is dict:
+                        data[source_info["source_field"]][str(inputvalue)].append(outfield)
+                    else: 
+                        data[source_info["source_field"]].append(outfield)
         if term_value_key != "":
             return term_value_key, data
 
