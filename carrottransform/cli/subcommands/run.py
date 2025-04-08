@@ -1,21 +1,22 @@
-import csv
-import os
-import time
-import datetime
-import fnmatch
-import sys
-import click
-import json
-import importlib.resources
+
+from carrottransform.tools.click import PathArgs
+from carrottransform.tools.omopcdm import OmopCDM
+from pathlib import Path
+from typing import Iterator, IO
 import carrottransform
 import carrottransform.tools as tools
-from carrottransform.tools.omopcdm import OmopCDM
-from typing import Iterator, IO
-from pathlib import Path
+import click
+import csv
+import datetime
+import fnmatch
+import importlib.resources
+import json
 import logging
+import os
+import sys
+import time
 
 logger = logging.getLogger(__name__)
-
 if not logger.handlers:
     logger.setLevel(logging.INFO)
 
@@ -33,29 +34,29 @@ def run():
 
 
 @click.command()
-@click.option("--rules-file",
+@click.option("--rules-file", type=PathArgs,
               required=True,
               help="json file containing mapping rules")
-@click.option("--output-dir",
+@click.option("--output-dir", type=PathArgs,
               default=None,
               help="define the output directory for OMOP-format tsv files")
 @click.option("--write-mode",
               default='w',
               type=click.Choice(['w','a']),
               help="force write-mode on output files")
-@click.option("--person-file",
+@click.option("--person-file", type=PathArgs,
               required=True,
               help="File containing person_ids in the first column")
-@click.option("--omop-ddl-file",
+@click.option("--omop-ddl-file", type=PathArgs,
               required=False,
               help="File containing OHDSI ddl statements for OMOP tables")
-@click.option("--omop-config-file",
+@click.option("--omop-config-file", type=PathArgs,
               required=False,
               help="File containing additional / override json config for omop outputs")
 @click.option("--omop-version",
               required=False,
               help="Quoted string containing omop version - eg '5.3'")
-@click.option("--saved-person-id-file",
+@click.option("--saved-person-id-file", type=PathArgs,
               default=None,
               required=False,
               help="Full path to person id file used to save person_id state and share person_ids between data sets")
@@ -63,7 +64,7 @@ def run():
               required=False,
               default='N',
               help="Use person ids as input without generating new integers")
-@click.option("--last-used-ids-file",
+@click.option("--last-used-ids-file", type=PathArgs,
               default=None,
               required=False,
               help="Full path to last used ids file for OMOP tables - format: tablename\tlast_used_id, \nwhere last_used_id must be an integer")
@@ -71,13 +72,21 @@ def run():
               required=False,
               default=0,
               help="Lower outcount limit for logfile output")
-@click.argument("input-dir",
-                required=False,
-                nargs=-1)
-def mapstream(rules_file, output_dir, write_mode, 
-              person_file, omop_ddl_file, omop_config_file, 
-              omop_version, saved_person_id_file, use_input_person_ids, 
-              last_used_ids_file, log_file_threshold, input_dir):
+@click.argument("input-dir", type=PathArgs, required=False, nargs=-1)
+def mapstream(
+    rules_file: Path,
+    output_dir: Path,
+    write_mode,
+    person_file: Path,
+    omop_ddl_file: Path,
+    omop_config_file: Path,
+    omop_version,
+    saved_person_id_file: Path,
+    use_input_person_ids,
+    last_used_ids_file: Path,
+    log_file_threshold,
+    input_dir: Path,
+):
     """
     Map to output using input streams
     """
@@ -109,23 +118,6 @@ def mapstream(rules_file, output_dir, write_mode,
         )
     )
 
-    ##
-    # create path objects for parameters as needed
-    rules_file = rules_file  # yes it's a path BUT it hasn't been converted
-    output_dir = Path(output_dir) if output_dir else None
-    # not a file # write_mode
-    person_file = Path(person_file) if person_file else None
-    omop_ddl_file = Path(omop_ddl_file) if omop_ddl_file else None
-    omop_config_file = Path(omop_config_file) if omop_config_file else None
-    # not a file # omop_version
-    saved_person_id_file = Path(saved_person_id_file) if saved_person_id_file else None
-    # not a file # use_input_person_ids
-    last_used_ids_file = (
-        last_used_ids_file  # yes it's a path BUT it hasn't been converted
-    )
-    # not a file # log_file_threshold
-    input_dir = tuple(map(Path, input_dir)) if input_dir else None
-
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(
         omop_ddl_file, omop_config_file, omop_version
@@ -147,8 +139,10 @@ def mapstream(rules_file, output_dir, write_mode,
     logger.info(
         "--------------------------------------------------------------------------------"
     )
-    logger.info(f"Loaded mapping rules from: {rules_file} in {time.time() - start_time:.5f} secs")
-    
+    logger.info(
+        f"Loaded mapping rules from: {rules_file} in {time.time() - start_time:.5f} secs"
+    )
+
     output_files = mappingrules.get_all_outfile_names()
 
     ## set record number
@@ -156,13 +150,11 @@ def mapstream(rules_file, output_dir, write_mode,
     record_numbers = {}
     for output_file in output_files:
         record_numbers[output_file] = 1
-    if (last_used_ids_file is not None) and (os.path.isfile(last_used_ids_file)):
+    if (last_used_ids_file is not None) and last_used_ids_file.is_file():
         record_numbers = load_last_used_ids(last_used_ids_file, record_numbers)
 
     fhd = {}
     tgtcolmaps = {}
-
-
 
     try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
@@ -181,7 +173,7 @@ def mapstream(rules_file, output_dir, write_mode,
         ## these aren't being closed deliberately
         for tgtfile in output_files:
             fhd[tgtfile] = open(output_dir / (tgtfile + ".tsv"), mode=write_mode)
-            if write_mode == 'w':
+            if write_mode == "w":
                 outhdr = omopcdm.get_omop_column_list(tgtfile)
                 fhd[tgtfile].write("\t".join(outhdr) + "\n")
             ## maps all omop columns for each file into a dict containing the column name and the index
@@ -245,12 +237,12 @@ def mapstream(rules_file, output_dir, write_mode,
         for indata in csvr:
             metrics.increment_key_count(
                     source=srcfilename,
-            fieldname="all",
+                    fieldname="all",
                     tablename="all",
                     concept_id="all",
                     additional="",
                     count_type="input_count"
-                    )
+                )
             rcount += 1
             # if there is a date, parse it - read it is a string and convert to YYYY-MM-DD
             strdate = indata[datetime_col].split(" ")[0]
@@ -259,12 +251,12 @@ def mapstream(rules_file, output_dir, write_mode,
                 indata[datetime_col] = fulldate
             else:
                 metrics.increment_key_count(
-                    source=srcfilename,
-                    fieldname="all",
-                    tablename="all",
-                    concept_id="all",
-                    additional="",
-                    count_type="input_date_fields"
+                        source=srcfilename,
+                        fieldname="all",
+                        tablename="all",
+                        concept_id="all",
+                        additional="",
+                        count_type="input_date_fields"
                     )
                 continue
 
@@ -294,7 +286,7 @@ def mapstream(rules_file, output_dir, write_mode,
                                         target_file=tgtfile,
                                         datacol=datacol,
                                         out_record=outrecord
-                                        )
+                                    )
 
                                 # write the line to the file
                                 fhd[tgtfile].write("\t".join(outrecord) + "\n")
@@ -306,7 +298,7 @@ def mapstream(rules_file, output_dir, write_mode,
                                         concept_id="all",
                                         additional="",
                                         count_type="invalid_person_ids",
-                                        )
+                                    )
                                 rejidcounts[srcfilename] += 1
 
         fh.close()
@@ -416,7 +408,7 @@ def get_target_records(
                 concept_id="all",
                 additional="",
                 count_type="invalid_source_fields"
-                )
+            )
 
     return build_records, tgtrecords, metrics
 
@@ -521,7 +513,7 @@ def valid_uk_date(item):
 
 # End of date code
 
-def load_last_used_ids(last_used_ids_file, last_used_ids):
+def load_last_used_ids(last_used_ids_file: Path, last_used_ids):
     fh = open(last_used_ids_file, mode="r", encoding="utf-8-sig")
     csvr = csv.reader(fh, delimiter="\t")
 

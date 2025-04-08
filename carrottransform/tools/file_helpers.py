@@ -3,11 +3,13 @@ import sys
 import json
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 # Function inherited from the "old" CaRROT-CDM (modfied to exit on error)
-    
-def load_json(f_in):
+
+
+def load_json(f_in: os.PathLike):
     try:
         data = json.load(open(f_in))
     except Exception as err:
@@ -15,4 +17,3 @@ def load_json(f_in):
         sys.exit()
 
     return data
-
