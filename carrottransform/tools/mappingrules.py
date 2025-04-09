@@ -25,23 +25,12 @@ class CdmField(BaseModel):
 # If we want to keep the idea of a dictionary for fast lookup of mappings, this key captures the info
 # This is basically synonymous with the DataKey class from Metrics, and bringing these together would be useful
 class MappingKey(BaseModel):
-    source_table: str
-    source_field: str
     omop_table: str
     target_field: str
     rule_label: str
 
     def __hash__(self) -> int:
-        return hash((self.source_table, self.source_field, self.omop_table, self.target_field, self.rule_label))
-
-# There's some data duplication here, but leaving it in for flexibility
-class Mapping(BaseModel):
-    source_table: str
-    source_field: str
-    omop_table: str
-    target_field: str
-    rule_label: str
-    term_mapping: Dict[str, int]
+        return hash((self.omop_table, self.target_field, self.rule_label))
 
 class RuleSet(BaseModel):
     metadata: Metadata
@@ -76,7 +65,7 @@ class RuleSet(BaseModel):
         return source_tables
 
     @property
-    def mappings(self) -> Dict[MappingKey, Mapping]:
+    def mappings(self) -> Dict[MappingKey, Dict[str, int]]:
         mappings = {}
         for table_name, omop_table in self.cdm.items():
             for rule_label, rule_group in omop_table.items():
@@ -86,21 +75,12 @@ class RuleSet(BaseModel):
                     else:
                         term_mapping = rule.term_mapping
                     m_key = MappingKey(
-                            source_table=rule.source_table,
-                            source_field=rule.source_field,
                             omop_table=table_name,
                             target_field=target_field,
                             rule_label=rule_label,
                             )
                     # Obviously there's some duplication here, but this way we have a fast lookup for the mappings, and if any methods that need the extra parameters need to be added to the Mapping class, it's still there.
-                    mappings[m_key] = Mapping(
-                            source_table=rule.source_table,
-                            source_field=rule.source_field,
-                            omop_table=table_name,
-                            target_field=target_field,
-                            rule_label=rule_label,
-                            term_mapping=term_mapping,
-                            )
+                    mappings[m_key] = term_mapping
         return mappings
     
 
@@ -274,8 +254,3 @@ class MappingRules:
             return term_value_key, data
 
         return plain_key, data
-
-
-#@dataclass
-#class Rule:
-#    input_name
