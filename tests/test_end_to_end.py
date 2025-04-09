@@ -19,7 +19,7 @@ def test_no_args():
     # check click results
     assert 2 == result.exit_code
     assert [
-        "Usage: mapstream [OPTIONS] [INPUT_DIR]...",
+        "Usage: mapstream [OPTIONS]",
         "Try 'mapstream --help' for help.",
         "",
         "Error: Missing option '--rules-file'.",
@@ -68,6 +68,7 @@ def test_with_example(tmp_path: Path, caplog):
     result = runner.invoke(
         mapstream,
         [
+            "--input-dir",
             f"{tmp_path}",
             "--rules-file",
             f"{rules}",
