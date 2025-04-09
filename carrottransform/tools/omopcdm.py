@@ -65,21 +65,21 @@ class OmopCDM:
         for line in fp:
             line = line.strip()
             # check for line with version, if present
-            if vermatched == False:
+            if not vermatched:
                 vmatch = ver_rgx.search(line)
-                if vmatch != None:
+                if vmatch is not None:
                     version_string = vmatch.group(1)
                     output_dict["omop_version"] = version_string
                     vermatched = True
             # check for start of table definition
-            if processing_table_data == False:
+            if not processing_table_data:
                 smatch = start_rgx.search(line)
-                if smatch != None:
+                if smatch is not None:
                     processing_table_data = True
                     tabname = smatch.group(2).lower()
             else:
                 idtmatch = datatype_rgx.search(line)
-                if idtmatch != None:
+                if idtmatch is not None:
                     fname = idtmatch.group(1)
                     ftype = idtmatch.group(2)
 
@@ -107,7 +107,7 @@ class OmopCDM:
                         output_dict["date_fields"][tabname].append(fname)
 
             ematch = end_rgx.search(line)
-            if ematch != None:
+            if ematch is not None:
                 processing_table_data = False
   
         return(output_dict)

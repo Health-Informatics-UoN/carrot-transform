@@ -2,7 +2,102 @@ import os
 import json
 import carrottransform.tools as tools
 from .omopcdm import OmopCDM
+from pydantic import BaseModel, ValidationError
+from typing import Set, Union, Dict, Optional, List
+from pathlib import Path
 
+class RuleSetLoadingError(Exception):
+    """Custom exception for errors during ruleset loading."""
+    pass
+
+class Metadata(BaseModel):
+    date_created: str
+    dataset: str
+
+TermMapping = Union[int, Dict[str, int]]
+
+class CdmField(BaseModel):
+    source_table: str
+    source_field: str
+    term_mapping: Optional[TermMapping] = None
+
+
+# If we want to keep the idea of a dictionary for fast lookup of mappings, this key captures the info
+# This is basically synonymous with the DataKey class from Metrics, and bringing these together would be useful
+class MappingKey(BaseModel):
+    omop_table: str
+    target_field: str
+    rule_label: str
+
+    def __hash__(self) -> int:
+        return hash((self.omop_table, self.target_field, self.rule_label))
+
+class RuleSet(BaseModel):
+    metadata: Metadata
+    # If I'm interpreting the code right, the CDM object has
+    # 1st level: "outfile" - OMOP tables
+    # 2nd level: "conditions" - group of rules
+    # 3rd level: "source_data" - rule
+    # 4th level: CdmField - triple of source table, source field and term mapping
+    cdm: Dict[str, Dict[str, Dict[str, CdmField]]]
+
+    # You can get the JSON out with RuleSet.model_dump_json()
+    @property
+    def dataset_name(self) -> str:
+        return self.metadata.dataset
+
+    @property
+    def omop_tables(self) -> List[str]:
+        """List the OMOP CDM tables mapped to"""
+        # This replaces `get_all_outfile_names`
+        return list(self.cdm.keys())
+
+    @property
+    def source_tables(self) -> Set[str]:
+        """List the unique source tables mapped from"""
+        # This replaces `get_all_infile_names`
+        source_tables = set()
+
+        for omop_table in self.cdm.values():
+            for rule_group in omop_table.values():
+                for rule in rule_group.values():
+                    source_tables.add(rule.source_table)
+        return source_tables
+
+    @property
+    def mappings(self) -> Dict[MappingKey, Dict[str, int]]:
+        mappings = {}
+        for table_name, omop_table in self.cdm.items():
+            for rule_label, rule_group in omop_table.items():
+                for target_field, rule in rule_group.items():
+                    if isinstance(rule.term_mapping, int):
+                        term_mapping = {str(rule.term_mapping), rule.term_mapping}
+                    else:
+                        term_mapping = rule.term_mapping
+                    m_key = MappingKey(
+                            omop_table=table_name,
+                            target_field=target_field,
+                            rule_label=rule_label,
+                            )
+                    # Obviously there's some duplication here, but this way we have a fast lookup for the mappings, and if any methods that need the extra parameters need to be added to the Mapping class, it's still there.
+                    mappings[m_key] = term_mapping
+        return mappings
+    
+
+def load_ruleset_from_file(path: Union[str, Path]) -> RuleSet:
+    path = Path(path)
+    try:
+        with path.open('r', encoding='utf-8') as f:
+            return RuleSet.model_validate_json(f.read())
+    except FileNotFoundError:
+        raise RuleSetLoadingError(f"Ruleset file not found: {path}")
+    except json.JSONDecodeError:
+        raise RuleSetLoadingError(f"Invalid JSON file in {path}")
+    except ValidationError:
+        raise RuleSetLoadingError(f"Schema validation failed for {path}")
+    except Exception as e:
+        raise RuleSetLoadingError(f"Error raised parsing file {path}: {e}")
+        
 class MappingRules:
     """
     self.rules_data stores the mapping rules as untransformed json, as each input file is processed rules are reorganised 
@@ -40,9 +135,9 @@ class MappingRules:
     def get_all_infile_names(self):
         file_list = []
 
-        for outfilename, conditions in self.rules_data["cdm"].items():
-            for outfield, source_field in conditions.items():
-                for source_field_name, source_data in source_field.items():
+        for conditions in self.rules_data["cdm"].values():
+            for source_field in conditions.values():
+                for source_data in source_field.values():
                     if "source_table" in source_data:
                         if source_data["source_table"] not in file_list:
                             file_list.append(source_data["source_table"])
@@ -71,7 +166,7 @@ class MappingRules:
         return data_fields_lists
 
     def get_infile_date_person_id(self, infilename):
-        outfilenames, outdata = self.parse_rules_src_to_tgt(infilename)
+        _, outdata = self.parse_rules_src_to_tgt(infilename)
         datetime_source = ""
         person_id_source = ""
 
@@ -106,18 +201,19 @@ class MappingRules:
 
         return birth_datetime_source, person_id_source
 
-    def parse_rules_src_to_tgt(self, infilename):
+    def parse_rules_src_to_tgt(self, infilename):# -> Tuple[List[str], Dict[str, List[]]]:
         """
         Parse rules to produce a map of source to target data for a given input file
         """
         ## creates a dict of dicts that has input files as keys, and infile~field~data~target as keys for the underlying keys, which contain a list of dicts of lists
+        # Good god, why?
         if infilename in self.outfile_names and infilename in self.parsed_rules:
             return self.outfile_names[infilename], self.parsed_rules[infilename]
         outfilenames = []
         outdata = {}
 
         for outfilename, rules_set in self.rules_data["cdm"].items():
-            for datatype, rules in rules_set.items():
+            for rules in rules_set.values():
                 key, data = self.process_rules(infilename, outfilename, rules)
                 if key != "":
                     if key not in outdata:
@@ -134,7 +230,6 @@ class MappingRules:
         """
         Process rules for an infile, outfile combination
         """
-        outkey = ""
         data = {}
         plain_key = ""
         term_value_key = ""
@@ -146,7 +241,7 @@ class MappingRules:
             if source_info["source_table"] == infilename:
                 if "term_mapping" in source_info:
                     if type(source_info["term_mapping"]) is dict:
-                        for inputvalue, term in source_info["term_mapping"].items():
+                        for inputvalue in source_info["term_mapping"].keys():
                             ## add a key/add to the list of data in the dict for the given input file
                             term_value_key = infilename + "~" + source_info["source_field"] + "~" + str(inputvalue) + "~" + outfilename
                             data[source_info["source_field"]].append(outfield + "~" + str(source_info["term_mapping"][str(inputvalue)]))
