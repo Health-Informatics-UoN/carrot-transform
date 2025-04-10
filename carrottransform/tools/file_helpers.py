@@ -14,7 +14,7 @@ def load_json(f_in):
 
     return data
 
-def resolve_paths(args):
+def resolve_paths(args: List[Optional[str]]) -> List[Optional[str]]:
     """Resolve special path syntaxes in command line arguments."""
     try:
         with resources.path('carrottransform', '__init__.py') as f:
