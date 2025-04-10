@@ -3,7 +3,6 @@ import sys
 import json
 
 import logging
-
 logger = logging.getLogger(__name__)
 
 # Function inherited from the "old" CaRROT-CDM (modfied to exit on error)

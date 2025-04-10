@@ -4,7 +4,6 @@ from unittest.mock import patch
 
 from pathlib import Path
 
-
 @pytest.mark.unit
 def test_valid_directory(tmp_path: Path):
     """Test with a valid directory path"""

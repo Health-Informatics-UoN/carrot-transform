@@ -228,6 +228,7 @@ def mapstream(
         inputcolmap = omopcdm.get_column_map(hdrdata)
         pers_id_col = inputcolmap[infile_person_id_source]
         datetime_col = inputcolmap[infile_datetime_source]
+
         logger.info(
             "--------------------------------------------------------------------------------"
         )
@@ -311,6 +312,7 @@ def mapstream(
     logger.info(
         "--------------------------------------------------------------------------------"
     )
+    
     data_summary = metrics.get_mapstream_summary()
     try:
         dsfh = open(output_dir / "summary_mapstream.tsv", mode="w")
@@ -436,6 +438,7 @@ def valid_date_value(item):
         return(False)
     if not valid_iso_date(item) and not valid_reverse_iso_date(item) and not valid_uk_date(item):
         logger.warning("Bad date : {0}".format(item))
+
         return False
     return True
 
@@ -562,6 +565,7 @@ def load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_p
     logger.info(
         "Load Person Data {0}, {1}".format(birth_datetime_source, person_id_source)
     )
+    
     ## get the column index of the PersonID from the input file
     person_col = person_columns[person_id_source]
 
@@ -627,7 +631,6 @@ def check_files_in_rules_exist(rules_input_files: list[str], existing_input_file
             msg = "WARNING: no data for mapped input file - {0}".format(infile)
             logger.warning(msg)
 
-
 def open_file(file_path: Path) -> tuple[IO[str], Iterator[list[str]]] | None:
     """opens a file and does something related to CSVs"""
     try:
@@ -635,7 +638,7 @@ def open_file(file_path: Path) -> tuple[IO[str], Iterator[list[str]]] | None:
         csvr = csv.reader(fh)
         return fh, csvr
     except IOError as e:
-        logger.exception("Unable to open: {0}".format(str(file_path)))
+        logger.exception("Unable to open: {0}".format(file_path))
         logger.exception("I/O error({0}): {1}".format(e.errno, e.strerror))
         return None
 
