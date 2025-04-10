@@ -1,8 +1,4 @@
 
-from carrottransform.tools.click import PathArgs
-from carrottransform.tools.omopcdm import OmopCDM
-from pathlib import Path
-from typing import Iterator, IO, Iterable
 import carrottransform
 import carrottransform.tools as tools
 import click
@@ -15,6 +11,11 @@ import logging
 import os
 import sys
 import time
+
+from carrottransform.tools.click import PathArgs
+from carrottransform.tools.omopcdm import OmopCDM
+from pathlib import Path
+from typing import Iterator, IO, Iterable
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -170,7 +171,7 @@ def mapstream(
                                                                person_file, mappingrules,
                                                                use_input_person_ids)
         ## open person_ids output file
-        with open(saved_person_id_file, mode="w") as fhpout:
+        with saved_person_id_file.open(mode="w") as fhpout:
             ## write the header to the file
             fhpout.write("SOURCE_SUBJECT\tTARGET_SUBJECT\n")
             ##iterate through the ids and write them to the file.
@@ -180,7 +181,7 @@ def mapstream(
         ## Initialise output files (adding them to a dict), output a header for each
         ## these aren't being closed deliberately
         for tgtfile in output_files:
-            fhd[tgtfile] = open(output_dir / (tgtfile + ".tsv"), mode=write_mode)
+            fhd[tgtfile] = (output_dir / tgtfile).with_suffix(".tsv").open(mode=write_mode)
             if write_mode == "w":
                 outhdr = omopcdm.get_omop_column_list(tgtfile)
                 fhd[tgtfile].write("\t".join(outhdr) + "\n")
@@ -195,7 +196,7 @@ def mapstream(
     logger.info(f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}")
 
     ## Compare files found in the input_dir with those expected based on mapping rules
-    existing_input_files = fnmatch.filter(os.listdir(input_dir[0]), "*.csv")
+    existing_input_files = [f.name for f in input_dir[0].glob("*.csv")]
     rules_input_files = mappingrules.get_all_infile_names()
 
     ## Log mismatches but continue
@@ -236,6 +237,7 @@ def mapstream(
         inputcolmap = omopcdm.get_column_map(hdrdata)
         pers_id_col = inputcolmap[infile_person_id_source]
         datetime_col = inputcolmap[infile_datetime_source]
+
         logger.info(
             "--------------------------------------------------------------------------------"
         )
@@ -319,9 +321,10 @@ def mapstream(
     logger.info(
         "--------------------------------------------------------------------------------"
     )
+    
     data_summary = metrics.get_mapstream_summary()
     try:
-        dsfh = open(output_dir / "summary_mapstream.tsv", mode="w")
+        dsfh = (output_dir / "summary_mapstream.tsv").open(mode="w")
         dsfh.write(data_summary)
         dsfh.close()
     except IOError as e:
@@ -522,7 +525,7 @@ def valid_uk_date(item):
 # End of date code
 
 def load_last_used_ids(last_used_ids_file: Path, last_used_ids):
-    fh = open(last_used_ids_file, mode="r", encoding="utf-8-sig")
+    fh = last_used_ids_file.open(mode="r", encoding="utf-8-sig")
     csvr = csv.reader(fh, delimiter="\t")
 
     for last_ids_data in csvr:
@@ -533,7 +536,7 @@ def load_last_used_ids(last_used_ids_file: Path, last_used_ids):
 
 
 def load_saved_person_ids(person_file: Path):
-    fh = open(person_file, mode="r", encoding="utf-8-sig")
+    fh = person_file.open(mode="r", encoding="utf-8-sig")
     csvr = csv.reader(fh, delimiter="\t")
     last_int = 1
     person_ids = {}
@@ -549,7 +552,7 @@ def load_saved_person_ids(person_file: Path):
 def load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_person_ids, delim=","):
     person_ids, person_number = get_person_lookup(saved_person_id_file)
 
-    fh = open(person_file, mode="r", encoding="utf-8-sig")
+    fh = person_file.open(mode="r", encoding="utf-8-sig")
     csvr = csv.reader(fh, delimiter=delim)
     person_columns = {}
     person_col_in_hdr_number = 0
@@ -570,6 +573,7 @@ def load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_p
     logger.info(
         "Load Person Data {0}, {1}".format(birth_datetime_source, person_id_source)
     )
+    
     ## get the column index of the PersonID from the input file
     person_col = person_columns[person_id_source]
 
@@ -633,15 +637,14 @@ def check_files_in_rules_exist(rules_input_files: list[str], existing_input_file
             msg = "WARNING: no data for mapped input file - {0}".format(infile)
             logger.warning(msg)
 
-
 def open_file(file_path: Path) -> tuple[IO[str], Iterator[list[str]]] | None:
     """opens a file and does something related to CSVs"""
     try:
-        fh = open(file_path, mode="r", encoding="utf-8-sig")
+        fh = file_path.open(mode="r", encoding="utf-8-sig")
         csvr = csv.reader(fh)
         return fh, csvr
     except IOError as e:
-        logger.exception("Unable to open: {0}".format(str(file_path)))
+        logger.exception("Unable to open: {0}".format(file_path))
         logger.exception("I/O error({0}): {1}".format(e.errno, e.strerror))
         return None
 
@@ -664,9 +667,9 @@ def set_omop_filenames(
     return omop_config_file, omop_ddl_file
 
 
-def get_person_lookup(saved_person_id_file: str) -> tuple[dict[str, str], int]:
+def get_person_lookup(saved_person_id_file: Path) -> tuple[dict[str, str], int]:
     # Saved-person-file existence test, reload if found, return last used integer
-    if os.path.isfile(saved_person_id_file):
+    if saved_person_id_file.is_file():
         person_lookup, last_used_integer = load_saved_person_ids(saved_person_id_file)
     else:
         person_lookup = {}
@@ -674,5 +677,3 @@ def get_person_lookup(saved_person_id_file: str) -> tuple[dict[str, str], int]:
     return person_lookup, last_used_integer
 
 run.add_command(mapstream,"mapstream")
-
-
