@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import importlib.resources as resources
+from typing import List, Optional
 
 # Function inherited from the "old" CaRROT-CDM (modfied to exit on error)
     
