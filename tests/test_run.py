@@ -56,7 +56,7 @@ def test_existing_file_removal(tmp_path: Path):
     existing_file = output_dir / "person_ids.tsv"
 
     # Create a dummy file
-    with open(existing_file, "w") as f:
+    with existing_file.open("w") as f:
         f.write("test")
 
     assert os.path.exists(existing_file)  # Verify file exists
@@ -140,7 +140,7 @@ def test_successful_file_open(tmp_path: Path):
     file_content = "header1,header2\nvalue1,value2"
     file_path = tmp_path / test_file
 
-    with open(file_path, "w", encoding="utf-8") as f:
+    with file_path.open("w", encoding="utf-8") as f:
         f.write(file_content)
 
     file_handle, csv_reader = open_file(file_path)
@@ -192,7 +192,7 @@ def test_utf8_with_bom(tmp_path: Path):
     file_path = tmp_path / test_file
 
     # Write with UTF-8-BOM encoding
-    with open(file_path, "wb") as f:
+    with file_path.open("wb") as f:
         f.write(b"\xef\xbb\xbf")  # UTF-8 BOM
         f.write(content.encode("utf-8"))
 

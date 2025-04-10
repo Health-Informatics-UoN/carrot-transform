@@ -1,9 +1,11 @@
 import carrottransform.tools as tools
 import json
+import logging
 import re
 import sys
 
-import logging
+from pathlib import Path
+
 logger = logging.getLogger(__name__)
 
 class OmopCDM:
@@ -32,9 +34,9 @@ class OmopCDM:
         self.auto_number_field = self.get_columns("auto_number_field")
 
 
-    def load_ddl(self, omopddl):
+    def load_ddl(self, omopddl: Path):
         try:
-            fp = open(omopddl, "r") 
+            fp = omopddl.open("r") 
         except Exception as err:
             logger.exception("OMOP ddl file ({0}) not found".format(omopddl))
             sys.exit()
