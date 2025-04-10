@@ -3,6 +3,9 @@ import json
 import re
 import sys
 
+import logging
+logger = logging.getLogger(__name__)
+
 class OmopCDM:
     """
     Load and parse OMOP DDL data, to make an in-memory json CDM
@@ -33,7 +36,7 @@ class OmopCDM:
         try:
             fp = open(omopddl, "r") 
         except Exception as err:
-            print("OMOP ddl file ({0}) not found".format(omopddl))
+            logger.exception("OMOP ddl file ({0}) not found".format(omopddl))
             sys.exit()
         
         return(self.process_ddl(fp))
