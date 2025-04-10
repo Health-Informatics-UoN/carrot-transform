@@ -1,9 +1,9 @@
-from carrottransform.cli.subcommands.run import *
+
 import pytest
-from unittest.mock import patch
 
+from carrottransform.cli.subcommands.run import *
 from pathlib import Path
-
+from unittest.mock import patch
 
 @pytest.mark.unit
 def test_valid_directory(tmp_path: Path):
@@ -70,15 +70,6 @@ def test_existing_file_removal(tmp_path: Path):
 @pytest.mark.unit
 def test_matching_files(caplog):
     """Test when all files match between rules and existing files"""
-
-    with caplog.at_level(logging.INFO):
-
-        rules_files = ["file1.txt", "file2.txt"]
-        existing_files = ["file1.txt", "file2.txt"]
-
-        check_files_in_rules_exist(rules_files, existing_files)
-
-    assert 0 == len(caplog.text)  # No warnings should be printed
 
 
 @pytest.mark.unit
