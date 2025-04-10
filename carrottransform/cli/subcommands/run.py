@@ -40,6 +40,7 @@ def run():
               help="json file containing mapping rules")
 @click.option("--output-dir", type=PathArgs,
               default=None,
+              required=True,
               help="define the output directory for OMOP-format tsv files")
 @click.option("--write-mode",
               default='w',
@@ -74,7 +75,7 @@ def run():
               default=0,
               help="Lower outcount limit for logfile output")
 @click.option("--input-dir", type=PathArgs,
-    required=False,
+    required=True,
     multiple=True,
     help="Input directories")
 def mapstream(
