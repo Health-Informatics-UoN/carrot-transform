@@ -2,16 +2,17 @@ import pytest
 from carrottransform.tools.file_helpers import resolve_paths
 import os
 import importlib.resources as resources
+from pathlib import Path
 from unittest.mock import patch
 
 @pytest.mark.unit
 def test_resolve_paths_with_resources():
     """Test resolving @carrot paths using resources.path"""
     with resources.path('carrottransform', '__init__.py') as f:
-        package_path = str(f.parent)
+        package_path = f.parent
     
     test_paths = ['@carrot/config/test.json']
-    expected = [os.path.join(package_path, 'config/test.json').replace('\\', '/')]
+    expected = [package_path / 'config/test.json']
     
     result = resolve_paths(test_paths)
     assert result == expected
@@ -25,10 +26,10 @@ def test_resolve_paths_with_fallback():
         
         # The fallback uses carrottransform.__file__
         import carrottransform
-        package_path = os.path.dirname(os.path.abspath(carrottransform.__file__))
+        package_path = Path(os.path.dirname(os.path.abspath(carrottransform.__file__)))
         
         test_paths = ['@carrot/config/test.json']
-        expected = [os.path.join(package_path, 'config/test.json').replace('\\', '/')]
+        expected = [package_path / 'config/test.json']
         
         result = resolve_paths(test_paths)
         assert result == expected
