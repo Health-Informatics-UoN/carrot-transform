@@ -622,7 +622,7 @@ def check_dir_isvalid(directory: Path | tuple[Path, ...], create_if_missing: boo
     
     ## check directory has been set
     if directory is None:
-        logger.warning("Directory not provided.)
+        logger.warning("Directory not provided.")
         sys.exit(1)
         
     ## check output dir is valid
