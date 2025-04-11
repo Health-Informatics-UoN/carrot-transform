@@ -16,6 +16,7 @@ from carrottransform.tools.click import PathArgs
 from carrottransform.tools.omopcdm import OmopCDM
 from pathlib import Path
 from typing import Iterator, IO
+from ...tools.file_helpers import resolve_paths
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -91,7 +92,28 @@ def mapstream(
     """
     Map to output using input streams
     """
-    # Initialisation
+
+    # Resolve any @package paths in the arguments
+    resolved_paths = resolve_paths([
+        rules_file,
+        output_dir,
+        person_file,
+        omop_ddl_file,
+        omop_config_file,
+        saved_person_id_file,
+        last_used_ids_file,
+        input_dir[0] if input_dir else None  # Take first element of input_dir tuple
+    ])
+    
+    # Assign back resolved paths
+    [rules_file, output_dir, person_file, omop_ddl_file, 
+     omop_config_file, saved_person_id_file, last_used_ids_file, 
+     input_dir] = resolved_paths
+    
+    # Convert input_dir back to tuple format expected by later code
+    input_dir = (input_dir,) if input_dir else ()
+
+    # Initialisation 
     # - check for values in optional arguments
     # - read in configuration files
     # - check main directories for existence
@@ -124,8 +146,8 @@ def mapstream(
         omop_ddl_file, omop_config_file, omop_version
     )
     ## check directories are valid
-    check_dir_isvalid(input_dir)
-    check_dir_isvalid(output_dir)
+    check_dir_isvalid(input_dir)  # Input directory must exist
+    check_dir_isvalid(output_dir, create_if_missing=True)  # Create output directory if needed
 
     saved_person_id_file = set_saved_person_id_file(saved_person_id_file, output_dir)
 
@@ -590,17 +612,57 @@ def load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_p
 def py():
     pass
 
-
-def check_dir_isvalid(directory: Path | tuple[Path, ...]) -> None:
+def check_dir_isvalid(directory: Path | tuple[Path, ...], create_if_missing: bool = False) -> None:
+    """Check if directory is valid, optionally create it if missing.
+    
+    Args:
+        directory: Directory path as string or tuple
+        create_if_missing: If True, create directory if it doesn't exist
+    """
+    
+    ## check directory has been set
+    if directory is None:
+        logger.warning("Directory not provided.")
+        sys.exit(1)
+        
     ## check output dir is valid
-    if type(directory) is tuple:
+    elif type(directory) is tuple:
         directory = directory[0]
 
-    assert isinstance(directory, Path)
-
+    ## if not a directory, create it if requested (including parents. This option is for the output directory only).         
     if not directory.is_dir():
-        logger.warning("Not a directory, dir {0}".format(directory))
-        sys.exit(1)
+        if create_if_missing:
+            try:
+                ## deliberately not using the exist_ok option, as we want to know whether it was created or not to provide different logger messages.
+                directory.mkdir(parents = True) 
+                logger.info(f"Created directory: {directory}")
+            except OSError as e:
+                logger.warning(f"Failed to create directory {directory}: {e}")
+                sys.exit(1)
+        else:
+            logger.warning(f"Not a directory, dir {directory}")
+            sys.exit(1)
+        
+    # Handle tuple input (like input_dir)
+    if isinstance(directory, tuple):
+        if not directory:  # Empty tuple
+            print("No directory provided")
+            sys.exit(1)
+        directory = directory[0]
+    
+    # Handle string input
+    dir_path = str(directory)
+    if not os.path.isdir(dir_path):
+        if create_if_missing:
+            try:
+                os.makedirs(dir_path)
+                print(f"Created directory: {dir_path}")
+            except OSError as e:
+                print(f"Failed to create directory {dir_path}: {e}")
+                sys.exit(1)
+        else:
+            print(f"Not a directory, dir {dir_path}")
+            sys.exit(1)
 
 
 def set_saved_person_id_file(
