@@ -10,3 +10,5 @@ build
 *.env
 temp
 .python-version
+
+*.orig
