@@ -1,19 +1,28 @@
+
+import json
+import logging
 import os
 import sys
 import json
 import importlib.resources as resources
 from typing import List, Optional
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
 
 # Function inherited from the "old" CaRROT-CDM (modfied to exit on error)
-    
-def load_json(f_in):
+
+
+def load_json(f_in: Path):
     try:
-        data = json.load(open(f_in))
+        data = json.load(f_in.open())
     except Exception as err:
-        print ("{0} not found. Or cannot parse as json".format(f_in))
+        logger.exception("{0} not found. Or cannot parse as json".format(f_in))
         sys.exit()
 
     return data
+
 
 def resolve_paths(args: List[Optional[str]]) -> List[Optional[str]]:
     """Resolve special path syntaxes in command line arguments."""

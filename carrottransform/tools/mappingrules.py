@@ -3,6 +3,9 @@ import json
 import carrottransform.tools as tools
 from .omopcdm import OmopCDM
 
+import logging
+logger = logging.getLogger(__name__)
+
 class MappingRules:
     """
     self.rules_data stores the mapping rules as untransformed json, as each input file is processed rules are reorganised 
@@ -80,7 +83,7 @@ class MappingRules:
             outfile = keydata[-1]
             for outfield_elem in outfield_data:
                 for infield, outfield_list in outfield_elem.items():
-                    #print("{0}, {1}, {2}".format(outfile, infield, str(outfield_list)))
+                    logger.debug("{0}, {1}, {2}".format(outfile, infield, str(outfield_list)))
                     for outfield in outfield_list:
                         if outfield.split('~')[0] in self.omopcdm.get_omop_datetime_fields(outfile):
                             datetime_source = infield
