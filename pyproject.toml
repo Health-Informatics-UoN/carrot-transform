@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "carrot_transform"
-version = "0.3.4"
+version = "0.3.5"
 description = ""
 authors = ["anwarfg <913028+anwarfg@users.noreply.github.com>"]
 readme = "README.md"

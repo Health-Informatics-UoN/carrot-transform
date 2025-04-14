@@ -1,6 +1,8 @@
 from carrottransform.cli.subcommands.run import *
 import pytest
 from unittest.mock import patch
+import importlib.resources
+import logging
 
 from pathlib import Path
 import shutil
@@ -35,8 +37,11 @@ def test_with_example(tmp_path: Path, caplog):
     # capture all
     caplog.set_level(logging.DEBUG)
 
+    # Get the package root directory
+    package_root = Path(importlib.resources.files('carrottransform'))
+
     # rules from carrot mapper
-    rules_src = Path("carrottransform/examples/test/rules/rules_14June2021.json")
+    rules_src = package_root / "examples/test/rules/rules_14June2021.json"
     rules = tmp_path / "rules.json"
     shutil.copy2(rules_src, rules)
 
@@ -49,7 +54,7 @@ def test_with_example(tmp_path: Path, caplog):
         "Symptoms.csv",
         "vaccine.csv",
     ]:
-        shutil.copy2(Path("carrottransform/examples/test/inputs") / src, tmp_path / src)
+        shutil.copy2(package_root / "examples/test/inputs" / src, tmp_path / src)
     person = tmp_path / "Demographics.csv"
 
     # output dir needs to be pre-created
@@ -59,8 +64,8 @@ def test_with_example(tmp_path: Path, caplog):
     # ddl and config files (copied here rather than using embedded one ... for now?)
     ddl = tmp_path / "ddl.sql"
     omop = tmp_path / "omop.json"
-    shutil.copy2("carrottransform/config/omop.json", omop)
-    shutil.copy2("carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
+    shutil.copy2(package_root / "config/omop.json", omop)
+    shutil.copy2(package_root / "config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
 
     ##
     # run click

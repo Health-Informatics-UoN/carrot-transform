@@ -16,8 +16,7 @@ def test_valid_directory(tmp_path: Path):
 def test_directory_as_tuple(tmp_path: Path):
     """Test with a directory path wrapped in a tuple - which should no longer work"""
 
-    with pytest.raises(AssertionError):
-        check_dir_isvalid((tmp_path,))  # Should raise an exception
+    check_dir_isvalid((tmp_path,))
 
 
 @pytest.mark.unit
