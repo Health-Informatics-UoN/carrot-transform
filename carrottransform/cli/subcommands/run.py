@@ -15,7 +15,7 @@ import time
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.omopcdm import OmopCDM
 from pathlib import Path
-from typing import Iterator, IO
+from typing import Iterator, IO, Iterable
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -40,6 +40,7 @@ def run():
               help="json file containing mapping rules")
 @click.option("--output-dir", type=PathArgs,
               default=None,
+              required=True,
               help="define the output directory for OMOP-format tsv files")
 @click.option("--write-mode",
               default='w',
@@ -73,7 +74,10 @@ def run():
               required=False,
               default=0,
               help="Lower outcount limit for logfile output")
-@click.argument("input-dir", type=PathArgs, required=False, nargs=-1)
+@click.option("--input-dir", type=PathArgs,
+    required=True,
+    multiple=True,
+    help="Input directories")
 def mapstream(
     rules_file: Path,
     output_dir: Path,
@@ -86,11 +90,15 @@ def mapstream(
     use_input_person_ids,
     last_used_ids_file: Path,
     log_file_threshold,
-    input_dir: Path,
+    input_dir: Iterable[Path],
 ):
     """
     Map to output using input streams
     """
+
+    # collapse it to a list
+    input_dir = list(input_dir)
+
     # Initialisation
     # - check for values in optional arguments
     # - read in configuration files
@@ -124,7 +132,8 @@ def mapstream(
         omop_ddl_file, omop_config_file, omop_version
     )
     ## check directories are valid
-    check_dir_isvalid(input_dir)
+    for idir in input_dir:
+        check_dir_isvalid(idir)
     check_dir_isvalid(output_dir)
 
     saved_person_id_file = set_saved_person_id_file(saved_person_id_file, output_dir)
@@ -591,10 +600,8 @@ def py():
     pass
 
 
-def check_dir_isvalid(directory: Path | tuple[Path, ...]) -> None:
-    ## check output dir is valid
-    if type(directory) is tuple:
-        directory = directory[0]
+def check_dir_isvalid(directory: Path) -> None:
+    ## check dir is valid
 
     assert isinstance(directory, Path)
 
