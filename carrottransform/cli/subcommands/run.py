@@ -77,7 +77,6 @@ def run():
               help="Lower outcount limit for logfile output")
 @click.option("--input-dir", type=PathArgs,
     required=True,
-    multiple=True,
     help="Input directories")
 def mapstream(
     rules_file: Path,
@@ -91,7 +90,7 @@ def mapstream(
     use_input_person_ids,
     last_used_ids_file: Path,
     log_file_threshold,
-    input_dir: Iterable[Path],
+    input_dir: Path,
 ):
     """
     Map to output using input streams
@@ -107,7 +106,7 @@ def mapstream(
         omop_config_file,
         saved_person_id_file,
         last_used_ids_file,
-        input_dir[0] if input_dir else None  # Take first element of input_dir tuple
+        input_dir # Take first element of input_dir tuple
     ])
     
     # Assign back resolved paths
@@ -115,12 +114,8 @@ def mapstream(
      omop_config_file, saved_person_id_file, last_used_ids_file, 
      input_dir] = resolved_paths
     
-    # Ensure input_dir is a list of paths
-    if isinstance(input_dir, (Path, str)):
-        input_dir = [input_dir]
-    elif isinstance(input_dir, tuple):
-        input_dir = list(input_dir)
-    # If it's already a list, leave it as is
+    # Ensure input_dir is a Path
+    assert isinstance(input_dir, Path)
 
     # Initialisation
     # - check for values in optional arguments
@@ -155,8 +150,7 @@ def mapstream(
         omop_ddl_file, omop_config_file, omop_version
     )
     ## check directories are valid
-    for idir in input_dir:
-        check_dir_isvalid(idir) # Input directory must exist
+    check_dir_isvalid(input_dir) # Input directory must exist - we need the files in it
     check_dir_isvalid(output_dir, create_if_missing=True) # Create output directory if needed
 
 
@@ -221,7 +215,7 @@ def mapstream(
     logger.info(f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}")
 
     ## Compare files found in the input_dir with those expected based on mapping rules
-    existing_input_files = [f.name for f in input_dir[0].glob("*.csv")]
+    existing_input_files = [f.name for f in input_dir.glob("*.csv")]
     rules_input_files = mappingrules.get_all_infile_names()
 
     ## Log mismatches but continue
@@ -243,7 +237,7 @@ def mapstream(
         rejcounts = {}
         rcount = 0
 
-        fh, csvr = open_file(input_dir[0] / srcfilename)
+        fh, csvr = open_file(input_dir / srcfilename)
         if fh is None:
             continue
 
@@ -624,7 +618,7 @@ def py():
     pass
 
 
-def check_dir_isvalid(directory: Path | tuple[Path, ...], create_if_missing: bool = False) -> None:
+def check_dir_isvalid(directory: Path, create_if_missing: bool = False) -> None:
     """Check if directory is valid, optionally create it if missing.
     
     Args:
@@ -638,8 +632,7 @@ def check_dir_isvalid(directory: Path | tuple[Path, ...], create_if_missing: boo
         sys.exit(1)
         
     ## check output dir is valid
-    elif type(directory) is tuple:
-        directory = directory[0]
+    assert isinstance(directory,Path)
 
 
     ## if not a directory, create it if requested (including parents. This option is for the output directory only).         
@@ -654,27 +647,6 @@ def check_dir_isvalid(directory: Path | tuple[Path, ...], create_if_missing: boo
                 sys.exit(1)
         else:
             logger.warning(f"Not a directory, dir {directory}")
-            sys.exit(1)
-        
-    # Handle tuple input (like input_dir)
-    if isinstance(directory, tuple):
-        if not directory:  # Empty tuple
-            print("No directory provided")
-            sys.exit(1)
-        directory = directory[0]
-    
-    # Handle string input
-    dir_path = str(directory)
-    if not os.path.isdir(dir_path):
-        if create_if_missing:
-            try:
-                os.makedirs(dir_path)
-                print(f"Created directory: {dir_path}")
-            except OSError as e:
-                print(f"Failed to create directory {dir_path}: {e}")
-                sys.exit(1)
-        else:
-            print(f"Not a directory, dir {dir_path}")
             sys.exit(1)
 
 
@@ -709,6 +681,7 @@ def check_files_in_rules_exist(rules_input_files: list[str], existing_input_file
 def open_file(file_path: Path) -> tuple[IO[str], Iterator[list[str]]] | None:
     """opens a file and does something related to CSVs"""
     try:
+        
         fh = file_path.open(mode="r", encoding="utf-8-sig")
         csvr = csv.reader(fh)
         return fh, csvr

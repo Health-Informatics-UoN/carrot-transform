@@ -26,7 +26,7 @@ def load_json(f_in: Path):
 def resolve_paths(args: List[Optional[Path]]) -> List[Optional[Path]]:
     """Resolve special path syntaxes in command line arguments."""
     try:
-        with resources.files('carrottransform').joinpath('__init__.py') as f:
+        with (resources.files('carrottransform') / '__init__.py').open('r') as f: 
             package_path = f.parent
     except Exception:
         # Fallback for development environment

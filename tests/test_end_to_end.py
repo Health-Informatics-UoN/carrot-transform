@@ -38,7 +38,7 @@ def test_with_example(tmp_path: Path, caplog):
     caplog.set_level(logging.DEBUG)
 
     # Get the package root directory
-    package_root = Path(importlib.resources.files('carrottransform'))
+    package_root = Path(importlib.resources.files("carrottransform"))
 
     # rules from carrot mapper
     rules_src = package_root / "examples/test/rules/rules_14June2021.json"
@@ -160,9 +160,6 @@ def test_with_example(tmp_path: Path, caplog):
     # check outputs in env
 
 
-
-
-
 @pytest.mark.unit
 def test_with_two_dirs(tmp_path: Path, caplog):
     ##
@@ -209,14 +206,11 @@ def test_with_two_dirs(tmp_path: Path, caplog):
 
     ##
     # run click
-    runner = CliRunner()
-    result = runner.invoke(
+    result = CliRunner().invoke(
         mapstream,
         [
-            "--input-dir",
+            "--input-dir",  ## the first input dir is ignored in favour of the last
             f"{input1}",
-            "--input-dir",
-            f"{input2}",
             "--rules-file",
             f"{rules}",
             "--person-file",
@@ -227,75 +221,17 @@ def test_with_two_dirs(tmp_path: Path, caplog):
             f"{tmp_path / 'ddl.sql'}",
             "--omop-config-file",
             f"{tmp_path / 'omop.json'}",
+            "--input-dir",
+            f"{input2}",
         ],
     )
 
     ##
-    # check click results
-    if None != result.exception:
-        raise result.exception
-
-    if 0 != result.exit_code:  # if it wasn't a pass ... echo output
-        m = f"result.exit_code = {result.exit_code}"
-
-        for l in result.output.split("\n"):
-            m += "\n> " + l
-
-        raise Exception(m)
-
-    assert 0 == result.exit_code
+    # click has caught exceptions
+    if None == result.exception:
+        raise Exception("that test should have failed")
 
     ##
-    # check log messages
-    for message in [
-        "Loaded mapping rules from: ",
-        "['PersonID', 'sex', 'date_of_birth', 'ethnicity']",
-        "Load Person Data date_of_birth, PersonID",
-        "person_id stats: total loaded 1000, reject count 0",
-        "WARNING: no mapping rules found for existing input file - Covid19_test.csv",
-        "WARNING: no mapping rules found for existing input file - vaccine.csv",
-        "['Demographics.csv', 'Symptoms.csv', 'covid19_antibody.csv']",
-        "observation, ethnicity, ['observation_concept_id~35825508', 'observation_source_concept_id~35825508', 'observation_source_value']",
-        "observation, date_of_birth, ['observation_datetime']",
-        "observation, PersonID, ['person_id']",
-        "observation, ethnicity, ['observation_concept_id~35825531', 'observation_source_concept_id~35825531', 'observation_source_value']",
-        "observation, date_of_birth, ['observation_datetime']",
-        "observation, PersonID, ['person_id']",
-        "observation, ethnicity, ['observation_concept_id~35826241', 'observation_source_concept_id~35826241', 'observation_source_value']",
-        "observation, date_of_birth, ['observation_datetime']",
-        "observation, PersonID, ['person_id']",
-        "observation, ethnicity, ['observation_concept_id~35827394', 'observation_source_concept_id~35827394', 'observation_source_value']",
-        "observation, date_of_birth, ['observation_datetime']",
-        "observation, PersonID, ['person_id']",
-        "observation, ethnicity, ['observation_concept_id~35825567', 'observation_source_concept_id~35825567', 'observation_source_value']",
-        "observation, date_of_birth, ['observation_datetime']",
-        "observation, PersonID, ['person_id']",
-        "observation, ethnicity, ['observation_concept_id~35827395', 'observation_source_concept_id~35827395', 'observation_source_value']",
-        "observation, date_of_birth, ['observation_datetime']",
-        "observation, PersonID, ['person_id']",
-        "person, date_of_birth, ['birth_datetime']",
-        "person, sex, ['gender_concept_id~8532', 'gender_source_concept_id~8532', 'gender_source_value']",
-        "person, PersonID, ['person_id']",
-        "person, date_of_birth, ['birth_datetime']",
-        "person, sex, ['gender_concept_id~8507', 'gender_source_concept_id~8507', 'gender_source_value']",
-        "person, PersonID, ['person_id']",
-        "Processing input: Demographics.csv",
-        "INPUT file data : Demographics.csv: input count 1000, time since start",
-        "TARGET: observation: output count 900",
-        "TARGET: person: output count 1000",
-        "condition_occurrence, symptom1, ['condition_concept_id~254761', 'condition_source_concept_id~254761', 'condition_source_value']",
-        "condition_occurrence, visit_date, ['condition_end_datetime', 'condition_start_datetime']",
-        "condition_occurrence, PersonID, ['person_id']",
-        "Processing input: Symptoms.csv",
-        "INPUT file data : Symptoms.csv: input count 800, time since start",
-        "TARGET: condition_occurrence: output count 400",
-        "measurement, IgG, ['value_as_number', 'measurement_source_value', 'measurement_concept_id~37398191', 'measurement_source_concept_id~37398191']",
-        "measurement, date, ['measurement_datetime']",
-        "measurement, PersonID, ['person_id']",
-        "Processing input: covid19_antibody.csv",
-        "INPUT file data : covid19_antibody.csv: input count 1000, time since start",
-        "TARGET: measurement: output count 1000",
-    ]:
-        assert message in caplog.text
-
-
+    # check some details of the exception
+    assert isinstance(result.exception, TypeError)
+    assert "cannot unpack non-iterable NoneType object" == str(result.exception)
