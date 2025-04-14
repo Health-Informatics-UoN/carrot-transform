@@ -15,7 +15,8 @@ import time
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.omopcdm import OmopCDM
 from pathlib import Path
-from typing import Iterator, IO
+
+from typing import Iterator, IO, Iterable
 from ...tools.file_helpers import resolve_paths
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ def run():
               help="json file containing mapping rules")
 @click.option("--output-dir", type=PathArgs,
               default=None,
+              required=True,
               help="define the output directory for OMOP-format tsv files")
 @click.option("--write-mode",
               default='w',
@@ -74,7 +76,10 @@ def run():
               required=False,
               default=0,
               help="Lower outcount limit for logfile output")
-@click.argument("input-dir", type=PathArgs, required=False, nargs=-1)
+@click.option("--input-dir", type=PathArgs,
+    required=True,
+    multiple=True,
+    help="Input directories")
 def mapstream(
     rules_file: Path,
     output_dir: Path,
@@ -87,11 +92,12 @@ def mapstream(
     use_input_person_ids,
     last_used_ids_file: Path,
     log_file_threshold,
-    input_dir: Path,
+    input_dir: Iterable[Path],
 ):
     """
     Map to output using input streams
     """
+
 
     # Resolve any @package paths in the arguments
     resolved_paths = resolve_paths([
@@ -110,10 +116,10 @@ def mapstream(
      omop_config_file, saved_person_id_file, last_used_ids_file, 
      input_dir] = resolved_paths
     
-    # Convert input_dir back to tuple format expected by later code
-    input_dir = (input_dir,) if input_dir else ()
+    # collapse it to a list
+    input_dir = list(input_dir)
 
-    # Initialisation 
+    # Initialisation
     # - check for values in optional arguments
     # - read in configuration files
     # - check main directories for existence
@@ -146,8 +152,10 @@ def mapstream(
         omop_ddl_file, omop_config_file, omop_version
     )
     ## check directories are valid
-    check_dir_isvalid(input_dir)  # Input directory must exist
-    check_dir_isvalid(output_dir, create_if_missing=True)  # Create output directory if needed
+    for idir in input_dir:
+        check_dir_isvalid(idir) # Input directory must exist
+    check_dir_isvalid(output_dir, create_if_missing=True) # Create output directory if needed
+
 
     saved_person_id_file = set_saved_person_id_file(saved_person_id_file, output_dir)
 
@@ -612,6 +620,7 @@ def load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_p
 def py():
     pass
 
+
 def check_dir_isvalid(directory: Path | tuple[Path, ...], create_if_missing: bool = False) -> None:
     """Check if directory is valid, optionally create it if missing.
     
@@ -628,6 +637,7 @@ def check_dir_isvalid(directory: Path | tuple[Path, ...], create_if_missing: boo
     ## check output dir is valid
     elif type(directory) is tuple:
         directory = directory[0]
+
 
     ## if not a directory, create it if requested (including parents. This option is for the output directory only).         
     if not directory.is_dir():
