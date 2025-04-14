@@ -1,4 +1,3 @@
-
 import carrottransform
 import carrottransform.tools as tools
 import click
@@ -116,8 +115,12 @@ def mapstream(
      omop_config_file, saved_person_id_file, last_used_ids_file, 
      input_dir] = resolved_paths
     
-    # collapse it to a list
-    input_dir = list(input_dir)
+    # Ensure input_dir is a list of paths
+    if isinstance(input_dir, (Path, str)):
+        input_dir = [input_dir]
+    elif isinstance(input_dir, tuple):
+        input_dir = list(input_dir)
+    # If it's already a list, leave it as is
 
     # Initialisation
     # - check for values in optional arguments
