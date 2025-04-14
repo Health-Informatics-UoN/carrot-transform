@@ -132,10 +132,9 @@ def test_with_example(tmp_path: Path, caplog):
         "observation, date_of_birth, ['observation_datetime']",
         "observation, PersonID, ['person_id']",
         "person, date_of_birth, ['birth_datetime']",
-        "person, sex, ['gender_concept_id~8532', 'gender_source_concept_id~8532', 'gender_source_value']",
         "person, PersonID, ['person_id']",
         "person, date_of_birth, ['birth_datetime']",
-        "person, sex, ['gender_concept_id~8507', 'gender_source_concept_id~8507', 'gender_source_value']",
+        "person, sex, {'F': ['gender_concept_id~8532', 'gender_source_concept_id~8532', 'gender_source_value'], 'M': ['gender_concept_id~8507', 'gender_source_concept_id~8507', 'gender_source_value']}",
         "person, PersonID, ['person_id']",
         "Processing input: Demographics.csv",
         "INPUT file data : Demographics.csv: input count 1000, time since start",
@@ -154,6 +153,7 @@ def test_with_example(tmp_path: Path, caplog):
         "INPUT file data : covid19_antibody.csv: input count 1000, time since start",
         "TARGET: measurement: output count 1000",
     ]:
+        print (message)
         assert message in caplog.text
 
     ##

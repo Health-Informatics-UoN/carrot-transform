@@ -138,7 +138,7 @@ def test_rules_file(test_rules):
     """Create a temporary file with the test rules."""
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
         json.dump(test_rules, f)
-        return f.name
+        return Path(f.name)
 
 @pytest.fixture
 def omopcdm():
