@@ -9,7 +9,8 @@ import importlib.resources
 import carrottransform
 import carrottransform.tools as tools
 from carrottransform.tools.omopcdm import OmopCDM
-from typing import Iterator, IO
+from typing import Iterator, IO, List, Optional
+from importlib import resources
 
 
 @click.group(help="Commands for mapping data to the OMOP CommonDataModel (CDM).")
