@@ -237,9 +237,10 @@ def mapstream(
         rejcounts = {}
         rcount = 0
 
-        fh, csvr = open_file(input_dir / srcfilename)
-        if fh is None:
-            continue
+        fhcsvr = open_file(input_dir / srcfilename)
+        if fhcsvr is None: # check if it's none before unpacking
+            raise Exception(f"Couldn't find file {srcfilename} in {input_dir}")
+        fh, csvr = fhcsvr # unpack now because we can't unpack none
 
 
         ## create dict for input file, giving the data and output file
