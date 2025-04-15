@@ -147,42 +147,6 @@ class MappingRules:
         self.outfile_names[infilename] = outfilenames
         return outfilenames, outdata
 
-# def process_person_rules(self, infilename, rules):
-#         outfile = "person"
-#         outkey = ""
-#         data = {}
-#         plain_key = ""
-#         term_value_key = ""
-#         for outfield, source_info in rules.items():
-#             if source_info["source_field"] not in data:
-#                 data[source_info["source_field"]] = []
-#             if source_info["source_table"] == infilename:
-#                 ## if it's an actual mapping term, like ethnicity, gender, etc. and not a field like DOB
-#                 if "term_mapping" in source_info:
-#                     if type(source_info["term_mapping"]) is dict:
-#                         term_value_key = infilename + "~person"
-#                         if "person" not in data:
-#                             data["person"]={}
-#                         if source_info["source_field"] not in data["person"]:
-#                             data["person"][source_info["source_field"]] = []  # Initialize the list
-#                         for inputvalue, term in source_info["term_mapping"].items():
-#                             data["person"][source_info["source_field"]].append(outfield + "~" + str(source_info["term_mapping"][str(inputvalue)]))
-                    
-
-#                     else:
-#                         plain_key = infilename + "~" + source_info["source_field"] + "~" + outfilename
-#                         data[source_info["source_field"]].append(outfield + "~" + str(source_info["term_mapping"]))
-#                 else:
-#                     data[source_info["source_field"]].append(outfield)
-#         if term_value_key != "":
-#             return term_value_key, data
-
-#         return plain_key, data
-        
-        
-#         pass 
-
-
 
     def process_rules(self, infilename, outfilename, rules):
         """
