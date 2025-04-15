@@ -146,7 +146,7 @@ def test_rules_file(test_rules):
 def omopcdm():
     """Fixture providing OmopCDM instance using the latest available OMOP version."""
     ddl_path = get_latest_omop_ddl()
-    with importlib.resources.path('carrottransform.config', 'omop.json') as config_path:
+    with importlib.resources.as_file(importlib.resources.files('carrottransform.config') / 'omop.json') as config_path:
         return OmopCDM(ddl_path, config_path)
 
 def test_person_table_no_duplicates(omopcdm, test_rules_file, input_data):
