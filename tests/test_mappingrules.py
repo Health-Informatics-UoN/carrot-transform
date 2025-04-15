@@ -8,25 +8,27 @@ import tempfile
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
 
+
 def get_latest_omop_ddl():
     """Find the latest version of OMOP DDL file in the config directory."""
-    with importlib.resources.path('carrottransform.config', '') as config_dir:
-        sql_files = list(config_dir.glob('OMOPCDM_postgresql_*_ddl.sql'))
-        if not sql_files:
-            raise FileNotFoundError("No OMOP DDL files found in config directory")
-        
-        # Extract version numbers and find the highest
-        versions = []
-        for file in sql_files:
-            match = re.search(r'OMOPCDM_postgresql_(\d+\.\d+)_ddl\.sql', file.name)
-            if match:
-                versions.append((float(match.group(1)), file))
-        
-        if not versions:
-            raise ValueError("No valid OMOP DDL files found")
-            
-        # Return the file with highest version
-        return max(versions, key=lambda x: x[0])[1]
+
+    
+    config_dir = importlib.resources.files('carrottransform.config')
+    sql_files = [
+        f for f in config_dir.iterdir()
+        if f.name.startswith('OMOPCDM_postgresql_') and f.name.endswith('_ddl.sql')
+    ]
+
+    # Extract version numbers and find the highest
+    versions = []
+    for file in sql_files:
+        match = re.search(r'OMOPCDM_postgresql_(\d+\.\d+)_ddl\.sql', file.name)
+        if match:
+            versions.append((float(match.group(1)), file))
+    # Return the file with highest version
+    return max(versions, key=lambda x: x[0])[1]
+
+
 
 @pytest.fixture
 def test_rules():
