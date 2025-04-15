@@ -153,7 +153,6 @@ def test_with_example(tmp_path: Path, caplog):
         "INPUT file data : covid19_antibody.csv: input count 1000, time since start",
         "TARGET: measurement: output count 1000",
     ]:
-        print (message)
         assert message in caplog.text
 
     ##
