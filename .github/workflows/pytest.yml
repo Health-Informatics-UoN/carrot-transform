@@ -1,17 +1,15 @@
 name: Run Pytest with Poetry
 
 on:
-  push:
-#     branches:
-#       - main
-#       - "feature/*"
-  pull_request:
-#     branches:
-#       - main
+  push: # just always run on push
+  pull_request: # just always run on pull request
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - name: Check out repository
@@ -20,7 +18,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install Poetry
         run: |
@@ -31,9 +29,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pypoetry
-          key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          key: poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
-            poetry-${{ runner.os }}-
+            poetry-${{ runner.os }}-${{ matrix.python-version }}-
 
       - name: Install dependencies
         run: poetry install --no-interaction
