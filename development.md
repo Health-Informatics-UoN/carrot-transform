@@ -3,16 +3,16 @@
 
 This document is meant to be notes for doing development work on this tool.
 
+We're using [uv](https://docs.astral.sh/uv/) so install that - don't worry about anything else.
+*Technically* you don't even need python installed.
+
+
 ## pytest
 
 There are pytest tests.
 To run them (liek we/I do on Windows)
 
-1. setup a [venv](https://docs.python.org/3/library/venv.html) and [poetry](https://python-poetry.org/)
-2. install the dependencies
-    - `poetry install` [from root](.)
-3. run `poetry pytest`
-    - ... or `nodemon -x "poetry run pytest" --ext py`
+1. `uv run pytest`
 
 ## running from source
 
@@ -22,11 +22,16 @@ To run them (liek we/I do on Windows)
 3. make the output dir `mkdir build` or something
 3. run the command
     ```
-    carrot-transform run mapstream
-        carrottransform/examples/test/inputs
-        --rules-file  carrottransform/examples/test/rules/rules_14June2021.json
-        --person-file carrottransform/examples/test/inputs/Demographics.csv
-        --output-dir build
-        --omop-ddl-file carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql
-        --omop-config-file carrottransform/config/omop.json
+    uv run -m carrottransform.cli.subcommands.run mapstream
+            --input-dir carrottransform/examples/test/inputs
+            --rules-file  carrottransform/examples/test/rules/rules_14June2021.json
+            --person-file carrottransform/examples/test/inputs/Demographics.csv
+            --output-dir build
+            --omop-ddl-file carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql
+            --omop-config-file carrottransform/config/omop.json
     ```
+
+
+## building
+
+

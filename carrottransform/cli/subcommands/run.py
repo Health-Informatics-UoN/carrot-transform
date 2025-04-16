@@ -30,10 +30,6 @@ if not logger.handlers:
 
     logger.addHandler(console_handler)
 
-@click.group(help="Commands for mapping data to the OMOP CommonDataModel (CDM).")
-def run():
-    pass
-
 
 @click.command()
 @click.option("--rules-file", type=PathArgs,
@@ -745,4 +741,10 @@ def get_person_lookup(saved_person_id_file: Path) -> tuple[dict[str, str], int]:
         last_used_integer = 1
     return person_lookup, last_used_integer
 
+@click.group(help="Commands for mapping data to the OMOP CommonDataModel (CDM).")
+def run():
+    pass
 run.add_command(mapstream,"mapstream")
+if __name__ == "__main__":
+    run()
+
