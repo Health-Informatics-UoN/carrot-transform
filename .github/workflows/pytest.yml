@@ -1,17 +1,15 @@
-name: Run Pytest with Poetry
+name: Run Pytest with uv
 
 on:
   push:
-#     branches:
-#       - main
-#       - "feature/*"
   pull_request:
-#     branches:
-#       - main
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - name: Check out repository
@@ -20,23 +18,24 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
 
-      - name: Install Poetry
+      - name: Install uv
         run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "export PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Load cached Poetry dependencies
+      - name: Cache uv dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.cache/pypoetry
-          key: poetry-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
           restore-keys: |
-            poetry-${{ runner.os }}-
+            uv-${{ runner.os }}-
 
       - name: Install dependencies
-        run: poetry install --no-interaction
+        run: uv pip install --system --no-deps .
 
       - name: Run tests
-        run: poetry run pytest
+        run: uv run pytest
