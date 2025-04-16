@@ -11,7 +11,7 @@ To run them (liek we/I do on Windows)
 1. setup a [venv](https://docs.python.org/3/library/venv.html) and [poetry](https://python-poetry.org/)
 2. install the dependencies
     - `poetry install` [from root](.)
-3. run `poetry pytest`
+3. run `poetry run pytest`
     - ... or `nodemon -x "poetry run pytest" --ext py`
 
 ## running from source
@@ -23,7 +23,7 @@ To run them (liek we/I do on Windows)
 3. run the command
     ```
     carrot-transform run mapstream
-        carrottransform/examples/test/inputs
+        --input-dir carrottransform/examples/test/inputs
         --rules-file  carrottransform/examples/test/rules/rules_14June2021.json
         --person-file carrottransform/examples/test/inputs/Demographics.csv
         --output-dir build
