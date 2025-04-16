@@ -8,6 +8,7 @@ from unittest.mock import patch
 @pytest.mark.unit
 def test_resolve_paths_with_resources():
     """Test resolving @carrot paths using resources.path"""
+    
     package_path = (resources.files('carrottransform') / '__init__.py').parent
     
     test_paths = ['@carrot/config/test.json']

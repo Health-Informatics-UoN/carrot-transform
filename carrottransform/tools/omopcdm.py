@@ -40,6 +40,7 @@ class OmopCDM:
         except Exception as err:
             logger.exception("OMOP ddl file ({0}) not found".format(omopddl))
             sys.exit()
+
         
         return(self.process_ddl(fp))
 

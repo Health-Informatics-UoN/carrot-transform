@@ -13,9 +13,10 @@ import time
 
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.omopcdm import OmopCDM
-from pathlib import Path
 
-from typing import Iterator, IO, Iterable
+from typing import Iterator, IO, List, Optional, Iterable
+from importlib import resources
+from pathlib import Path
 from ...tools.file_helpers import resolve_paths
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,7 @@ if not logger.handlers:
 
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     console_handler.setFormatter(formatter)
+
 
     logger.addHandler(console_handler)
 
@@ -330,6 +332,8 @@ def mapstream(
                                         count_type="invalid_person_ids",
                                     )
                                 rejidcounts[srcfilename] += 1
+                    if tgtfile == "person":
+                        break
 
         fh.close()
 
@@ -371,37 +375,71 @@ def get_target_records(
     """
     build_records = False
     tgtrecords = []
+    # Get field definitions from OMOP CDM
     date_col_data = omopcdm.get_omop_datetime_linked_fields(tgtfilename)
     date_component_data = omopcdm.get_omop_date_field_components(tgtfilename)
     notnull_numeric_fields = omopcdm.get_omop_notnull_numeric_fields(tgtfilename)
 
+
+    # Build keys to look up rules
     srckey = f"{srcfilename}~{srcfield}~{tgtfilename}"
     summarykey = srckey + "~all~"
+    
+    # Check if source field has a value
     if valid_value(str(srcdata[srccolmap[srcfield]])):
         ## check if either or both of the srckey and summarykey are in the rules
         srcfullkey = srcfilename + "~" + srcfield + "~" + str(srcdata[srccolmap[srcfield]]) + "~" + tgtfilename
+        
         dictkeys = []
-        if srcfullkey in rulesmap:
+        # Check if we have rules for either the full key or just the source field
+        if tgtfilename == "person":
+            build_records = True
+            dictkeys.append(srcfilename + "~person")
+        elif srcfullkey in rulesmap:
             build_records = True
             dictkeys.append(srcfullkey)
         if srckey in rulesmap:
             build_records = True
             dictkeys.append(srckey)
+
         if build_records:
+            # Process each matching rule
+
             for dictkey in dictkeys:
                 for out_data_elem in rulesmap[dictkey]:
                     valid_data_elem = True
                     ## create empty list to store the data. Populate numerical data elements with 0 instead of empty string.
                     tgtarray = ['']*len(tgtcolmap)
+                    # Initialize numeric fields to 0
                     for req_integer in notnull_numeric_fields:
                         tgtarray[tgtcolmap[req_integer]] = "0"
+
+                    # Process each field mapping
                     for infield, outfield_list in out_data_elem.items():
-                        for output_col_data in outfield_list:
-                            if "~" in output_col_data:
-                                outcol, term = output_col_data.split("~")
-                                tgtarray[tgtcolmap[outcol]] = term
-                            else:
-                                tgtarray[tgtcolmap[output_col_data]] = srcdata[srccolmap[infield]]
+                        if tgtfilename == "person" and isinstance(outfield_list, dict):
+                            # Handle term mappings for person records
+                            input_value = srcdata[srccolmap[infield]]
+                            if str(input_value) in outfield_list:
+                                for output_col_data in outfield_list[str(input_value)]:
+                                    if "~" in output_col_data:
+                                        # Handle mapped values (like gender codes)
+                                        outcol, term = output_col_data.split("~")
+                                        tgtarray[tgtcolmap[outcol]] = term
+                                    else:
+                                        # Direct field copy
+                                        tgtarray[tgtcolmap[output_col_data]] = srcdata[srccolmap[infield]]
+                        else:
+                            # Handle direct field copies and non-person records
+                            for output_col_data in outfield_list:
+                                if "~" in output_col_data:
+                                    # Handle mapped values (like gender codes)
+                                    outcol, term = output_col_data.split("~")
+                                    tgtarray[tgtcolmap[outcol]] = term
+                                else:
+                                    # Direct field copy
+                                    tgtarray[tgtcolmap[output_col_data]] = srcdata[srccolmap[infield]]
+
+                            # Special handling for date fields
                             if output_col_data in date_component_data:
                                 ## parse the date and store it in the proper format
                                 strdate = srcdata[srccolmap[infield]].split(" ")[0]
