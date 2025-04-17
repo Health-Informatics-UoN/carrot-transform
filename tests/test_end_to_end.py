@@ -38,7 +38,7 @@ def test_with_example(tmp_path: Path, caplog):
     caplog.set_level(logging.DEBUG)
 
     # Get the package root directory
-    package_root = Path(importlib.resources.files('carrottransform'))
+    package_root = Path(importlib.resources.files("carrottransform"))
 
     # rules from carrot mapper
     rules_src = package_root / "examples/test/rules/rules_14June2021.json"
