@@ -10,6 +10,10 @@ import logging
 import os
 import sys
 import time
+from carrottransform.tools.args import auto_person_in_rules
+import logging
+from pathlib import Path
+import json
 
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.omopcdm import OmopCDM
@@ -50,7 +54,7 @@ def run():
               type=click.Choice(['w','a']),
               help="force write-mode on output files")
 @click.option("--person-file", type=PathArgs,
-              required=True,
+              required=False,
               help="File containing person_ids in the first column")
 @click.option("--omop-ddl-file", type=PathArgs,
               required=False,
@@ -151,6 +155,16 @@ def mapstream(
             )
         )
     )
+
+    ## detect the person file
+    if person_file is None:
+        assert rules_file is not None
+        assert rules_file.is_file()
+
+        person_file = auto_person_in_rules(rules_file)
+        logger.debug(
+            f"detected person file {person_file}"
+        )
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(
