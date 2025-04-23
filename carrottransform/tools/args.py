@@ -26,49 +26,87 @@ from typing import Iterator, IO, List, Optional, Iterable
 from importlib import resources
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+
+class SourceFieldError(Exception):
+    """Raised when the rules.json does't set person_id/source_field to PersonID."""
+
+
+class MultipleTablesError(Exception):
+    """Raised when there are multiple .csv files in the the person_id/source_table values."""
 
 
 def auto_person_in_rules(rules: Path) -> Path:
     """scan a rules file to see where it's getting its `PersonID` from"""
 
     # for better error reporting, record all the sourcetables
-    source_tables = []
-    # mark we haven't found one
-    source_table = ""
+    source_tables = set()
 
     # grab the data
     data = json.load(rules.open())
-    assert data is not None
-    data = data["cdm"]
-    assert data is not None
-    data = data["person"]
-    assert data is not None
 
-    # go through each thing in it
-    for g in data.keys():
-        assert data[g] is not None
-        assert data[g]["person_id"] is not None
-        assert data[g]["person_id"]["source_field"] is not None
-        assert data[g]["person_id"]["source_table"] is not None
+    # query the objects for the items
+    for _, person in object_query(data, "cdm/person").items():
 
-        # grab the source table - check that the person_id is "good"
-        assert "PersonID" == data[g]["person_id"]["source_field"]
-        g_source_table = data[g]["person_id"]["source_table"]
+        # check if the source field is correct
+        if "PersonID" != object_query(person, "person_id/source_field"):
+            raise SourceFieldError()
 
-        # check that we didn't get an unsable one
-        assert g_source_table is not None
-        assert "" != g_source_table
+        source_tables.add(object_query(person, "person_id/source_table"))
 
-        # record the source table
-        if g_source_table not in source_tables:
-            source_tables.append(g_source_table)
+    # check result
+    if 1 == len(source_tables):
+        return rules.parent / next(iter(source_tables))
 
-    # determine what to do witht he source tabels we found
-    if 1 != len(source_tables):
-        message = f"couldn't determine --person-file automatically (found {len(source_tables)} suitable names)"
-        for t in source_tables:
-            message += "\n    >" + t + "<"
-        raise Exception(message)
-    else:
-        return rules.parent / source_tables[0]
+    # raise an error
+    multipleTablesError = MultipleTablesError()
+    multipleTablesError.source_tables = sorted(source_tables)
+    raise multipleTablesError
+
+
+class ObjectQueryError(Exception):
+    """Raised when the object path format is invalid."""
+
+
+class ObjectStructureError(Exception):
+    """Raised when the object path format points to inaccessible elements."""
+
+
+def object_query(data: dict, path: str) -> any:
+    """
+    Navigate a nested dictionary using a `/`-delimited path string.
+
+    Args:
+        data: The dictionary to traverse.
+        path: The object path, e.g., "/foo/bar".
+
+    Returns:
+        The value at the given path.
+
+    Raises:
+        ObjectQueryError: If the path format is invalid or the key is missing.
+    """
+
+    from pathlib import PurePosixPath
+
+    if path.startswith("/") or path.endswith("/"):
+        raise ObjectQueryError(
+            f"Invalid path format: {path!r} (must not start with '/' and not end with '/')"
+        )
+
+    current_key, _, remaining_path = path.partition("/")
+    if not current_key:
+        raise ObjectQueryError(f"Invalid path: blank key at start in {path!r}")
+
+    if current_key not in data:
+        raise ObjectStructureError(f"Key {current_key!r} not found in object")
+
+    value = data[current_key]
+    if not remaining_path:
+        return value
+
+    if not isinstance(value, dict):
+        raise ObjectStructureError(
+            f"Cannot descend into non-dict value at key {current_key!r}"
+        )
+
+    return object_query(value, remaining_path)

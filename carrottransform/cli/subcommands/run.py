@@ -10,7 +10,7 @@ import logging
 import os
 import sys
 import time
-from carrottransform.tools.args import auto_person_in_rules
+from carrottransform.tools.args import *
 import logging
 from pathlib import Path
 import json
@@ -161,10 +161,34 @@ def mapstream(
         assert rules_file is not None
         assert rules_file.is_file()
 
-        person_file = auto_person_in_rules(rules_file)
-        logger.debug(
-            f"detected person file {person_file}"
-        )
+        try:
+            person_file = auto_person_in_rules(rules_file)
+            logger.debug(
+                f"detected person file {person_file}"
+            )
+
+        except SourceFieldError:
+            logger.exception(
+                f"can't determine --person-file becuase rules_file {rules_file} doesn't have any PersonID values"
+            )
+            sys.exit(-1)
+
+        except MultipleTablesError as e:
+            message = f"can't determine --person-file becuase rules_file {rules_file} has {len(e.source_tables)} suitable .csv defintions, they are;"
+
+            for file in e.source_tables:
+                message += "\n\t" + file
+
+            logger.exception(message)
+            sys.exit(-1)
+
+        except ObjectStructureError:
+            logger.exception(
+                f"can't determine --person-file becuase rules_file {rules_file} doesn't follow expected structure"
+            )
+            sys.exit(-1)
+
+        
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(

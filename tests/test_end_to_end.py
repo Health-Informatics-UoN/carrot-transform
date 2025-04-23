@@ -195,9 +195,6 @@ def test_with_auto_person(tmp_path: Path, caplog):
         shutil.copy2(package_root / "examples/test/inputs" / src, tmp_path / src)
     person = tmp_path / "Demographics.csv"
 
-    for i in range(0, 30):
-        print(f"{person}")
-
     # output dir needs to be pre-created
     output = tmp_path / "out"
     output.mkdir()

@@ -3,7 +3,7 @@ import pytest
 from pathlib import Path
 import carrottransform
 import json
-from carrottransform.cli.subcommands.run import auto_person_in_rules
+from carrottransform.tools.args import *
 
 
 @pytest.mark.unit
@@ -30,11 +30,9 @@ def test_with_bad_rules():
     )
 
     assert rules.is_file()
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(MultipleTablesError) as exc_info:
         auto_person_in_rules(rules)
 
-    assert """couldn't determine --person-file automatically (found 2 suitable names)
-    >5Demographics.csv<
-    >aDemographics.csv<""" == str(
-        excinfo.value
-    )
+    assert "5Demographics.csv" in exc_info.value.source_tables
+    assert "aDemographics.csv" in exc_info.value.source_tables
+    assert 2 == len(exc_info.value.source_tables)
