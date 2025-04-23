@@ -6,6 +6,9 @@ This document is meant to be notes for doing development work on this tool.
 We're using [uv](https://docs.astral.sh/uv/) so install that - don't worry about anything else.
 *Technically* you don't even need python installed.
 
+## install uv
+
+like this https://docs.astral.sh/uv/#installation
 
 ## pytest
 
