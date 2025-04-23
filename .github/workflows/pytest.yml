@@ -1,8 +1,7 @@
 name: Run Pytest with uv
 
 on:
-  push:
-  pull_request:
+  push: # just always run on push
 
 jobs:
   test:
