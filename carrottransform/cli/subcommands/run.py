@@ -108,7 +108,7 @@ def mapstream(
         omop_config_file,
         saved_person_id_file,
         last_used_ids_file,
-        input_dir # Take first element of input_dir tuple
+        input_dir
     ])
     
     # Assign back resolved paths
@@ -116,9 +116,6 @@ def mapstream(
      omop_config_file, saved_person_id_file, last_used_ids_file, 
      input_dir] = resolved_paths
     
-    # Ensure input_dir is a Path
-    assert isinstance(input_dir, Path)
-
     # Initialisation
     # - check for values in optional arguments
     # - read in configuration files
@@ -670,10 +667,6 @@ def check_dir_isvalid(directory: Path, create_if_missing: bool = False) -> None:
         logger.warning("Directory not provided.")
         sys.exit(1)
         
-    ## check output dir is valid
-    assert isinstance(directory,Path)
-
-
     ## if not a directory, create it if requested (including parents. This option is for the output directory only).         
     if not directory.is_dir():
         if create_if_missing:

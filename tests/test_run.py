@@ -25,8 +25,9 @@ def test_invalid_directory(tmp_path: Path):
 def test_directory_only_path(tmp_path: Path):
     """Test with a directory path wrapped in a tuple - which should no longer work"""
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(AttributeError) as exc_info:
         check_dir_isvalid((tmp_path,))  # Should raise an exception
+    assert "'tuple' object has no attribute 'is_dir'" in str(exc_info.value)
 
 @pytest.mark.unit
 def test_explicit_file_path(tmp_path: Path):
