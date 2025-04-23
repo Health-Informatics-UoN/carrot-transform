@@ -24,9 +24,15 @@ def get_latest_omop_ddl():
     for file in sql_files:
         match = re.search(r'OMOPCDM_postgresql_(\d+\.\d+)_ddl\.sql', file.name)
         if match:
-            versions.append((float(match.group(1)), file))
+            #versions.append(match.group(1).split('.'), file)
+            version = list(map(int, (match.group(1).split('.'))))
+            version.append(file)
+            versions.append(version)
     # Return the file with highest version
-    return max(versions, key=lambda x: x[0])[1]
+    max_version = max(versions, key=lambda x: (x[0], x[1]))
+        
+    return max_version[2]
+    
 
 
 
