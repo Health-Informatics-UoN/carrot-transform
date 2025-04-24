@@ -10,6 +10,10 @@ import logging
 import os
 import sys
 import time
+from carrottransform.tools.args import *
+import logging
+from pathlib import Path
+import json
 
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.omopcdm import OmopCDM
@@ -46,7 +50,7 @@ if not logger.handlers:
               type=click.Choice(['w','a']),
               help="force write-mode on output files")
 @click.option("--person-file", type=PathArgs,
-              required=True,
+              required=False,
               help="File containing person_ids in the first column")
 @click.option("--omop-ddl-file", type=PathArgs,
               required=False,
@@ -147,6 +151,40 @@ def mapstream(
             )
         )
     )
+
+    ## detect the person file
+    if person_file is None:
+        assert rules_file is not None
+        assert rules_file.is_file()
+
+        try:
+            person_file = auto_person_in_rules(rules_file)
+            logger.debug(
+                f"detected person file {person_file}"
+            )
+
+        except SourceFieldError:
+            logger.exception(
+                f"can't determine --person-file becuase rules_file {rules_file} doesn't have any PersonID values"
+            )
+            sys.exit(-1)
+
+        except MultipleTablesError as e:
+            message = f"can't determine --person-file becuase rules_file {rules_file} has {len(e.source_tables)} suitable .csv defintions, they are;"
+
+            for file in e.source_tables:
+                message += "\n\t" + file
+
+            logger.exception(message)
+            sys.exit(-1)
+
+        except ObjectStructureError:
+            logger.exception(
+                f"can't determine --person-file becuase rules_file {rules_file} doesn't follow expected structure"
+            )
+            sys.exit(-1)
+
+        
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(

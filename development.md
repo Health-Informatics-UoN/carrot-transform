@@ -1,124 +1,107 @@
 
-[
-![Carrot Logo](
-    images/logo-primary.png
-)
-](https://carrot.ac.uk/transform)
+> WIP for this https://github.com/Health-Informatics-UoN/carrot-transform/issues/49
 
-# Development Notes 
+[![Carrot Logo](images/logo-primary.png)](https://carrot.ac.uk/transform)
 
-This document is meant to be notes for doing development work on this tool.
+# Development Notes
 
-[
-    If you want to "use" the tool without changing how it's programmed - you probably need the website docs linked here.
-](https://carrot.ac.uk/transform)
+This document provides notes for contributing to or modifying the Carrot Transform tool.
 
-## uv
+> If you're just looking to **use** the tool — not develop it — check out the [official documentation](https://carrot.ac.uk/transform).
 
-We're using [uv](https://docs.astral.sh/uv/) to build this.
-You don't need to worry about other tool anything else.
+---
 
-> *Technically* you don't need python installed.
-> It seems uv will use any available python if it's there.
+## 🛠 Using `uv`
 
-**`uv`** is a tool designed to replace `poetry`, `pip`, and `venv`.  
-It wraps multiple Python packaging and environment management features into a single, fast, and modern CLI — aiming to be the only tool you need for Python development.
+We use [`uv`](https://docs.astral.sh/uv/) for managing dependencies and running Python scripts. You don’t need to worry about `pip`, `poetry`, `venv`, or even having Python on your PATH — `uv` handles it all.
 
-### install uv
+> Technically, `uv` works with any available Python install — it doesn’t require one in your PATH.
 
-You can install `uv` by following the instructions [here](https://docs.astral.sh/uv/#installation).  
-It's usually shockingly fast to install.
+### What is `uv`?
 
-### using uv
+`uv` replaces tools like `pip`, `poetry`, and `venv` with one fast, modern CLI. It wraps dependency management, virtual environments, and package execution into a single command.
 
-Instead of invoking `venv`, `pip`, `poetry`, or even the `python` command directly, you use `uv`.
-It simplifies Python workflows into a single, consistent CLI.
+There’s also `uvx`, a companion to `uv`, which works like `npx` — letting you run packages without installing them globally.
 
-> There’s also `uvx`, which works like `npx` — letting you run Python packages on the fly without needing to install them globally.
+### Installing `uv`
 
-### dependenhcies
+Follow the [installation guide](https://docs.astral.sh/uv/#installation). It’s surprisingly fast to set up.
 
-[
-    There's a whole manual sectrion for this.
-](https://docs.astral.sh/uv/concepts/projects/dependencies/)
-These are the things I found myself wondering how to do.
+---
 
-#### add a dependency ...
+## 🧩 Dependencies
 
-... like this; `λ uv add httpx`
+Want to manage dependencies? Here’s how:
 
-#### remove a dependency ...
+- **Add a dependency:**  
+  `uv add httpx`
 
-... when it's not needed like this; `λ uv remove httpx`
+- **Remove a dependency:**  
+  `uv remove httpx`
 
-#### add a dependency to the dev/test stuff ...
+- **Add a dev/test dependency:**  
+  `uv add --dev pytest`
 
-... like this `λ uv add --dev pytest`
+See the [official docs](https://docs.astral.sh/uv/concepts/projects/dependencies/) for more details.
 
-### getting a `-m venv`
+### Creating a `.venv/`
 
-If you need it (for some reason) you can use  `λ uv sync` to setup `.venv/` as a normal python virtual environment.
+If you need a traditional virtual environment for some reason, just run:
 
-
-## pytest
-
-There are pytest tests - you run them like this ...
-
-1. `uv run pytest`
-
-## running from source
-
-You can run the whole 
-
-
-    uv run -m carrottransform.cli.subcommands.run mapstream \
-            --input-dir carrottransform/examples/test/inputs \
-            --rules-file  carrottransform/examples/test/rules/rules_14June2021.json \
-            --output-dir build \
-            --omop-ddl-file carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql \
-            --omop-config-file carrottransform/config/omop.json \
-
-
-
-
-
-
-
-    uv run -m carrottransform.cli.subcommands.run mapstream             --input-dir carrottransform/examples/test/inputs             --rules-file  carrottransform/examples/test/rules/rules_14June2021.json             --output-dir build             --omop-ddl-file carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql             --omop-config-file carrottransform/config/omop.json 
-
-
-
-
-
-
-
-
-
-
-
-
-
+```sh
+uv sync
 ```
 
-uv run -m carrottransform.cli.subcommands.run mapstream   --input-dir @carrot/examples/test/inputs   --rules-file @carrot/examples/test/rules/rules_14June2021.json   --person-file @carrot/examples/test/inputs/Demographics.csv   --output-dir carrottransform/examples/test/test_output   --omop-ddl-file @carrot/config/OMOPCDM_postgresql_5.3_ddl.sql 
-  --omop-config-file @carrot/config/omop.json
+This creates a `.venv/` you can use like a regular Python virtual environment.
 
-> this needs to be update for uv
+---
 
-1. setup the venv (as for pytest above)
-2. install the dependencies
-    - `poetry install` [from root](.)
-3. make the output dir `mkdir build` or something
-3. run the command
-    ```
-    uv run -m carrottransform.cli.subcommands.run mapstream \
-            --input-dir carrottransform/examples/test/inputs \
-            --rules-file  carrottransform/examples/test/rules/rules_14June2021.json \
-            --output-dir build \
-            --omop-ddl-file carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql \
-            --omop-config-file carrottransform/config/omop.json \
-    ```
+## 🧪 Running Tests
 
-## building
+We use `pytest` for testing. You can run all tests with:
 
+```sh
+uv run pytest
+```
 
+---
+
+## ▶️ Running the Tool from Source
+
+You can run the CLI directly like this:
+
+```sh
+uv run -m carrottransform.cli.subcommands.run mapstream \
+    --input-dir carrottransform/examples/test/inputs \
+    --person-file carrottransform/examples/test/inputs/Demographics.csv \
+    --rules-file carrottransform/examples/test/rules/rules_14June2021.json \
+    --output-dir build \
+    --omop-ddl-file carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql \
+    --omop-config-file carrottransform/config/omop.json
+```
+
+> ⚠️ On Windows, replace `/` with `^` for line continuation in the terminal.  
+> Or just paste it into a text editor and hit `END` `END` `BACKSPACE` `DELETE` until you've reformatted it into one line.
+
+> 💡 *Eventually we’d like to auto-detect `--person-file`:*  
+> [See GitHub PR #53](https://github.com/Health-Informatics-UoN/carrot-transform/pull/53)
+
+---
+
+## 📦 Building
+
+TODO
+
+---
+
+## 🚀 Deploying to PyPI
+
+TODO
+
+---
+
+## ✅ CI / GitHub Actions
+
+TODO
+
+---
