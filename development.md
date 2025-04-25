@@ -13,25 +13,31 @@ This document provides notes for contributing to or modifying the Carrot Transfo
 
 ## 🛠 Using `uv`
 
-We use [`uv`](https://docs.astral.sh/uv/) for managing dependencies and running Python scripts. You don’t need to worry about `pip`, `poetry`, `venv`, or even having Python on your PATH — `uv` handles it all.
+We use [`uv`](https://docs.astral.sh/uv/) for managing dependencies and running Python scripts.
+You don't need to worry about `pip`, `poetry`, `venv`, or even having Python on your PATH — `uv` handles it all.
 
-> Technically, `uv` works with any available Python install — it doesn’t require one in your PATH.
+> Technically, `uv` works with any available Python install — it doesn't require one in your PATH.
 
 ### What is `uv`?
 
-`uv` replaces tools like `pip`, `poetry`, and `venv` with one fast, modern CLI. It wraps dependency management, virtual environments, and package execution into a single command.
+[`uv`](https://docs.astral.sh/uv/) is a small command line program that invokes other python programs for you.
 
-There’s also `uvx`, a companion to `uv`, which works like `npx` — letting you run packages without installing them globally.
+`uv` manages tools like `pip`, `poetry`, and `venv` with one fast, modern CLI.
+Python's pip is a standard tool, while Poetry and Virtual Environments solved parts of other problems - uv handles all of them with less work from the developer.
+It wraps dependency management, virtual environments, and package execution into a single command.
+
+There's also `uvx`, a companion to `uv`, which works like `npx` — letting you run packages without installing them globally.
 
 ### Installing `uv`
 
-Follow the [installation guide](https://docs.astral.sh/uv/#installation). It’s surprisingly fast to set up.
+Follow the [installation guide](https://docs.astral.sh/uv/#installation).
+It's surprisingly fast to set up.
 
 ---
 
 ## 🧩 Dependencies
 
-Want to manage dependencies? Here’s how:
+Want to manage dependencies? Here's how:
 
 - **Add a dependency:**  
   `uv add httpx`
@@ -58,7 +64,8 @@ This creates a `.venv/` you can use like a regular Python virtual environment.
 
 ## 🧪 Running Tests
 
-We use `pytest` for testing. You can run all tests with:
+We use `pytest` for testing.
+You can run all tests with:
 
 ```sh
 uv run pytest
@@ -80,17 +87,11 @@ uv run -m carrottransform.cli.subcommands.run mapstream \
     --omop-config-file carrottransform/config/omop.json
 ```
 
-> ⚠️ On Windows, replace `/` with `^` for line continuation in the terminal.  
+> ⚠️ On Windows, replace `/` with `^` for line continuation in the terminal.
 > Or just paste it into a text editor and hit `END` `END` `BACKSPACE` `DELETE` until you've reformatted it into one line.
 
-> 💡 *Eventually we’d like to auto-detect `--person-file`:*  
+> 💡 *Eventually we'd like to auto-detect `--person-file`:*  
 > [See GitHub PR #53](https://github.com/Health-Informatics-UoN/carrot-transform/pull/53)
-
----
-
-## 📦 Building
-
-TODO
 
 ---
 
@@ -98,6 +99,17 @@ TODO
 
 TODO
 
+
+it looks like the poetry approach ... maybe works?
+
+uv add --dev build
+
+uv pip install build
+
+
+λ pip install --no-cache-dir build
+
+python -m build
 ---
 
 ## ✅ CI / GitHub Actions
