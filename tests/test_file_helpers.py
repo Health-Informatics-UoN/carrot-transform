@@ -75,11 +75,9 @@ def test_resolve_paths_windows():
     expected = [package_path / 'config/test.json']
     
     results = resolve_paths(test_paths)
-<<<<<<< HEAD
     print("\nExpected:", expected[0])
     print("Results:")
     for r in results:
         print(r)
-=======
->>>>>>> origin/54-carrot-doesnt-work-on-windows
     assert all(r == expected[0] for r in results) 
+    
