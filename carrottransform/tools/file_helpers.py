@@ -35,6 +35,10 @@ def resolve_paths(args: List[Optional[Path]]) -> List[Optional[Path]]:
     # Handle None values and replace @carrot with the actual package path
     prefix = '@carrot'
     return [
-        package_path / Path(str(arg).replace(prefix, '').lstrip('/')) if arg is not None and str(arg).startswith(prefix) else arg 
+<<<<<<< HEAD
+        package_path / Path(str(arg).replace(prefix, '').replace('\\', '/').lstrip('/')) if arg is not None and str(arg).startswith(prefix) else arg 
+=======
+        package_path / Path(str(arg).replace(prefix, '').lstrip('/\\')) if arg is not None and str(arg).startswith(prefix) else arg 
+>>>>>>> origin/54-carrot-doesnt-work-on-windows
         for arg in args
     ]
