@@ -73,7 +73,7 @@ uv run pytest
 
 ---
 
-## ▶️ Running the Tool from Source
+## Running from Source
 
 You can run the CLI directly like this:
 
@@ -87,8 +87,8 @@ uv run -m carrottransform.cli.subcommands.run mapstream \
     --omop-config-file carrottransform/config/omop.json
 ```
 
-> ⚠️ On Windows, replace `/` with `^` for line continuation in the terminal.
-> Or just paste it into a text editor and hit `END` `END` `BACKSPACE` `DELETE` until you've reformatted it into one line.
+> ⚠️ On Windows, you would need to replace `/` with `^` for line continuation in the terminal.
+> Or just paste it into a text editor and hit `END` `END` `BACKSPACE` `DELETE` until you've reformatted it into one line, then, paste that into the command prompt
 
 > 💡 *Eventually we'd like to auto-detect `--person-file`:*  
 > [See GitHub PR #53](https://github.com/Health-Informatics-UoN/carrot-transform/pull/53)
