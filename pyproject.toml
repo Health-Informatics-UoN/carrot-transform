@@ -11,6 +11,7 @@ dependencies = [
     "jinja2>=3.1.4,<4",
     "numpy<2",
 ]
+license = { file = "LICENSE" }
 
 [project.scripts]
 carrot-transform = "carrottransform.cli.command:transform"
