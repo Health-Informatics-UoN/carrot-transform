@@ -11,7 +11,9 @@ dependencies = [
     "jinja2>=3.1.4,<4",
     "numpy<2",
 ]
-license = { file = "LICENSE" }
+license = "MIT"
+
+
 
 [project.scripts]
 carrot-transform = "carrottransform.cli.command:transform"
@@ -30,6 +32,11 @@ dev = [
 default-groups = [
     "test",
     "dev",
+]
+
+[tool.hatch.build]
+include = [
+  "LICENSE",
 ]
 
 [tool.hatch.build.targets.sdist]
