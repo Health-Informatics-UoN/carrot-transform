@@ -1,32 +1,33 @@
 
 > WIP for this https://github.com/Health-Informatics-UoN/carrot-transform/issues/49
 
-[![Carrot Logo](images/logo-primary.png)](https://carrot.ac.uk/transform)
+[
+  ![Carrot Logo](
+    https://raw.githubusercontent.com/Health-Informatics-UoN/carrot-transform/refs/heads/main/images/logo-primary.png
+  )
+](https://carrot.ac.uk/transform)
 
-# Development Notes
 
 This document provides notes for contributing to or modifying the Carrot Transform tool.
 
-> If you're just looking to **use** the tool — not develop it — check out the [official documentation](https://carrot.ac.uk/transform).
+> If you only need to **use** carrot-transform - not develop it - check out the [official documentation](https://carrot.ac.uk/transform).
 
 ---
+
+# Development Notes
 
 ## 🛠 Using `uv`
 
 We use [`uv`](https://docs.astral.sh/uv/) for managing dependencies and running Python scripts.
-You don't need to worry about `pip`, `poetry`, `venv`, or even having Python on your PATH — `uv` handles it all.
-
-> Technically, `uv` works with any available Python install — it doesn't require one in your PATH.
 
 ### What is `uv`?
 
-[`uv`](https://docs.astral.sh/uv/) is a small command line program that invokes other python programs for you.
+[`uv`](https://docs.astral.sh/uv/) is a small command line program that invokes other python tools.
 
-`uv` manages tools like `pip`, `poetry`, and `venv` with one fast, modern CLI.
+`uv` manages `pip`, `poetry`, and `venv` with one fast, modern CLI.
 Python's pip is a standard tool, while Poetry and Virtual Environments solved parts of other problems - uv handles all of them with less work from the developer.
-It wraps dependency management, virtual environments, and package execution into a single command.
 
-There's also `uvx`, a companion to `uv`, which works like `npx` — letting you run packages without installing them globally.
+There's also `uvx`, a companion to `uv`, which works like `npx` or `pipx` to run packages without installing them to a project.
 
 ### Installing `uv`
 
@@ -88,6 +89,7 @@ uv run -m carrottransform.cli.subcommands.run mapstream \
 ```
 
 > ⚠️ On Windows, you would need to replace `/` with `^` for line continuation in the terminal.
+>
 > Or just paste it into a text editor and hit `END` `END` `BACKSPACE` `DELETE` until you've reformatted it into one line, then, paste that into the command prompt
 
 > 💡 *Eventually we'd like to auto-detect `--person-file`:*  
@@ -95,25 +97,9 @@ uv run -m carrottransform.cli.subcommands.run mapstream \
 
 ---
 
-## 🚀 Deploying to PyPI
+## 🚀 Deploying to PyPI and CI / GitHub Actions
 
-TODO
-
-
-it looks like the poetry approach ... maybe works?
-
-uv add --dev build
-
-uv pip install build
-
-
-λ pip install --no-cache-dir build
-
-python -m build
----
-
-## ✅ CI / GitHub Actions
-
-TODO
-
----
+[The CI file](.github/workflows/uv-workflow.yml) uses [GitHub actions](https://github.com/Health-Informatics-UoN/carrot-transform/actions) to test the project and (when appropriate) [deploy to PyPI.](https://pypi.org/project/carrot-transform/)
+When the CI job runs, it tests and assembles the project.
+If the commit being examined is against the `main` branch, then, the project will be deployed to PyPI Test.
+If the commit has been tagged with a tag starting with `v...` then the project will be deployed to PyPI Main.
