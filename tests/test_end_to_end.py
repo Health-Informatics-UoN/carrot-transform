@@ -42,7 +42,10 @@ def test_with_example(tmp_path: Path, caplog):
     caplog.set_level(logging.DEBUG)
 
     # Get the package root directory
-    package_root = Path(importlib.resources.files("carrottransform"))
+    package_root = importlib.resources.files("carrottransform")
+    package_root = (
+        package_root if isinstance(package_root, Path) else Path(str(package_root))
+    )
 
     # rules from carrot mapper
     rules_src = package_root / "examples/test/rules/rules_14June2021.json"
@@ -161,6 +164,162 @@ def test_with_example(tmp_path: Path, caplog):
 
     ##
     # check outputs in env
+
+
+@pytest.mark.unit
+def test_with_two_dirs(tmp_path: Path, caplog):
+    ##
+    # setup test environment(ish) in the folder
+
+    # capture all
+    caplog.set_level(logging.DEBUG)
+
+    # create teh two input directories
+    input1 = tmp_path / "in1"
+    input2 = tmp_path / "in2"
+    input1.mkdir()
+    input2.mkdir()
+
+    # Get the package root directory
+    package_root = importlib.resources.files("carrottransform")
+    package_root = (
+        package_root if isinstance(package_root, Path) else Path(str(package_root))
+    )
+
+    # rules from carrot mapper
+    rules_src = package_root / "examples/test/rules/rules_14June2021.json"
+    rules = tmp_path / "rules.json"
+    shutil.copy2(rules_src, rules)
+
+    # the source files
+    # ... i'm not renaming these since i'm not sure what would happen if i did
+    for src in [
+        "covid19_antibody.csv",
+        "Covid19_test.csv",
+    ]:
+        shutil.copy2(Path("carrottransform/examples/test/inputs") / src, input1 / src)
+    for src in [
+        "Demographics.csv",
+        "Symptoms.csv",
+        "vaccine.csv",
+    ]:
+        shutil.copy2(Path("carrottransform/examples/test/inputs") / src, input2 / src)
+    person = input2 / "Demographics.csv"
+
+    # output dir needs to be pre-created
+    output = tmp_path / "out"
+    output.mkdir()
+
+    # ddl and config files (copied here rather than using embedded one ... for now?)
+    ddl = tmp_path / "ddl.sql"
+    omop = tmp_path / "omop.json"
+    shutil.copy2("carrottransform/config/omop.json", omop)
+    shutil.copy2("carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
+
+    ##
+    # run click
+    result = CliRunner().invoke(
+        mapstream,
+        [
+            "--input-dir",  ## the first input dir is ignored in favour of the last
+            f"{input1}",
+            "--rules-file",
+            f"{rules}",
+            "--person-file",
+            f"{person}",
+            "--output-dir",
+            f"{output}",
+            "--omop-ddl-file",
+            f"{tmp_path / 'ddl.sql'}",
+            "--omop-config-file",
+            f"{tmp_path / 'omop.json'}",
+            "--input-dir",
+            f"{input2}",
+        ],
+    )
+
+    ##
+    # click has caught exceptions
+    if None == result.exception:
+        raise Exception("that test should have failed")
+
+    ##
+    # check some details of the exception
+    assert isinstance(
+        result.exception, Exception
+    ), f"expected Exception was {type(result.exception)} @ {result.exception}"
+    assert f"Couldn't find file covid19_antibody.csv in {input2}" == str(
+        result.exception
+    )
+
+
+@pytest.mark.unit
+def test_with_one_csv_missing(tmp_path: Path, caplog):
+    ##
+    # setup test environment(ish) in the folder
+
+    # capture all
+    caplog.set_level(logging.DEBUG)
+
+    # Get the package root directory
+    package_root = importlib.resources.files("carrottransform")
+    package_root = (
+        package_root if isinstance(package_root, Path) else Path(str(package_root))
+    )
+
+    # rules from carrot mapper
+    rules_src = package_root / "examples/test/rules/rules_14June2021.json"
+    rules = tmp_path / "rules.json"
+    shutil.copy2(rules_src, rules)
+
+    # the source files
+    # ... i'm not renaming these since i'm not sure what would happen if i did
+    for src in [
+        "covid19_antibody.csv",
+        "Covid19_test.csv",
+        "Demographics.csv",
+        # "Symptoms.csv", # just skip this file
+        "vaccine.csv",
+    ]:
+        shutil.copy2(package_root / "examples/test/inputs" / src, tmp_path / src)
+    person = tmp_path / "Demographics.csv"
+
+    # output dir needs to be pre-created
+    output = tmp_path / "out"
+    output.mkdir()
+
+    # ddl and config files (copied here rather than using embedded one ... for now?)
+    ddl = tmp_path / "ddl.sql"
+    omop = tmp_path / "omop.json"
+    shutil.copy2(package_root / "config/omop.json", omop)
+    shutil.copy2(package_root / "config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
+
+    ##
+    # run click
+    runner = CliRunner()
+    result = runner.invoke(
+        mapstream,
+        [
+            "--input-dir",
+            f"{tmp_path}",
+            "--rules-file",
+            f"{rules}",
+            "--person-file",
+            f"{person}",
+            "--output-dir",
+            f"{output}",
+            "--omop-ddl-file",
+            f"{tmp_path / 'ddl.sql'}",
+            "--omop-config-file",
+            f"{tmp_path / 'omop.json'}",
+        ],
+    )
+
+    ##
+    # check click results
+    if result.exception is None:
+        raise Exception("this test should have failed")
+    assert f"Couldn't find file Symptoms.csv in {tmp_path}" == str(result.exception)
 
 
 @pytest.mark.unit
