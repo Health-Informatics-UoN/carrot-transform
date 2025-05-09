@@ -1,10 +1,12 @@
 
-[
-  ![Carrot Logo](
-    https://raw.githubusercontent.com/Health-Informatics-UoN/carrot-transform/refs/heads/main/images/logo-primary.png
-  )
-](https://carrot.ac.uk/)
-
+<p align="center">
+  <a href="https://carrot.ac.uk/" target="_blank">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Health-Informatics-UoN/carrot-transform/refs/heads/main/images/logo-dark.png">
+    <img alt="Carrot Logo" src="https://raw.githubusercontent.com/Health-Informatics-UoN/carrot-transform/refs/heads/main/images/logo-primary.png" width="280"/>
+  </picture>
+  </a>
+</p>
 
 
 <p align="center">

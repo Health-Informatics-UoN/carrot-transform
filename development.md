@@ -1,6 +1,4 @@
 
-> WIP for this https://github.com/Health-Informatics-UoN/carrot-transform/issues/49
-
 [
   ![Carrot Logo](
     https://raw.githubusercontent.com/Health-Informatics-UoN/carrot-transform/refs/heads/main/images/logo-primary.png
