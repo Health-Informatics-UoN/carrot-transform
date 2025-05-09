@@ -56,4 +56,28 @@ def test_resolve_paths_all_none():
 @pytest.mark.unit
 def test_resolve_paths_empty_list():
     """Test handling empty list"""
-    assert resolve_paths([]) == [] 
+    assert resolve_paths([]) == []
+
+@pytest.mark.unit
+def test_resolve_paths_windows():
+    """Test resolving @carrot paths on Windows"""
+    try:
+        package_path = (resources.files('carrottransform') / '__init__.py').parent
+    except Exception:
+        import carrottransform
+        package_path = Path(carrottransform.__file__).resolve().parent
+    
+    test_paths = [
+        '@carrot\\config\\test.json',  # Windows backslash
+        '@carrot/config\\test.json',   # Mixed slashes
+        '@carrot\\config/test.json'    # Mixed slashes
+    ]
+    expected = [package_path / 'config/test.json']
+    
+    results = resolve_paths(test_paths)
+    print("\nExpected:", expected[0])
+    print("Results:")
+    for r in results:
+        print(r)
+    assert all(r == expected[0] for r in results) 
+    
