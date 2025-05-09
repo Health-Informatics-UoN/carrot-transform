@@ -1,9 +1,9 @@
-
 import pytest
 
 from carrottransform.cli.subcommands.run import *
 from pathlib import Path
 from unittest.mock import patch
+
 
 @pytest.mark.unit
 def test_valid_directory(tmp_path: Path):
