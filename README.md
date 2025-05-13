@@ -38,9 +38,11 @@
 
 Carrot Transform transforms input data into tab separated variable files of standard OMOP tables, with  concepts mapped according to the provided rules (generated from Carrot Mapper).
 
-## Quick Start for Developers
+## Quick Start
 
 To have the project up and running, please follow the [Quick Start Guide](https://carrot.ac.uk/transform/quickstart).
+
+If you need to perform development, [there's a brief guide here](https://carrot.ac.uk/transform/development) to get the tool up and running.
 
 ## Release Procedure 
 
