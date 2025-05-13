@@ -1,11 +1,13 @@
+
 <p align="center">
   <a href="https://carrot.ac.uk/" target="_blank">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="/images/logo-dark.png">
-    <img alt="Carrot Logo" src="/images/logo-primary.png" width="280"/>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Health-Informatics-UoN/carrot-transform/refs/heads/main/images/logo-dark.png">
+    <img alt="Carrot Logo" src="https://raw.githubusercontent.com/Health-Informatics-UoN/carrot-transform/refs/heads/main/images/logo-primary.png" width="280"/>
   </picture>
   </a>
 </p>
+
 
 <p align="center">
 
@@ -36,11 +38,14 @@
 
 Carrot Transform transforms input data into tab separated variable files of standard OMOP tables, with  concepts mapped according to the provided rules (generated from Carrot Mapper).
 
-## Quick Start for Developers
+## Quick Start
 
 To have the project up and running, please follow the [Quick Start Guide](https://carrot.ac.uk/transform/quickstart).
 
+If you need to perform development, [there's a brief guide here](https://carrot.ac.uk/transform/development) to get the tool up and running.
+
 ## Release Procedure 
+
 To release a new version of `carrot-transform` follow these steps: 
 
 ### 1. Prepare the repository
@@ -66,6 +71,7 @@ git push --set-upstream origin release/v$NEW_VERSION
 
 ### 4. Create pull request 
 - Open a pull request from `release/v$NEW_VERSION` to `main` and await approval.
+
 ### 5. Merge and tag 
 - After approval merge the the feature branch to `main`. 
 - Checkout to `main`, pull updates, and create a tag corresponding to the new version number. 
@@ -77,12 +83,14 @@ git push origin "$NEW_VERSION"
 ```
 
 ### 6. Create a release
+
 - We must now link the tag to a release in the GitHub repository. To do this from the command line first install GitHub command line tools `gh` and then invoke: 
 ```bash 
 gh release create "$TAG" --title "$TAG" --notes "Release for $VERSION"
 ```
 
 - Alternatively, follow the instructions in the [GitHub documentation](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to manually create a release. 
+
 ## License
 
 This repository's source code is available under the [MIT license](LICENSE).
