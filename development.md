@@ -1,10 +1,4 @@
 
-[
-  ![Carrot Logo](
-    https://raw.githubusercontent.com/Health-Informatics-UoN/carrot-transform/refs/heads/main/images/logo-primary.png
-  )
-](https://carrot.ac.uk/transform)
-
 
 This document provides notes for contributing to or modifying the Carrot Transform tool.
 
@@ -21,43 +15,12 @@ We use [`uv`](https://docs.astral.sh/uv/) for managing dependencies and running 
 ### What is `uv`?
 
 [`uv`](https://docs.astral.sh/uv/) is a small command line program that invokes other python tools.
-
-`uv` manages `pip`, `poetry`, and `venv` with one fast, modern CLI.
-Python's pip is a standard tool, while Poetry and Virtual Environments solved parts of other problems - uv handles all of them with less work from the developer.
-
 There's also `uvx`, a companion to `uv`, which works like `npx` or `pipx` to run packages without installing them to a project.
 
 ### Installing `uv`
 
 Follow the [installation guide](https://docs.astral.sh/uv/#installation).
 It's surprisingly fast to set up.
-
----
-
-### Dependencies
-
-Want to manage dependencies? Here's how:
-
-- **Add a dependency:**  
-  `uv add httpx`
-
-- **Remove a dependency:**  
-  `uv remove httpx`
-
-- **Add a dev/test dependency:**  
-  `uv add --dev pytest`
-
-See the [official docs](https://docs.astral.sh/uv/concepts/projects/dependencies/) for more details.
-
-### Creating a `.venv/`
-
-If you need a traditional virtual environment for some reason, just run:
-
-```sh
-uv sync
-```
-
-This creates a `.venv/` you can use like a regular Python virtual environment.
 
 ---
 
