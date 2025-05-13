@@ -95,7 +95,7 @@ uv run -m carrottransform.cli.subcommands.run mapstream \
 
 ---
 
-## 🚀 Deploying to PyPI and CI / GitHub Actions
+## Deploying to PyPI and CI / GitHub Actions
 
 [The CI file](.github/workflows/uv-workflow.yml) uses [GitHub actions](https://github.com/Health-Informatics-UoN/carrot-transform/actions) to test the project and (when appropriate) [deploy to PyPI.](https://pypi.org/project/carrot-transform/)
 When the CI job runs, it tests and assembles the project.
