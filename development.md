@@ -14,11 +14,11 @@ This document provides notes for contributing to or modifying the Carrot Transfo
 
 # Development Notes
 
-## 🛠 Using `uv`
+## Using `uv`
 
 We use [`uv`](https://docs.astral.sh/uv/) for managing dependencies and running Python scripts.
 
-#### What is `uv`?
+### What is `uv`?
 
 [`uv`](https://docs.astral.sh/uv/) is a small command line program that invokes other python tools.
 
@@ -27,14 +27,14 @@ Python's pip is a standard tool, while Poetry and Virtual Environments solved pa
 
 There's also `uvx`, a companion to `uv`, which works like `npx` or `pipx` to run packages without installing them to a project.
 
-#### Installing `uv`
+### Installing `uv`
 
 Follow the [installation guide](https://docs.astral.sh/uv/#installation).
 It's surprisingly fast to set up.
 
 ---
 
-### 🧩 Dependencies
+### Dependencies
 
 Want to manage dependencies? Here's how:
 
@@ -49,7 +49,7 @@ Want to manage dependencies? Here's how:
 
 See the [official docs](https://docs.astral.sh/uv/concepts/projects/dependencies/) for more details.
 
-#### Creating a `.venv/`
+### Creating a `.venv/`
 
 If you need a traditional virtual environment for some reason, just run:
 
@@ -61,7 +61,7 @@ This creates a `.venv/` you can use like a regular Python virtual environment.
 
 ---
 
-### 🧪 Running Tests
+### Running Tests
 
 We use `pytest` for testing.
 You can run all tests with:
