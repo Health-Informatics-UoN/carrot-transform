@@ -150,8 +150,16 @@ def mapstream(
 
     ## detect the person file
     if person_file is None:
-        assert rules_file is not None
-        assert rules_file.is_file()
+        if rules_file is None:
+            logger.exception(
+                f"the rules file parameter is not set"
+            )
+            sys.exit(1)
+        if not rules_file.is_file():
+            logger.exception(
+                f"the rules file parameter is not a file"
+            )
+            sys.exit(1)
 
         try:
             person_file = auto_person_in_rules(rules_file)
@@ -727,11 +735,19 @@ def set_saved_person_id_file(
 
     if saved_person_id_file is None:
         saved_person_id_file = output_dir / "person_ids.tsv"
+        if saved_person_id_file.is_dir():
+            logger.exception(
+                f"the detected saved_person_id_file {saved_person_id_file} is already a dir"
+            )
+            sys.exit(1)
         if saved_person_id_file.exists():
-            assert not saved_person_id_file.is_dir()
             saved_person_id_file.unlink()
     else:
-        assert not saved_person_id_file.is_dir()
+        if saved_person_id_file.is_dir():
+            logger.exception(
+                f"the passed saved_person_id_file {saved_person_id_file} is already a dir"
+            )
+            sys.exit(1)
     return saved_person_id_file
 
 def check_files_in_rules_exist(rules_input_files: list[str], existing_input_files: list[str]) -> None:
