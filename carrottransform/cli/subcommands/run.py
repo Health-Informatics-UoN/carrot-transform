@@ -535,7 +535,7 @@ def valid_date_value(item):
     if item.strip() == "":
         return(False)
     if not valid_iso_date(item) and not valid_reverse_iso_date(item) and not valid_uk_date(item):
-        logger.warning("Bad date : {0}".format(item))
+        logger.warning("Bad date : `{0}`".format(item))
         return False
     return True
 
