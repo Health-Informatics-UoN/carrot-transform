@@ -1,0 +1,5 @@
+person_id,measurement_concept_id,value_as_number,unit_concept_id,measurement_type_concept_id,measurement_date,
+6789,3025315,75,9529,32817,2023-10-12,
+6789,3025315,76,9529,32817,2023-10-11,
+6789,3025315,86,9529,32817,2023-11-21,
+321,3025315,23,9529,32817,2025-01-03,
