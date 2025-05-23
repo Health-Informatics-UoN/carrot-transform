@@ -1,5 +1,7 @@
 name: carrot-transform-pytest
-
+###
+# most of this is copied into the publish file
+##
 permissions:
   contents: read
 
