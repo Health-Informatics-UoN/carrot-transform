@@ -5,7 +5,7 @@ permissions:
 
 on:
   workflow_run:
-    workflows: ["Run Pytest with uv"]  # Must match exactly the name of test workflow
+    workflows: ["carrot-transform-pytest"]  # Must match exactly the name of test workflow
     types:
       - completed
 
