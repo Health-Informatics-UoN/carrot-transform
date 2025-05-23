@@ -40,7 +40,7 @@ def test_integration_test1(tmp_path: Path):
     ##
     # setup the args
     arg__input_dir = test_files
-    arg__rules_file = test_files / 'Rules-intest6-301-2025-05-21-10_22_56.937314.json'
+    arg__rules_file = test_files / 'transform-rules.json'
     arg__person_file = test_files / 'src_PERSON.csv'
     arg__output_dir = tmp_path
 
@@ -70,9 +70,11 @@ def test_integration_test1(tmp_path: Path):
 
     ##
     # load the src_PERSON.csv
-    src_persons = {}
-    for src_person in csv_rows(arg__person_file):
-        src_persons[src_person.person_id] = src_person
+    src_persons = csv2dict(arg__person_file, lambda src: src.person_id)
+
+    # load the weight rows
+    src_weight_data = csv2dict(test_files / 'src_WEIGHT.csv', lambda src: f'{src.person_id}#{src.measurement_date}')
+    src_weight_seen = set()
 
     ### check data
 
@@ -82,11 +84,8 @@ def test_integration_test1(tmp_path: Path):
     # target -> source
     [s2t, t2s] = back_get(arg__output_dir / 'person_ids.tsv')
 
-    ## check that the personid thing exists
-    # ... we *could* map back from source<-target at some point
-
     ##
-    # check the birdays
+    # check the birthdays and gender
     for person in csv_rows(arg__output_dir / 'person.tsv', '\t'):
 
         # check the birth is internally consistent
@@ -109,6 +108,55 @@ def test_integration_test1(tmp_path: Path):
             assert 8532 == int(person.gender_concept_id)
         else:
             raise Exception(f'unknown gender_source_value `{person.gender_source_value}`')
+
+    ##
+    # check measurements
+    for measurement in csv_rows(arg__output_dir / 'measurement.tsv', '\t'):
+
+        # check the 35811769 value we're using for weight
+        if '35811769' == measurement.measurement_concept_id:
+
+            ##
+            # "standard" checks for measurements? maybe?
+            assert measurement.person_id in t2s
+            key = f"{t2s[measurement.person_id]}#{measurement.measurement_date}"
+            assert key in src_weight_data
+            assert key not in src_weight_seen
+            src = src_weight_data[key]
+            src_weight_seen.add(key)
+
+            ## bespoke checks here
+
+            assert measurement.measurement_date == measurement.measurement_datetime
+            assert '' == measurement.measurement_time
+            assert '0' == measurement.measurement_type_concept_id
+            assert '' == measurement.operator_concept_id
+            assert src.body_kgs == measurement.value_as_number
+            assert '' == measurement.value_as_concept_id
+            assert '' == measurement.unit_concept_id
+            assert '' == measurement.range_low
+            assert '' == measurement.range_high
+            assert '' == measurement.provider_id
+            assert '' == measurement.visit_occurrence_id
+            assert '' == measurement.visit_detail_id
+            assert src.body_kgs == measurement.measurement_source_value
+            assert '35811769' == measurement.measurement_source_concept_id
+            assert '' == measurement.unit_source_value
+            assert '' == measurement.value_source_value
+
+            continue
+
+
+        raise Exception('unexpected measurement measurement_concept_id = '+str(measurement))
+    assert len(src_weight_data) == len(src_weight_seen)
+
+
+    ##
+    # check the smoking status
+    print(
+        f'check smoking {tmp_path} ?'
+    )
+
 
 def back_get(person_ids):
     assert person_ids.is_file()
@@ -153,7 +201,23 @@ def back_get(person_ids):
         
         return [s2t, t2s]
 
+
+def csv2dict(path, key, delimiter=','):
+    """converts a .csv (or .tsv) into a dictionary using key:() -> to detrmine key
+    """
+
+    out = {}
+    for row in csv_rows(path, delimiter):
+        k = key(row)
+        assert k not in out
+        out[k] = row
+    
+    return out
+
+
 def csv_rows(path, delimiter=','):
+    """converts each row of a .csv (or .tsv) into an object (not a dictionary) for comparisons and such
+    """
     import csv
     with open(path, newline='') as csvfile:
         reader = csv.DictReader(csvfile, delimiter=delimiter)
@@ -165,3 +229,4 @@ def csv_rows(path, delimiter=','):
                     return str(self.__dict__)
             # Remove extra spaces from field names and values
             yield Row({key.strip(): value.strip() for key, value in row.items() if '' != key.strip()})
+

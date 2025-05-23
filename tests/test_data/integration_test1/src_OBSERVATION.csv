@@ -1,4 +1,0 @@
-person_id,observation_concept_id,observation_source_value,observation_type_concept_id,observation_datetime,
-789345,4057460,	            "CURRENT_SMOKER",	        32817,2025-05-21 15:02,
-6789,4057461,	            "FORMER_SMOKER",	        32817,2025-05-21 15:02,
-321,4057462,"NEVER_SMOKER",32817,2025-05-21 15:02,
