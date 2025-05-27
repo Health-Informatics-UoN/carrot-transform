@@ -27,6 +27,9 @@ from carrottransform.cli.subcommands.run import *
 from pathlib import Path
 from unittest.mock import patch
 
+
+FULL_DATETIME_OBSERVATIONS = False
+
 @pytest.mark.unit
 def test_integration_test1(tmp_path: Path):
 
@@ -152,10 +155,71 @@ def test_integration_test1(tmp_path: Path):
 
 
     ##
-    # check the smoking status
-    print(
-        f'check smoking {tmp_path} ?'
-    )
+    # check the observation
+    for observation in csv_rows(arg__output_dir / 'observation.tsv', '\t'):
+        print(observation.observation_concept_id)
+
+        if '35810208' == observation.observation_concept_id:
+            
+            assert '2025-05-21' == observation.observation_date
+            assert ('2025-05-21 15:02' if FULL_DATETIME_OBSERVATIONS else '2025-05-21') == observation.observation_datetime
+            assert '0' == observation.observation_type_concept_id
+            assert '' == observation.value_as_number
+            assert 'CURRENT_SMOKER' == observation.value_as_string
+            assert '' == observation.value_as_concept_id
+            assert '' == observation.qualifier_concept_id
+            assert '' == observation.unit_concept_id
+            assert '' == observation.provider_id
+            assert '' == observation.visit_occurrence_id
+            assert '' == observation.visit_detail_id
+            assert 'CURRENT_SMOKER' == observation.observation_source_value
+            assert '35810208' == observation.observation_source_concept_id
+            assert '' == observation.unit_source_value
+            assert '' == observation.qualifier_source_value
+
+            assert '789345' == t2s[observation.person_id]
+
+        elif '35810209' == observation.observation_concept_id:
+            assert '2025-05-12' == observation.observation_date
+            assert ('2025-05-12 21:20' if FULL_DATETIME_OBSERVATIONS else '2025-05-12') == observation.observation_datetime
+            assert '0' == observation.observation_type_concept_id
+            assert '' == observation.value_as_number
+            assert 'FORMER_SMOKER' == observation.value_as_string
+            assert '' == observation.value_as_concept_id
+            assert '' == observation.qualifier_concept_id
+            assert '' == observation.unit_concept_id
+            assert '' == observation.provider_id
+            assert '' == observation.visit_occurrence_id
+            assert '' == observation.visit_detail_id
+            assert 'FORMER_SMOKER' == observation.observation_source_value
+            assert '35810209' == observation.observation_source_concept_id
+            assert '' == observation.unit_source_value
+            assert '' == observation.qualifier_source_value
+
+            assert '6789' == t2s[observation.person_id]
+
+        elif '35821355' == observation.observation_concept_id:
+            assert '2025-05-22' == observation.observation_date
+            assert ('2025-05-22 03:14' if FULL_DATETIME_OBSERVATIONS else '2025-05-22') == observation.observation_datetime
+            assert '0' == observation.observation_type_concept_id
+            assert '' == observation.value_as_number
+            assert 'NEVER_SMOKER' == observation.value_as_string
+            assert '' == observation.value_as_concept_id
+            assert '' == observation.qualifier_concept_id
+            assert '' == observation.unit_concept_id
+            assert '' == observation.provider_id
+            assert '' == observation.visit_occurrence_id
+            assert '' == observation.visit_detail_id
+            assert 'NEVER_SMOKER' == observation.observation_source_value
+            assert '35821355' == observation.observation_source_concept_id
+            assert '' == observation.unit_source_value
+            assert '' == observation.qualifier_source_value
+
+            assert '321' == t2s[observation.person_id]
+        else:
+            raise Exception(
+                f'Unexpected observation.observation_concept_id `{observation.observation_concept_id}`'
+            )
 
 
 def back_get(person_ids):
