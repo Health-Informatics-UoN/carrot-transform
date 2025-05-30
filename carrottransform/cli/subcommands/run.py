@@ -726,11 +726,19 @@ def set_saved_person_id_file(
 
     if saved_person_id_file is None:
         saved_person_id_file = output_dir / "person_ids.tsv"
+        if saved_person_id_file.is_dir():
+            logger.exception(
+                f"the detected saved_person_id_file {saved_person_id_file} is already a dir"
+            )
+            sys.exit(1)
         if saved_person_id_file.exists():
-            assert not saved_person_id_file.is_dir()
             saved_person_id_file.unlink()
     else:
-        assert not saved_person_id_file.is_dir()
+        if saved_person_id_file.is_dir():
+            logger.exception(
+                f"the passed saved_person_id_file {saved_person_id_file} is already a dir"
+            )
+            sys.exit(1)
     return saved_person_id_file
 
 def check_files_in_rules_exist(rules_input_files: list[str], existing_input_files: list[str]) -> None:
