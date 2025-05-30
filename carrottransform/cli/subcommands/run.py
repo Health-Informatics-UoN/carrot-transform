@@ -228,7 +228,7 @@ def mapstream(
             fhpout.write("SOURCE_SUBJECT\tTARGET_SUBJECT\n")
             ##iterate through the ids and write them to the file.
             for person_id, person_assigned_id in person_lookup.items():
-                fhpout.write(f"{str(person_id)}\t{str(person_assigned_id)}")
+                fhpout.write(f"{str(person_id)}\t{str(person_assigned_id)}\n")
 
         ## Initialise output files (adding them to a dict), output a header for each
         ## these aren't being closed deliberately
