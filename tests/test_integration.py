@@ -69,7 +69,7 @@ def test_integration_test1(tmp_path: Path):
         ],
     )
 
-    # TODO; validate teh console output
+    # TODO; validate the console output
 
     ##
     # load the src_PERSON.csv
