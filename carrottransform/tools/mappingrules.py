@@ -5,6 +5,8 @@ from .omopcdm import OmopCDM
 from pydantic import BaseModel, ValidationError
 from typing import Set, Union, Dict, Optional, List
 from pathlib import Path
+import logging
+logger = logging.getLogger(__name__)
 
 class RuleSetLoadingError(Exception):
     """Custom exception for errors during ruleset loading."""
@@ -98,6 +100,7 @@ def load_ruleset_from_file(path: Union[str, Path]) -> RuleSet:
     except Exception as e:
         raise RuleSetLoadingError(f"Error raised parsing file {path}: {e}")
         
+
 class MappingRules:
     """
     self.rules_data stores the mapping rules as untransformed json, as each input file is processed rules are reorganised 
@@ -175,7 +178,7 @@ class MappingRules:
             outfile = keydata[-1]
             for outfield_elem in outfield_data:
                 for infield, outfield_list in outfield_elem.items():
-                    #print("{0}, {1}, {2}".format(outfile, infield, str(outfield_list)))
+                    logger.debug("{0}, {1}, {2}".format(outfile, infield, str(outfield_list)))
                     for outfield in outfield_list:
                         if outfield.split('~')[0] in self.omopcdm.get_omop_datetime_fields(outfile):
                             datetime_source = infield
@@ -218,7 +221,21 @@ class MappingRules:
                 if key != "":
                     if key not in outdata:
                         outdata[key] = []
-                    outdata[key].append(data)
+                        if key.split("~")[-1] == "person":
+                            outdata[key].append(data)
+
+                    if key.split("~")[-1] == "person":
+                        # Find matching source field keys and merge their dictionaries
+                        for source_field, value in data.items():
+                            if source_field in outdata[key][0] and isinstance(outdata[key][0][source_field], dict):
+                                # Merge the dictionaries for this source field
+                                outdata[key][0][source_field].update(value)
+                            else:
+                                # If no matching dict or new source field, just set it
+                                outdata[key][0][source_field] = value
+                            pass
+                    else:
+                        outdata[key].append(data)
                     if outfilename not in outfilenames:
                         outfilenames.append(outfilename)
 
@@ -226,30 +243,47 @@ class MappingRules:
         self.outfile_names[infilename] = outfilenames
         return outfilenames, outdata
 
+
     def process_rules(self, infilename, outfilename, rules):
         """
         Process rules for an infile, outfile combination
         """
         data = {}
-        plain_key = ""
-        term_value_key = ""
+        plain_key = ""  ### used for mapping simple fields that are always mapped (e.g., dob)
+        term_value_key = ""  ### used for mapping terms (e.g., gender, race, ethnicity)
 
         ## iterate through the rules, looking for rules that apply to the input file.
         for outfield, source_info in rules.items():
-            if source_info["source_field"] not in data:
-                data[source_info["source_field"]] = []
+            # Check if this rule applies to our input file
             if source_info["source_table"] == infilename:
                 if "term_mapping" in source_info:
                     if type(source_info["term_mapping"]) is dict:
-                        for inputvalue in source_info["term_mapping"].keys():
-                            ## add a key/add to the list of data in the dict for the given input file
-                            term_value_key = infilename + "~" + source_info["source_field"] + "~" + str(inputvalue) + "~" + outfilename
-                            data[source_info["source_field"]].append(outfield + "~" + str(source_info["term_mapping"][str(inputvalue)]))
+                        for inputvalue, term in source_info["term_mapping"].items():
+                            if outfilename == "person":
+                                term_value_key = infilename + "~person"
+                                source_field = source_info["source_field"]
+                                if source_field not in data:
+                                    data[source_field] = {}
+                                if str(inputvalue) not in data[source_field]:
+                                    data[source_field][str(inputvalue)] = []
+                                data[source_field][str(inputvalue)].append(outfield + "~" + str(term))
+                            else:
+                                term_value_key = infilename + "~" + source_info["source_field"] + "~" + str(inputvalue) + "~" + outfilename
+                                if source_info["source_field"] not in data:
+                                    data[source_info["source_field"]] = []
+                                data[source_info["source_field"]].append(outfield + "~" + str(term))
                     else:
                         plain_key = infilename + "~" + source_info["source_field"] + "~" + outfilename
+                        if source_info["source_field"] not in data:
+                            data[source_info["source_field"]] = []
                         data[source_info["source_field"]].append(outfield + "~" + str(source_info["term_mapping"]))
                 else:
-                    data[source_info["source_field"]].append(outfield)
+                    if source_info["source_field"] not in data:
+                        data[source_info["source_field"]] = []
+                    if type(data[source_info["source_field"]]) is dict:
+                        data[source_info["source_field"]][str(inputvalue)].append(outfield)
+                    else: 
+                        data[source_info["source_field"]].append(outfield)
         if term_value_key != "":
             return term_value_key, data
 

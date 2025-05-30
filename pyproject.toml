@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "carrot_transform"
-version = "0.3.4"
+version = "0.3.6"
 description = ""
 authors = ["anwarfg <913028+anwarfg@users.noreply.github.com>"]
 readme = "README.md"
@@ -11,11 +11,14 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.10"
 click = "^8.1.7"
-pandas = "^2.2.3"
 jinja2 = "^3.1.4"
+pandas = "^2.2.3"
+
+[tool.poetry.group.test.dependencies]
 pytest = "^8.3.4"
-pydantic = "^2.11.1"
-numpy = "<2"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.2.0"
 
 [tool.poetry.scripts]
 carrot-transform = "carrottransform.cli.command:transform"
