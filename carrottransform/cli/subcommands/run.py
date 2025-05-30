@@ -144,10 +144,15 @@ def mapstream(
         )
     )
 
+    # check on the rules file
+    if (rules_file is None) or (not rules_file.is_file()):
+        logger.exception(
+            f"rules file was set to `{rules_file}` and is missing"
+        )
+        sys.exit(-1)
+
     ## detect the person file
     if person_file is None:
-        assert rules_file is not None
-        assert rules_file.is_file()
 
         try:
             person_file = auto_person_in_rules(rules_file)
@@ -175,8 +180,6 @@ def mapstream(
                 f"can't determine --person-file becuase rules_file {rules_file} doesn't follow expected structure"
             )
             sys.exit(-1)
-
-        
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(
