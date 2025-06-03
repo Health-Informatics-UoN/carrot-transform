@@ -107,7 +107,10 @@ def test_integration_test1(tmp_path: Path):
 
         if 'male' == person.gender_source_value:
             assert 8507 == int(person.gender_concept_id)
-        elif 'female' == person.gender_source_value or 'femail' == person.gender_source_value:
+        elif 'female' == person.gender_source_value or (
+                # this misspelling is intentional. the misspelling is in the test-data, and test-rules; not the shipped code.
+                # carrot doesn't do any spell checking
+                'femail' == person.gender_source_value):
             assert 8532 == int(person.gender_concept_id)
         else:
             raise Exception(f'unknown gender_source_value `{person.gender_source_value}`')
