@@ -86,8 +86,6 @@ def object_query(data: dict, path: str) -> any:
         ObjectQueryError: If the path format is invalid or the key is missing.
     """
 
-    from pathlib import PurePosixPath
-
     if path.startswith("/") or path.endswith("/"):
         raise ObjectQueryError(
             f"Invalid path format: {path!r} (must not start with '/' and not end with '/')"
