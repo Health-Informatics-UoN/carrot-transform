@@ -16,6 +16,7 @@ import pytest
 from unittest.mock import patch
 import importlib.resources
 import logging
+import re
 
 from pathlib import Path
 import shutil
@@ -28,6 +29,7 @@ from carrottransform.cli.subcommands.run import *
 from pathlib import Path
 from unittest.mock import patch
 
+print("refactor the csv functions to their own file since they are being used in another branch")
 
 @pytest.mark.unit
 def test_integration_test1(tmp_path: Path):
@@ -253,7 +255,6 @@ def test_integration_test1(tmp_path: Path):
 
 
 def assert_datetimes(onlydate: str, datetime: str, expected: str):
-    import re
 
     assert re.fullmatch(
         r"\d{4}-\d{2}-\d{2}", onlydate
