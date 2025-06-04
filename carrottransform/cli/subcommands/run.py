@@ -1,3 +1,4 @@
+
 import carrottransform
 import carrottransform.tools as tools
 import click
@@ -10,17 +11,19 @@ import logging
 import os
 import sys
 import time
-from carrottransform.tools.args import *
-import logging
-from pathlib import Path
-import json
 
+from carrottransform.tools.args import (
+    MultipleTablesError,
+    ObjectStructureError,
+    SourceFieldError,
+    auto_person_in_rules,
+)
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.omopcdm import OmopCDM
-
-from typing import Iterator, IO, List, Optional, Iterable
 from importlib import resources
 from pathlib import Path
+from typing import IO, Iterable, Iterator, List, Optional
+
 from ...tools.file_helpers import resolve_paths
 
 logger = logging.getLogger(__name__)
