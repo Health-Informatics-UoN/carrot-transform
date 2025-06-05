@@ -47,6 +47,9 @@ def test_dateimes_in_persons(tmp_path: Path, caplog):
             r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", person.birth_datetime
         ), f"{person.birth_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
 
+        raise Exception('??? verify that the date matches the source')
+
+
 # @pytest.mark.unit
 # def test_dateimes_in_observation(tmp_path: Path, caplog):
 #     # capture all
