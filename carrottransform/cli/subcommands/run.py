@@ -424,7 +424,6 @@ def get_target_records(
 
         if build_records:
             # Process each matching rule
-
             for dictkey in dictkeys:
                 for out_data_elem in rulesmap[dictkey]:
                     valid_data_elem = True
@@ -461,19 +460,13 @@ def get_target_records(
 
                             # Special handling for date fields
                             if output_col_data in date_component_data:
+                                # this side of the if/else seems to be fore birthdates which're split up into four fields
 
-                                source_data = srcdata[srccolmap[infield]]
+                                source_date = srcdata[srccolmap[infield]]
 
-                                # rewrite teh date(s) for reasons here
-                                
-
-                                
-
-
-                                ## parse the date and store it in the proper format
-                                strdate = srcdata[srccolmap[infield]].split(" ")[0]
-                                dt = get_datetime_value(strdate)
-
+                                # parse the date and store it in the old format ... as a way to branch
+                                # ... this check might be redudant
+                                dt = get_datetime_value(source_date.split(" ")[0])
                                 if dt != None:
                                     year_field = date_component_data[output_col_data]["year"]
                                     month_field = date_component_data[output_col_data]["month"]
@@ -481,25 +474,12 @@ def get_target_records(
                                     tgtarray[tgtcolmap[year_field]] = str(dt.year)
                                     tgtarray[tgtcolmap[month_field]] = str(dt.month)
                                     tgtarray[tgtcolmap[day_field]] = str(dt.day)
-                                    fulldate = "{0}-{1:02}-{2:02}".format(dt.year, dt.month, dt.day)
 
-                                    logger.info(f'we just broke the date {output_col_data=} {fulldate=} {strdate=}')
-                                    logger.info(f'we just broke the date {fulldate=}')
-                                    logger.info(f'we just broke the date {fulldate=}')
-                                    logger.info(f'we just broke the date {fulldate=}')
-                                    logger.info(f'we just broke the date {fulldate=}')
-                                    logger.info(f'we just broke the date {fulldate=}')
-                                    logger.info(f'we just broke the date {fulldate=}')
-                                    logger.info(f'we just broke the date {fulldate=}')
-                                    logger.info(f'we just broke the date {fulldate=}')
-                                    logger.info(f'we just broke the date {fulldate=}')
-                                    logger.info(f'we just broke the date {fulldate=}')
-                                    logger.info(f'we just broke the date {fulldate=}')
-                                    logger.info(f'we just broke the date {fulldate=}')
-                                    logger.info(f'we just broke the date {fulldate=}')
-
-                                    tgtarray[tgtcolmap[output_col_data]] = fulldate
+                                    tgtarray[tgtcolmap[output_col_data]] = source_date
                                 else:
+
+                                    # pal is 80% sure this won't happen with the "fix-date-time branch/changes"
+
                                     metrics.increment_key_count(
                                             source=srcfilename,
                                             fieldname=srcfield,
@@ -507,12 +487,17 @@ def get_target_records(
                                             concept_id="all",
                                             additional="",
                                             count_type="invalid_date_fields"
-                                            )
+                                        )
                                     valid_data_elem = False
+
                             elif output_col_data in date_col_data:
-                                fulldate = srcdata[srccolmap[infield]]
-                                tgtarray[tgtcolmap[output_col_data]] = fulldate
-                                tgtarray[tgtcolmap[date_col_data[output_col_data]]] = fulldate
+                                # this fork of the if/else seems to be fore birthdates which're split up into four fields
+                                
+                                source_date = srcdata[srccolmap[infield]]
+                                logger.info('should handle teh OTHER date problem here')
+                                tgtarray[tgtcolmap[output_col_data]] = source_date
+                                tgtarray[tgtcolmap[date_col_data[output_col_data]]] = source_date
+
                     if valid_data_elem:
                         tgtrecords.append(tgtarray)
     else:
