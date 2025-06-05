@@ -91,5 +91,5 @@ def test_dateimes_in_persons(tmp_path: Path, caplog):
 
         assert person.birth_datetime.startswith(concat_birthdate), f"{person.birth_datetime=} shoudl start with {concat_birthdate=}"
         assert re.fullmatch(
-            r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", person.birth_datetime
-        ), f"{person.birth_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM`"
+            r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", person.birth_datetime
+        ), f"{person.birth_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS`"
