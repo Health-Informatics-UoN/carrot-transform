@@ -9,71 +9,16 @@ import shutil
 
 from click.testing import CliRunner
 from carrottransform.cli.subcommands.run import mapstream
+import clicktools
 import csvrow
 import re
 
 @pytest.mark.unit
 def test_dateimes_in_persons(tmp_path: Path, caplog):
-    ##
-    # setup test environment(ish) in the folder
-
     # capture all
     caplog.set_level(logging.DEBUG)
 
-    # Get the package root directory
-    package_root = importlib.resources.files("carrottransform")
-    package_root = (
-        package_root if isinstance(package_root, Path) else Path(str(package_root))
-    )
-
-    # rules from carrot mapper
-    rules_src = package_root / "examples/test/rules/rules_14June2021.json"
-    rules = tmp_path / "rules.json"
-    shutil.copy2(rules_src, rules)
-
-    # the source files
-    # ... i'm not renaming these since i'm not sure what would happen if i did
-    for src in [
-        "covid19_antibody.csv",
-        "Covid19_test.csv",
-        "Demographics.csv",
-        "Symptoms.csv",
-        "vaccine.csv",
-    ]:
-        shutil.copy2(package_root / "examples/test/inputs" / src, tmp_path / src)
-    person = tmp_path / "Demographics.csv"
-
-    # output dir needs to be pre-created
-    output = tmp_path / "out"
-    output.mkdir()
-
-    # ddl and config files (copied here rather than using embedded one ... for now?)
-    ddl = tmp_path / "ddl.sql"
-    omop = tmp_path / "omop.json"
-    shutil.copy2(package_root / "config/omop.json", omop)
-    shutil.copy2(package_root / "config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
-
-    ##
-    # run click
-    runner = CliRunner()
-    result = runner.invoke(
-        mapstream,
-        [
-            "--input-dir",
-            f"{tmp_path}",
-            "--rules-file",
-            f"{rules}",
-            "--person-file",
-            f"{person}",
-            "--output-dir",
-            f"{output}",
-            "--omop-ddl-file",
-            f"{tmp_path / 'ddl.sql'}",
-            "--omop-config-file",
-            f"{tmp_path / 'omop.json'}",
-        ],
-    )
-
+    clicktools.click_transform(tmp_path, limit= 10)
 
     ##
     # check the person.tsv created by the above steps
@@ -92,4 +37,51 @@ def test_dateimes_in_persons(tmp_path: Path, caplog):
         assert person.birth_datetime.startswith(concat_birthdate), f"{person.birth_datetime=} shoudl start with {concat_birthdate=}"
         assert re.fullmatch(
             r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", person.birth_datetime
-        ), f"{person.birth_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS`"
+        ), f"{person.birth_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
+
+
+@pytest.mark.unit
+def test_dateimes_in_observation(tmp_path: Path, caplog):
+    # capture all
+    caplog.set_level(logging.DEBUG)
+
+    clicktools.click_transform(tmp_path, limit= 10)
+
+    ##
+    # check the observation.tsv created by the above steps
+    observations = list(csvrow.csv_rows(tmp_path / 'out/observation.tsv', '\t'))
+    assert 0 != len(observations)
+    for observation in observations:
+        assert observation.observation_date == observation.observation_datetime[:10]
+
+        assert re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}", observation.observation_date
+        ), f"{observation.observation_date=} is the wrong format, it should be `YYYY-MM-DD` {tmp_path=}"
+
+        assert re.fullmatch(
+            r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", observation.observation_datetime
+        ), f"{observation.observation_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
+
+
+@pytest.mark.unit
+def test_dateimes_in_measurement(tmp_path: Path, caplog):
+    # capture all
+    caplog.set_level(logging.DEBUG)
+
+    clicktools.click_transform(tmp_path, limit= 10)
+
+    ##
+    # check the measurement.tsv created by the above steps
+    measurements = list(csvrow.csv_rows(tmp_path / 'out/measurement.tsv', '\t'))
+    assert 0 != len(measurements)
+    for measurement in measurements:
+        assert measurement.measurement_date == measurement.measurement_datetime[:10]
+
+        assert re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}", measurement.measurement_date
+        ), f"{measurement.measurement_date=} is the wrong format, it should be `YYYY-MM-DD` {tmp_path=}"
+
+        assert re.fullmatch(
+            r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", measurement.measurement_datetime
+        ), f"{measurement.measurement_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
+
