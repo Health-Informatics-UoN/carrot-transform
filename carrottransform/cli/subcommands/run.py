@@ -10,7 +10,7 @@ import logging
 import os
 import sys
 import time
-
+import  re
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.omopcdm import OmopCDM
 
@@ -232,9 +232,8 @@ def mapstream(
 
     ## main processing loop, for each input file
     for srcfilename in rules_input_files:
-        outcounts = {}
-        rejcounts = {}
         rcount = 0
+
 
         fhcsvr = open_file(input_dir / srcfilename)
         if fhcsvr is None: # check if it's none before unpacking
@@ -245,15 +244,19 @@ def mapstream(
         ## create dict for input file, giving the data and output file
         tgtfiles, src_to_tgt = mappingrules.parse_rules_src_to_tgt(srcfilename)
         infile_datetime_source, infile_person_id_source = mappingrules.get_infile_date_person_id(srcfilename)
+        
+        outcounts = {}
+        rejcounts = {}
         for tgtfile in tgtfiles:
             outcounts[tgtfile] = 0
             rejcounts[tgtfile] = 0
+
         datacolsall = []
-        hdrdata = next(csvr)
+        csv_column_headers = next(csvr)
         dflist = mappingrules.get_infile_data_fields(srcfilename)
-        for colname in hdrdata:
+        for colname in csv_column_headers:
             datacolsall.append(colname)
-        inputcolmap = omopcdm.get_column_map(hdrdata)
+        inputcolmap = omopcdm.get_column_map(csv_column_headers)
         pers_id_col = inputcolmap[infile_person_id_source]
         datetime_col = inputcolmap[infile_datetime_source]
 
@@ -273,9 +276,9 @@ def mapstream(
                     count_type="input_count"
                 )
             rcount += 1
-            # if there is a date, parse it - read it is a string and convert to YYYY-MM-DD
-            strdate = indata[datetime_col].split(" ")[0]
-            fulldate = parse_date(strdate)
+
+            # if there is a date, parse it - read it is a string and convert to YYYY-MM-DD HH:MM:SS
+            fulldate = normalise_to8601(indata[datetime_col])
             if fulldate is not None:
                 indata[datetime_col] = fulldate
             else:
@@ -299,13 +302,32 @@ def mapstream(
                     datacols = dflist[tgtfile]
 
                 for datacol in datacols:
-                    built_records, outrecords, metrics = get_target_records(tgtfile, tgtcolmap, src_to_tgt, datacol, indata, inputcolmap, srcfilename, omopcdm, metrics)
+                    
+
+
+                    built_records, outrecords, metrics = get_target_records(
+                        tgtfile,
+                        tgtcolmap,
+                        src_to_tgt,
+                        datacol,
+                        indata,
+                        inputcolmap,
+                        srcfilename,
+                        omopcdm,
+                        metrics
+                    )
+
+
+
                     if built_records:
                         for outrecord in outrecords:
+
+
                             if auto_num_col is not None:
                                 outrecord[tgtcolmap[auto_num_col]] = str(record_numbers[tgtfile])
                                 ### most of the rest of this section is actually to do with metrics
                                 record_numbers[tgtfile] += 1
+
                             if (outrecord[tgtcolmap[pers_id_col]]) in person_lookup:
                                 outrecord[tgtcolmap[pers_id_col]] = person_lookup[outrecord[tgtcolmap[pers_id_col]]]
                                 outcounts[tgtfile] += 1
@@ -329,6 +351,7 @@ def mapstream(
                                         count_type="invalid_person_ids",
                                     )
                                 rejidcounts[srcfilename] += 1
+                    
                     if tgtfile == "person":
                         break
 
@@ -438,9 +461,19 @@ def get_target_records(
 
                             # Special handling for date fields
                             if output_col_data in date_component_data:
+
+                                source_data = srcdata[srccolmap[infield]]
+
+                                # rewrite teh date(s) for reasons here
+                                
+
+                                
+
+
                                 ## parse the date and store it in the proper format
                                 strdate = srcdata[srccolmap[infield]].split(" ")[0]
                                 dt = get_datetime_value(strdate)
+
                                 if dt != None:
                                     year_field = date_component_data[output_col_data]["year"]
                                     month_field = date_component_data[output_col_data]["month"]
@@ -449,6 +482,22 @@ def get_target_records(
                                     tgtarray[tgtcolmap[month_field]] = str(dt.month)
                                     tgtarray[tgtcolmap[day_field]] = str(dt.day)
                                     fulldate = "{0}-{1:02}-{2:02}".format(dt.year, dt.month, dt.day)
+
+                                    logger.info(f'we just broke the date {output_col_data=} {fulldate=} {strdate=}')
+                                    logger.info(f'we just broke the date {fulldate=}')
+                                    logger.info(f'we just broke the date {fulldate=}')
+                                    logger.info(f'we just broke the date {fulldate=}')
+                                    logger.info(f'we just broke the date {fulldate=}')
+                                    logger.info(f'we just broke the date {fulldate=}')
+                                    logger.info(f'we just broke the date {fulldate=}')
+                                    logger.info(f'we just broke the date {fulldate=}')
+                                    logger.info(f'we just broke the date {fulldate=}')
+                                    logger.info(f'we just broke the date {fulldate=}')
+                                    logger.info(f'we just broke the date {fulldate=}')
+                                    logger.info(f'we just broke the date {fulldate=}')
+                                    logger.info(f'we just broke the date {fulldate=}')
+                                    logger.info(f'we just broke the date {fulldate=}')
+
                                     tgtarray[tgtcolmap[output_col_data]] = fulldate
                                 else:
                                     metrics.increment_key_count(
@@ -528,10 +577,25 @@ def get_datetime_value(item):
     return None
 
 
-def parse_date(item):
+def normalise_to8601(item: str) -> str:
     """
     Crude hand-coded check on date format
     """
+
+    if not isinstance(item, str):
+        raise Exception('??? that should have been a string')
+
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", item):
+        return item
+        
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{6}", item):
+        return item.split('.')[0]
+        
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", item):
+        return f'{item} 00:00:00'
+
+    raise Exception(f'??? how should i handle {item=}')
+
     datedata = item.split("-")
     if len(datedata) != 3:
         datedata = item.split("/")
