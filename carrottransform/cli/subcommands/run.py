@@ -150,39 +150,38 @@ def mapstream(
     # check on the rules file
     if (rules_file is None) or (not rules_file.is_file()):
         logger.exception(
-            f"rules file was set to `{rules_file}` and is missing"
+            f"rules file was set to `{rules_file=}` and is missing"
         )
         sys.exit(-1)
 
     ## detect the person file
     if person_file is None:
-
         try:
             person_file = auto_person_in_rules(rules_file)
             logger.debug(
-                f"detected person file {person_file}"
+                f"detected person file {person_file=}"
             )
 
         except SourceFieldError:
             logger.exception(
-                f"can't determine --person-file becuase rules_file {rules_file} doesn't have any PersonID values"
+                f"can't determine --person-file because rules_file {rules_file=} doesn't have any PersonID values"
             )
-            sys.exit(-1)
+            sys.exit(1)
 
         except MultipleTablesError as e:
-            message = f"can't determine --person-file becuase rules_file {rules_file} has {len(e.source_tables)} suitable .csv defintions, they are;"
+            message = f"can't determine --person-file because rules_file {rules_file=} has {len(e.source_tables)=} suitable .csv defintions, they are;"
 
             for file in e.source_tables:
                 message += "\n\t" + file
 
             logger.exception(message)
-            sys.exit(-1)
+            sys.exit(1)
 
         except ObjectStructureError:
             logger.exception(
-                f"can't determine --person-file becuase rules_file {rules_file} doesn't follow expected structure"
+                f"can't determine --person-file because rules_file {rules_file=} doesn't follow expected structure"
             )
-            sys.exit(-1)
+            sys.exit(1)
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(

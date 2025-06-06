@@ -54,7 +54,7 @@ def auto_person_in_rules(rules: Path) -> Path:
         source_tables.add(object_query(person, "person_id/source_table"))
 
     # check result
-    if 1 == len(source_tables):
+    if len(source_tables) == 1:
         return rules.parent / next(iter(source_tables))
 
     # raise an error
