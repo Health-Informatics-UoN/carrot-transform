@@ -1,7 +1,4 @@
 
-import carrottransform
-import carrottransform.tools as tools
-import click
 import csv
 import datetime
 import fnmatch
@@ -11,19 +8,17 @@ import logging
 import os
 import sys
 import time
-
-from carrottransform.tools.args import (
-    MultipleTablesError,
-    ObjectStructureError,
-    SourceFieldError,
-    auto_person_in_rules,
-)
-from carrottransform.tools.click import PathArgs
-from carrottransform.tools.omopcdm import OmopCDM
 from importlib import resources
 from pathlib import Path
 from typing import IO, Iterable, Iterator, List, Optional
 
+import click
+
+import carrottransform
+import carrottransform.tools as tools
+import carrottransform.tools.args as args
+from carrottransform.tools.click import PathArgs
+from carrottransform.tools.omopcdm import OmopCDM
 from ...tools.file_helpers import resolve_paths
 
 logger = logging.getLogger(__name__)
@@ -38,10 +33,6 @@ if not logger.handlers:
 
 
     logger.addHandler(console_handler)
-
-@click.group(help="Commands for mapping data to the OMOP CommonDataModel (CDM).")
-def run():
-    pass
 
 
 @click.command()
@@ -151,33 +142,29 @@ def mapstream(
         )
     )
 
+    # check on the rules file
+    if (rules_file is None) or (not rules_file.is_file()):
+        logger.exception(
+            f"rules file was set to `{rules_file=}` and is missing"
+        )
+        sys.exit(-1)
+
     ## detect the person file
     if person_file is None:
-        if rules_file is None:
-            logger.exception(
-                f"the rules file parameter is not set"
-            )
-            sys.exit(1)
-        if not rules_file.is_file():
-            logger.exception(
-                f"the rules file parameter is not a file"
-            )
-            sys.exit(1)
-
         try:
-            person_file = auto_person_in_rules(rules_file)
+            person_file = args.auto_person_in_rules(rules_file)
             logger.debug(
-                f"detected person file {person_file}"
+                f"detected person file {person_file=}"
             )
 
-        except SourceFieldError:
+        except args.SourceFieldError:
             logger.exception(
-                f"can't determine --person-file because rules_file {rules_file} doesn't have any PersonID values"
+                f"can't determine --person-file because rules_file {rules_file=} doesn't have any PersonID values"
             )
             sys.exit(1)
 
-        except MultipleTablesError as e:
-            message = f"can't determine --person-file because rules_file {rules_file} has {len(e.source_tables)} suitable .csv defintions, they are;"
+        except args.MultipleTablesError as e:
+            message = f"can't determine --person-file because rules_file {rules_file=} has {len(e.source_tables)=} suitable .csv defintions, they are;"
 
             for file in e.source_tables:
                 message += "\n\t" + file
@@ -185,13 +172,11 @@ def mapstream(
             logger.exception(message)
             sys.exit(1)
 
-        except ObjectStructureError:
+        except args.ObjectStructureError:
             logger.exception(
-                f"can't determine --person-file because rules_file {rules_file} doesn't follow expected structure"
+                f"can't determine --person-file because rules_file {rules_file=} doesn't follow expected structure"
             )
             sys.exit(1)
-
-        
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(
@@ -550,7 +535,7 @@ def valid_date_value(item):
     if item.strip() == "":
         return(False)
     if not valid_iso_date(item) and not valid_reverse_iso_date(item) and not valid_uk_date(item):
-        logger.warning("Bad date : {0}".format(item))
+        logger.warning("Bad date : `{0}`".format(item))
         return False
     return True
 
@@ -807,4 +792,10 @@ def get_person_lookup(saved_person_id_file: Path) -> tuple[dict[str, str], int]:
         last_used_integer = 1
     return person_lookup, last_used_integer
 
+@click.group(help="Commands for mapping data to the OMOP CommonDataModel (CDM).")
+def run():
+    pass
 run.add_command(mapstream,"mapstream")
+if __name__ == "__main__":
+    run()
+
