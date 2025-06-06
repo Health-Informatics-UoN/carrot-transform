@@ -1,7 +1,4 @@
 
-import carrottransform
-import carrottransform.tools as tools
-import click
 import csv
 import datetime
 import fnmatch
@@ -11,19 +8,17 @@ import logging
 import os
 import sys
 import time
-
-from carrottransform.tools.args import (
-    MultipleTablesError,
-    ObjectStructureError,
-    SourceFieldError,
-    auto_person_in_rules,
-)
-from carrottransform.tools.click import PathArgs
-from carrottransform.tools.omopcdm import OmopCDM
 from importlib import resources
 from pathlib import Path
 from typing import IO, Iterable, Iterator, List, Optional
 
+import click
+
+import carrottransform
+import carrottransform.tools as tools
+import carrottransform.tools.args as args
+from carrottransform.tools.click import PathArgs
+from carrottransform.tools.omopcdm import OmopCDM
 from ...tools.file_helpers import resolve_paths
 
 logger = logging.getLogger(__name__)
@@ -157,18 +152,18 @@ def mapstream(
     ## detect the person file
     if person_file is None:
         try:
-            person_file = auto_person_in_rules(rules_file)
+            person_file = args.auto_person_in_rules(rules_file)
             logger.debug(
                 f"detected person file {person_file=}"
             )
 
-        except SourceFieldError:
+        except args.SourceFieldError:
             logger.exception(
                 f"can't determine --person-file because rules_file {rules_file=} doesn't have any PersonID values"
             )
             sys.exit(1)
 
-        except MultipleTablesError as e:
+        except args.MultipleTablesError as e:
             message = f"can't determine --person-file because rules_file {rules_file=} has {len(e.source_tables)=} suitable .csv defintions, they are;"
 
             for file in e.source_tables:
@@ -177,7 +172,7 @@ def mapstream(
             logger.exception(message)
             sys.exit(1)
 
-        except ObjectStructureError:
+        except args.ObjectStructureError:
             logger.exception(
                 f"can't determine --person-file because rules_file {rules_file=} doesn't follow expected structure"
             )
