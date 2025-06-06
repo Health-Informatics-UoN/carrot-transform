@@ -1,22 +1,14 @@
-from carrottransform.cli.subcommands.run import *
-import pytest
-from unittest.mock import patch
 import importlib.resources
-import logging
 
 from pathlib import Path
 import shutil
 
 from click.testing import CliRunner
 from carrottransform.cli.subcommands.run import mapstream
-import csvrow
-import re
+
 
 def click_transform(tmp_path: Path, limit: int = -1):
-    """sets up the/a test environment and runs the transform thing with it.
-
-    """
-
+    """sets up the/a test environment and runs the transform thing with it."""
 
     # Get the package root directory
     package_root = importlib.resources.files("carrottransform")
@@ -38,8 +30,11 @@ def click_transform(tmp_path: Path, limit: int = -1):
         "Symptoms.csv",
         "vaccine.csv",
     ]:
-        with open(package_root / "examples/test/inputs" / src) as s, open(tmp_path / src, 'w') as o:
-            for s in (s.readlines() if limit < 0 else s.readlines()[:(limit+1)]):
+        with (
+            open(package_root / "examples/test/inputs" / src) as s,
+            open(tmp_path / src, "w") as o,
+        ):
+            for s in s.readlines() if limit < 0 else s.readlines()[: (limit + 1)]:
                 o.write(s)
     person = tmp_path / "Demographics.csv"
 
@@ -56,7 +51,7 @@ def click_transform(tmp_path: Path, limit: int = -1):
     ##
     # run click
     runner = CliRunner()
-    result = runner.invoke(
+    runner.invoke(
         mapstream,
         [
             "--input-dir",

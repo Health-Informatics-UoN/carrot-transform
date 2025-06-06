@@ -29,6 +29,11 @@ def test_dateimes_in_persons(tmp_path: Path, caplog):
 
     clicktools.click_transform(tmp_path, limit=10)
 
+    # get the target2source mapping
+    [_, t2s] = csvrow.back_get(tmp_path / "out/person_ids.tsv")
+
+    s_people = csvrow.csv2dict(tmp_path / "Demographics.csv", lambda p: p.PersonID)
+
     ##
     # check the person.tsv created by the above steps
     people = list(csvrow.csv_rows(tmp_path / "out/person.tsv", "\t"))
@@ -51,11 +56,19 @@ def test_dateimes_in_persons(tmp_path: Path, caplog):
             f"{person.birth_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
         )
 
-        raise Exception("??? verify that the date matches the source")
+        s_person_id = t2s[person.person_id]
+        s_person = s_people[s_person_id]
+
+        n_s_date_of_birth = run.normalise_to8601(s_person.date_of_birth)
+
+        assert n_s_date_of_birth == person.birth_datetime
 
 
-# @pytest.mark.unit
-# def test_dateimes_in_observation(tmp_path: Path, caplog):
+@pytest.mark.unit
+def test_dateimes_in_observation(tmp_path: Path, caplog):
+    raise Exception("??? check the observation thing goes through")
+
+
 #     # capture all
 #     caplog.set_level(logging.DEBUG)
 

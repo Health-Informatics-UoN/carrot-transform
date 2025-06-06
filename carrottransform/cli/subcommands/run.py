@@ -600,7 +600,7 @@ def get_datetime_value(item):
 
 def normalise_to8601(item: str) -> str:
     """
-    Crude hand-coded check on date format
+    Crude hand-coded reformat dates to our-format
     """
 
     if not isinstance(item, str):
@@ -608,7 +608,7 @@ def normalise_to8601(item: str) -> str:
 
     if re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", item):
         return item
-        
+
     if re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", item):
         return item + ":00"
         
