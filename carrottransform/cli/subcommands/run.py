@@ -1,3 +1,4 @@
+
 import carrottransform
 import carrottransform.tools as tools
 import click
@@ -11,12 +12,18 @@ import os
 import sys
 import time
 
+from carrottransform.tools.args import (
+    MultipleTablesError,
+    ObjectStructureError,
+    SourceFieldError,
+    auto_person_in_rules,
+)
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.omopcdm import OmopCDM
-
-from typing import Iterator, IO, List, Optional, Iterable
 from importlib import resources
 from pathlib import Path
+from typing import IO, Iterable, Iterator, List, Optional
+
 from ...tools.file_helpers import resolve_paths
 
 logger = logging.getLogger(__name__)
@@ -50,7 +57,7 @@ def run():
               type=click.Choice(['w','a']),
               help="force write-mode on output files")
 @click.option("--person-file", type=PathArgs,
-              required=True,
+              required=False,
               help="File containing person_ids in the first column")
 @click.option("--omop-ddl-file", type=PathArgs,
               required=False,
@@ -143,6 +150,48 @@ def mapstream(
             )
         )
     )
+
+    ## detect the person file
+    if person_file is None:
+        if rules_file is None:
+            logger.exception(
+                f"the rules file parameter is not set"
+            )
+            sys.exit(1)
+        if not rules_file.is_file():
+            logger.exception(
+                f"the rules file parameter is not a file"
+            )
+            sys.exit(1)
+
+        try:
+            person_file = auto_person_in_rules(rules_file)
+            logger.debug(
+                f"detected person file {person_file}"
+            )
+
+        except SourceFieldError:
+            logger.exception(
+                f"can't determine --person-file because rules_file {rules_file} doesn't have any PersonID values"
+            )
+            sys.exit(1)
+
+        except MultipleTablesError as e:
+            message = f"can't determine --person-file because rules_file {rules_file} has {len(e.source_tables)} suitable .csv defintions, they are;"
+
+            for file in e.source_tables:
+                message += "\n\t" + file
+
+            logger.exception(message)
+            sys.exit(1)
+
+        except ObjectStructureError:
+            logger.exception(
+                f"can't determine --person-file because rules_file {rules_file} doesn't follow expected structure"
+            )
+            sys.exit(1)
+
+        
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(
@@ -689,11 +738,19 @@ def set_saved_person_id_file(
 
     if saved_person_id_file is None:
         saved_person_id_file = output_dir / "person_ids.tsv"
+        if saved_person_id_file.is_dir():
+            logger.exception(
+                f"the detected saved_person_id_file {saved_person_id_file} is already a dir"
+            )
+            sys.exit(1)
         if saved_person_id_file.exists():
-            assert not saved_person_id_file.is_dir()
             saved_person_id_file.unlink()
     else:
-        assert not saved_person_id_file.is_dir()
+        if saved_person_id_file.is_dir():
+            logger.exception(
+                f"the passed saved_person_id_file {saved_person_id_file} is already a dir"
+            )
+            sys.exit(1)
     return saved_person_id_file
 
 def check_files_in_rules_exist(rules_input_files: list[str], existing_input_files: list[str]) -> None:
