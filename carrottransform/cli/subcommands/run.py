@@ -609,6 +609,9 @@ def normalise_to8601(item: str) -> str:
     if re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", item):
         return item
         
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", item):
+        return item + ":00"
+        
     if re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{6}", item):
         return item.split('.')[0]
         

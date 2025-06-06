@@ -1,53 +1,57 @@
-from carrottransform.cli.subcommands.run import *
 import pytest
-from unittest.mock import patch
-import importlib.resources
 import logging
 
 from pathlib import Path
-import shutil
 
-from click.testing import CliRunner
-from carrottransform.cli.subcommands.run import mapstream
 import clicktools
 import csvrow
 import re
+import carrottransform.cli.subcommands.run as run
 
 
-# @pytest.mark.unit
-# def test_normalise_to8601():
-#     raise Exception(f"test {normalise_to8601=}")
+@pytest.mark.unit
+def test_normalise_to8601():
+    test_data = [
+        ["2025-01-19 12:32:57", "2025-01-19 12:32:57"],
+        ["2022-03-29 13:43:00", "2022-03-29 13:43"],
+        ["2781-03-21 09:17:01", "2781-03-21 09:17:01.218347"],
+    ]
 
+    for [e, s] in test_data:
+        a = run.normalise_to8601(s)
+        assert e == a, f"normalise_to8601({s=}) -> {a=} != {e=}"
 
 
 @pytest.mark.unit
 def test_dateimes_in_persons(tmp_path: Path, caplog):
-
     # capture all
     caplog.set_level(logging.DEBUG)
 
-    clicktools.click_transform(tmp_path, limit= 10)
+    clicktools.click_transform(tmp_path, limit=10)
 
     ##
     # check the person.tsv created by the above steps
-    people = list(csvrow.csv_rows(tmp_path / 'out/person.tsv', '\t'))
+    people = list(csvrow.csv_rows(tmp_path / "out/person.tsv", "\t"))
     assert 0 != len(people)
     for person in people:
-
         ##
         # concat the birtdatetime
         concat_birthdate = str(person.year_of_birth)
-        concat_birthdate+= "-"
-        concat_birthdate+= str(person.month_of_birth).rjust(2, "0")
-        concat_birthdate+= "-"
-        concat_birthdate+= str(person.day_of_birth).rjust(2, "0")
+        concat_birthdate += "-"
+        concat_birthdate += str(person.month_of_birth).rjust(2, "0")
+        concat_birthdate += "-"
+        concat_birthdate += str(person.day_of_birth).rjust(2, "0")
 
-        assert person.birth_datetime.startswith(concat_birthdate), f"{person.birth_datetime=} shoudl start with {concat_birthdate=}"
+        assert person.birth_datetime.startswith(concat_birthdate), (
+            f"{person.birth_datetime=} shoudl start with {concat_birthdate=}"
+        )
         assert re.fullmatch(
             r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", person.birth_datetime
-        ), f"{person.birth_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
+        ), (
+            f"{person.birth_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
+        )
 
-        raise Exception('??? verify that the date matches the source')
+        raise Exception("??? verify that the date matches the source")
 
 
 # @pytest.mark.unit
