@@ -527,12 +527,11 @@ def get_target_records(
                                     valid_data_elem = False
 
                             elif output_col_data in date_col_data:
-                                # this fork of the if/else seems to be fore birthdates which're split up into four fields
                                 
+                                # this fork of the if/else seems to be for non-birthdates which're handled differently
                                 source_date = srcdata[srccolmap[infield]]
-                                logger.info('should handle teh OTHER date problem here')
                                 tgtarray[tgtcolmap[output_col_data]] = source_date
-                                tgtarray[tgtcolmap[date_col_data[output_col_data]]] = source_date
+                                tgtarray[tgtcolmap[date_col_data[output_col_data]]] = source_date[:10]
 
                     if valid_data_elem:
                         tgtrecords.append(tgtarray)
@@ -639,7 +638,6 @@ def valid_iso_date(item):
         return False
 
     return True
-
 
 def valid_reverse_iso_date(item):
     """
