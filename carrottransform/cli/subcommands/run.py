@@ -494,27 +494,19 @@ def get_target_records(
                                     # Direct field copy
                                     tgtarray[tgtcolmap[output_col_data]] = srcdata[srccolmap[infield]]
 
+                            # get the value. this is out 8061 value that was previously normalised
+                            source_date = srcdata[srccolmap[infield]]
+
                             # Special handling for date fields
                             if output_col_data in date_component_data:
                                 # this side of the if/else seems to be fore birthdates which're split up into four fields
 
-                                source_date = srcdata[srccolmap[infield]]
-
                                 # parse the date and store it in the old format ... as a way to branch
-                                # ... this check might be redudant
+                                # ... this check might be redudant. the datetime values should be ones that have already been normalised
                                 dt = get_datetime_value(source_date.split(" ")[0])
-                                if dt != None:
-                                    year_field = date_component_data[output_col_data]["year"]
-                                    month_field = date_component_data[output_col_data]["month"]
-                                    day_field = date_component_data[output_col_data]["day"]
-                                    tgtarray[tgtcolmap[year_field]] = str(dt.year)
-                                    tgtarray[tgtcolmap[month_field]] = str(dt.month)
-                                    tgtarray[tgtcolmap[day_field]] = str(dt.day)
-
-                                    tgtarray[tgtcolmap[output_col_data]] = source_date
-                                else:
-
-                                    # pal is 80% sure this won't happen with the "fix-date-time branch/changes"
+                                if dt is None:
+                                    # if (as above) dt isn't going to be None than this branch shouldn't happen
+                                    # maybe brithdates can be None?
 
                                     metrics.increment_key_count(
                                             source=srcfilename,
@@ -525,12 +517,28 @@ def get_target_records(
                                             count_type="invalid_date_fields"
                                         )
                                     valid_data_elem = False
+                                else:
 
-                            elif output_col_data in date_col_data:
+
+                                    year_field = date_component_data[output_col_data]["year"]
+                                    month_field = date_component_data[output_col_data]["month"]
+                                    day_field = date_component_data[output_col_data]["day"]
+                                    tgtarray[tgtcolmap[year_field]] = str(dt.year)
+                                    tgtarray[tgtcolmap[month_field]] = str(dt.month)
+                                    tgtarray[tgtcolmap[day_field]] = str(dt.day)
+
+                                    tgtarray[tgtcolmap[output_col_data]] = source_date
+
+
+                            elif output_col_data in date_col_data: # date_col_data for key $K$ is where $only_date(srcdata[K])$ should be copied and is there for all dates
                                 
                                 # this fork of the if/else seems to be for non-birthdates which're handled differently
-                                source_date = srcdata[srccolmap[infield]]
+
+
+                                # copy the full value into this "full value"
                                 tgtarray[tgtcolmap[output_col_data]] = source_date
+
+                                # select the first 10 chars which will be YYYY-MM-DD
                                 tgtarray[tgtcolmap[date_col_data[output_col_data]]] = source_date[:10]
 
                     if valid_data_elem:
