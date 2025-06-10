@@ -6,6 +6,7 @@ import importlib.resources
 import json
 import logging
 import os
+import re
 import sys
 import time
 from importlib import resources
@@ -19,6 +20,7 @@ import carrottransform.tools as tools
 import carrottransform.tools.args as args
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.omopcdm import OmopCDM
+
 from ...tools.file_helpers import resolve_paths
 
 logger = logging.getLogger(__name__)
@@ -266,9 +268,8 @@ def mapstream(
 
     ## main processing loop, for each input file
     for srcfilename in rules_input_files:
-        outcounts = {}
-        rejcounts = {}
         rcount = 0
+
 
         fhcsvr = open_file(input_dir / srcfilename)
         if fhcsvr is None: # check if it's none before unpacking
@@ -279,15 +280,19 @@ def mapstream(
         ## create dict for input file, giving the data and output file
         tgtfiles, src_to_tgt = mappingrules.parse_rules_src_to_tgt(srcfilename)
         infile_datetime_source, infile_person_id_source = mappingrules.get_infile_date_person_id(srcfilename)
+        
+        outcounts = {}
+        rejcounts = {}
         for tgtfile in tgtfiles:
             outcounts[tgtfile] = 0
             rejcounts[tgtfile] = 0
+
         datacolsall = []
-        hdrdata = next(csvr)
+        csv_column_headers = next(csvr)
         dflist = mappingrules.get_infile_data_fields(srcfilename)
-        for colname in hdrdata:
+        for colname in csv_column_headers:
             datacolsall.append(colname)
-        inputcolmap = omopcdm.get_column_map(hdrdata)
+        inputcolmap = omopcdm.get_column_map(csv_column_headers)
         pers_id_col = inputcolmap[infile_person_id_source]
         datetime_col = inputcolmap[infile_datetime_source]
 
@@ -307,9 +312,9 @@ def mapstream(
                     count_type="input_count"
                 )
             rcount += 1
-            # if there is a date, parse it - read it is a string and convert to YYYY-MM-DD
-            strdate = indata[datetime_col].split(" ")[0]
-            fulldate = parse_date(strdate)
+
+            # if there is a date, parse it - read it is a string and convert to YYYY-MM-DD HH:MM:SS
+            fulldate = normalise_to8601(indata[datetime_col])
             if fulldate is not None:
                 indata[datetime_col] = fulldate
             else:
@@ -333,13 +338,32 @@ def mapstream(
                     datacols = dflist[tgtfile]
 
                 for datacol in datacols:
-                    built_records, outrecords, metrics = get_target_records(tgtfile, tgtcolmap, src_to_tgt, datacol, indata, inputcolmap, srcfilename, omopcdm, metrics)
+                    
+
+
+                    built_records, outrecords, metrics = get_target_records(
+                        tgtfile,
+                        tgtcolmap,
+                        src_to_tgt,
+                        datacol,
+                        indata,
+                        inputcolmap,
+                        srcfilename,
+                        omopcdm,
+                        metrics
+                    )
+
+
+
                     if built_records:
                         for outrecord in outrecords:
+
+
                             if auto_num_col is not None:
                                 outrecord[tgtcolmap[auto_num_col]] = str(record_numbers[tgtfile])
                                 ### most of the rest of this section is actually to do with metrics
                                 record_numbers[tgtfile] += 1
+
                             if (outrecord[tgtcolmap[pers_id_col]]) in person_lookup:
                                 outrecord[tgtcolmap[pers_id_col]] = person_lookup[outrecord[tgtcolmap[pers_id_col]]]
                                 outcounts[tgtfile] += 1
@@ -363,6 +387,7 @@ def mapstream(
                                         count_type="invalid_person_ids",
                                     )
                                 rejidcounts[srcfilename] += 1
+                    
                     if tgtfile == "person":
                         break
 
@@ -435,7 +460,6 @@ def get_target_records(
 
         if build_records:
             # Process each matching rule
-
             for dictkey in dictkeys:
                 for out_data_elem in rulesmap[dictkey]:
                     valid_data_elem = True
@@ -470,21 +494,20 @@ def get_target_records(
                                     # Direct field copy
                                     tgtarray[tgtcolmap[output_col_data]] = srcdata[srccolmap[infield]]
 
+                            # get the value. this is out 8061 value that was previously normalised
+                            source_date = srcdata[srccolmap[infield]]
+
                             # Special handling for date fields
                             if output_col_data in date_component_data:
-                                ## parse the date and store it in the proper format
-                                strdate = srcdata[srccolmap[infield]].split(" ")[0]
-                                dt = get_datetime_value(strdate)
-                                if dt != None:
-                                    year_field = date_component_data[output_col_data]["year"]
-                                    month_field = date_component_data[output_col_data]["month"]
-                                    day_field = date_component_data[output_col_data]["day"]
-                                    tgtarray[tgtcolmap[year_field]] = str(dt.year)
-                                    tgtarray[tgtcolmap[month_field]] = str(dt.month)
-                                    tgtarray[tgtcolmap[day_field]] = str(dt.day)
-                                    fulldate = "{0}-{1:02}-{2:02}".format(dt.year, dt.month, dt.day)
-                                    tgtarray[tgtcolmap[output_col_data]] = fulldate
-                                else:
+                                # this side of the if/else seems to be fore birthdates which're split up into four fields
+
+                                # parse the date and store it in the old format ... as a way to branch
+                                # ... this check might be redudant. the datetime values should be ones that have already been normalised
+                                dt = get_datetime_value(source_date.split(" ")[0])
+                                if dt is None:
+                                    # if (as above) dt isn't going to be None than this branch shouldn't happen
+                                    # maybe brithdates can be None?
+
                                     metrics.increment_key_count(
                                             source=srcfilename,
                                             fieldname=srcfield,
@@ -492,12 +515,32 @@ def get_target_records(
                                             concept_id="all",
                                             additional="",
                                             count_type="invalid_date_fields"
-                                            )
+                                        )
                                     valid_data_elem = False
-                            elif output_col_data in date_col_data:
-                                fulldate = srcdata[srccolmap[infield]]
-                                tgtarray[tgtcolmap[output_col_data]] = fulldate
-                                tgtarray[tgtcolmap[date_col_data[output_col_data]]] = fulldate
+                                else:
+
+
+                                    year_field = date_component_data[output_col_data]["year"]
+                                    month_field = date_component_data[output_col_data]["month"]
+                                    day_field = date_component_data[output_col_data]["day"]
+                                    tgtarray[tgtcolmap[year_field]] = str(dt.year)
+                                    tgtarray[tgtcolmap[month_field]] = str(dt.month)
+                                    tgtarray[tgtcolmap[day_field]] = str(dt.day)
+
+                                    tgtarray[tgtcolmap[output_col_data]] = source_date
+
+
+                            elif output_col_data in date_col_data: # date_col_data for key $K$ is where $only_date(srcdata[K])$ should be copied and is there for all dates
+                                
+                                # this fork of the if/else seems to be for non-birthdates which're handled differently
+
+
+                                # copy the full value into this "full value"
+                                tgtarray[tgtcolmap[output_col_data]] = source_date
+
+                                # select the first 10 chars which will be YYYY-MM-DD
+                                tgtarray[tgtcolmap[date_col_data[output_col_data]]] = source_date[:10]
+
                     if valid_data_elem:
                         tgtrecords.append(tgtarray)
     else:
@@ -562,18 +605,60 @@ def get_datetime_value(item):
     return None
 
 
-def parse_date(item):
+def normalise_to8601(item: str) -> str:
+    """parses, normalises, and formats a date value using regexes
+
+    could use just one regex but that seems bad.
     """
-    Crude hand-coded check on date format
-    """
-    datedata = item.split("-")
-    if len(datedata) != 3:
-        datedata = item.split("/")
-    if len(datedata) != 3:
-        return None
-    if len(datedata[2]) == 4:
-        return(f"{datedata[2]}-{datedata[1]}-{datedata[0]}".format(datedata[2], datedata[1], datedata[0]))
-    return "-".join(datedata[:3])
+
+    if not isinstance(item, str):
+        raise Exception("can only normliase a string")
+
+    both = item.split(" ")
+
+    match = re.match(r"(?P<year>\d{4})[-/](?P<month>\d{2})[-/](?P<day>\d{2})", both[0])
+    if not match:
+        match = re.match(
+            r"(?P<day>\d{2})[-/](?P<month>\d{2})[-/](?P<year>\d{4})", both[0]
+        )
+
+    if not match:
+        raise Exception(f"invalid date format {item=}")
+
+    data = match.groupdict()
+    year, month, day = data["year"], data["month"], data["day"]
+    value = str(int(year)).zfill(4)
+    value += "-"
+    value += str(int(month)).zfill(2)
+    value += "-"
+    value += str(int(day)).zfill(2)
+    value += " "
+
+    if 2 == len(both):
+        match = re.match(
+            r"(?P<hour>\d{2}):(?P<minute>\d{2})(:(?P<second>\d{2})(\.\d{6})?)?", both[1]
+        )
+        data = match.groupdict()
+        hour, minute, second = data["hour"], data["minute"], data["second"]
+
+        # concat the time_suffix
+        if hour is not None:
+            if minute is None:
+                raise Exception(
+                    f"unrecognized format seems to have 'hours' but not 'minutes' {item=}"
+                )
+
+            value += str(int(hour)).zfill(2)
+            value += ":"
+            value += str(int(minute)).zfill(2)
+            value += ":"
+            value += str(int(second if second is not None else "0")).zfill(2)
+
+    if ":" not in value:
+        value += "00:00:00"
+
+    return value
+
 
 def valid_iso_date(item):
     """
@@ -585,7 +670,6 @@ def valid_iso_date(item):
         return False
 
     return True
-
 
 def valid_reverse_iso_date(item):
     """
