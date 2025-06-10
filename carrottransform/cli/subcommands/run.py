@@ -612,34 +612,34 @@ def normalise_to8601(item: str) -> str:
     """
 
     if not isinstance(item, str):
-        raise Exception("??? that should have been a string")
+        raise Exception("can only normliase a string")
 
-    # YYYY-MM-DD
-    match = re.match(
-        r"(?P<year>\d{4})[-/](?P<month>\d{2})[-/](?P<day>\d{2})( (?P<hour>\d{2}):(?P<minute>\d{2})(:(?P<second>\d{2})(\.\d{6})?)?)?",
-        item,
-    )
-    if not match:
-        match = re.match(
-            r"(?P<day>\d{2})[-/](?P<month>\d{2})[-/](?P<year>\d{4})( (?P<hour>\d{2}):(?P<minute>\d{2})(:(?P<second>\d{2})(\.\d{6})?)?)?",
-            item,
-        )
-    if match:
-        data = match.groupdict()
-        year, month, day = data["year"], data["month"], data["day"]
+    both = item.split(' ')
+    date = both[0]
+
+    m = re.match(r"(?P<year>\d{4})[-/](?P<month>\d{2})[-/](?P<day>\d{2})", both[0])
+    if not m:
+        m = re.match(r"(?P<day>\d{2})[-/](?P<month>\d{2})[-/](?P<year>\d{4})", both[0])
+
+    if not m:
+        raise Exception(f"invalid date format {item=}")
+
+    data = m.groupdict()
+    year, month, day = data["year"], data["month"], data["day"]
+    value = str(int(year)).zfill(4)
+    value += "-"
+    value += str(int(month)).zfill(2)
+    value += "-"
+    value += str(int(day)).zfill(2)
+    value += " "
+
+    if 2 == len(both):
+        m = re.match(r"(?P<hour>\d{2}):(?P<minute>\d{2})(:(?P<second>\d{2})(\.\d{6})?)?", both[1])
+        data = m.groupdict()
         hour, minute, second = data["hour"], data["minute"], data["second"]
 
-        value = str(int(year)).zfill(4)
-        value += "-"
-        value += str(int(month)).zfill(2)
-        value += "-"
-        value += str(int(day)).zfill(2)
-        value += " "
-
         # concat the time_suffix
-        if hour is None:
-            value += "00:00:00"
-        else:
+        if hour is not None:
             if minute is None:
                 raise Exception(
                     f"unrecognized format seems to have 'hours' but not 'minutes' {item=}"
@@ -651,9 +651,11 @@ def normalise_to8601(item: str) -> str:
             value += ":"
             value += str(int(second if second is not None else "0")).zfill(2)
 
-        return value
+    if ":" not in value:
+        value += "00:00:00"
+        
+    return value
 
-    raise Exception(f"invalid date format {item=}")
 
 
 def valid_iso_date(item):
