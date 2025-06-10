@@ -10,22 +10,32 @@ import carrottransform.cli.subcommands.run as run
 
 
 @pytest.mark.unit
-def test_normalise_to8601():
-    test_data = [
-        ["2025-01-19 12:32:57", "2025-01-19 12:32:57"],
-        ["2022-03-29 13:43:00", "2022-03-29 13:43"],
-        ["2781-03-21 09:17:01", "2781-03-21 09:17:01.218347"],
-        ["1986-04-12 00:00:00", "12-04-1986"],
-        ["1786-05-23 00:00:00", "23/05/1786"],
-        ["1972-12-23 00:00:00", "1972/12/23"],
-        ["2024-07-05 08:45:30", "05-07-2024 08:45:30"],  # DD-MM-YYYY hh:mm:ss
-        ["1999-11-30 14:22:10", "30/11/1999 14:22:10"],  # DD/MM/YYYY hh:mm:ss
-        ["2030-02-14 20:05:45", "2030/02/14 20:05:45"],   # YYYY/MM/DD hh:mm:ss
-    ]
+@pytest.mark.parametrize(
+    "expected, source",
+    [
+        ("2025-01-19 12:32:57", "2025-01-19 12:32:57"),
+        ("2022-03-29 13:43:00", "2022-03-29 13:43"),
+        ("2781-03-21 09:17:01", "2781-03-21 09:17:01.218347"),
+        ("1986-04-12 00:00:00", "12-04-1986"),  # DD-MM-YYYY
+        ("1786-05-23 00:00:00", "23/05/1786"),
+        ("1972-12-23 00:00:00", "1972/12/23"),
+        ("2024-07-05 08:45:30", "05-07-2024 08:45:30"),  # DD-MM-YYYY hh:mm:ss
+        ("1999-11-30 14:22:10", "30/11/1999 14:22:10"),  # DD/MM/YYYY hh:mm:ss
+        ("2030-02-14 20:05:45", "2030/02/14 20:05:45"),  # YYYY/MM/DD hh:mm:ss
+    ],
+)
+def test_normalise_to8601(expected, source):
+    # first - do a sanity check to be sure that the value can pass through without being wrecked
+    sanity = run.normalise_to8601(expected)
+    assert expected == sanity, (
+        f"normalise_to8601() {expected=}) can't be loaded to itself"
+    )
 
-    for [e, s] in test_data:
-        a = run.normalise_to8601(s)
-        assert e == a, f"normalise_to8601({s=}) -> {a=} != {e=}"
+    # now, check that the RHS value normalises to the LHS
+    actual = run.normalise_to8601(source)
+    assert expected == actual, (
+        f"normalise_to8601({source=}) -> {actual=} != {expected=}"
+    )
 
 
 @pytest.mark.unit

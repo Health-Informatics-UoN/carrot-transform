@@ -606,35 +606,84 @@ def get_datetime_value(item):
 
 
 def normalise_to8601(item: str) -> str:
-    """
-    Crude hand-coded reformat dates to our-format
+    """parses, normalises, and formats a date value using regexes
+
+    could use just one regex but that seems bad.
     """
 
     if not isinstance(item, str):
-        raise Exception('??? that should have been a string')
+        raise Exception("??? that should have been a string")
 
-    if re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", item):
-        return item
+    # YYYY-MM-DD
+    match = re.match(
+        r"(?P<year>\d{4})[-/](?P<month>\d{2})[-/](?P<day>\d{2})( (?P<hour>\d{2}):(?P<minute>\d{2})(:(?P<second>\d{2})(\.\d{6})?)?)?",
+        item,
+    )
+    if match:
+        data = match.groupdict()
+        year, month, day = data["year"], data["month"], data["day"]
+        hour, minute, second = data["hour"], data["minute"], data["second"]
 
-    if re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", item):
-        return item + ":00"
-        
-    if re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{6}", item):
-        return item.split('.')[0]
-        
-    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", item):
-        return f'{item} 00:00:00'
+        value = str(int(year)).zfill(4)
+        value += "-"
+        value += str(int(month)).zfill(2)
+        value += "-"
+        value += str(int(day)).zfill(2)
+        value += " "
 
-    raise Exception(f'??? how should i handle {item=}')
+        # concat the time_suffix
+        if hour is None:
+            value += "00:00:00"
+        else:
+            if minute is None:
+                raise Exception(
+                    f"unrecognized format seems to have 'hours' but not 'minutes' {item=}"
+                )
 
-    datedata = item.split("-")
-    if len(datedata) != 3:
-        datedata = item.split("/")
-    if len(datedata) != 3:
-        return None
-    if len(datedata[2]) == 4:
-        return(f"{datedata[2]}-{datedata[1]}-{datedata[0]}".format(datedata[2], datedata[1], datedata[0]))
-    return "-".join(datedata[:3])
+            value += str(int(hour)).zfill(2)
+            value += ":"
+            value += str(int(minute)).zfill(2)
+            value += ":"
+            value += str(int(second if second is not None else "0")).zfill(2)
+
+        return value
+
+    # 12-04-1986
+    match = re.match(
+        r"(?P<day>\d{2})[-/](?P<month>\d{2})[-/](?P<year>\d{4})( (?P<hour>\d{2}):(?P<minute>\d{2})(:(?P<second>\d{2})(\.\d{6})?)?)?",
+        item,
+    )
+    if match:
+        data = match.groupdict()
+        year, month, day = data["year"], data["month"], data["day"]
+        hour, minute, second = data["hour"], data["minute"], data["second"]
+
+        value = str(int(year)).zfill(4)
+        value += "-"
+        value += str(int(month)).zfill(2)
+        value += "-"
+        value += str(int(day)).zfill(2)
+        value += " "
+
+        # concat the time_suffix
+        if hour is None:
+            value += "00:00:00"
+        else:
+            if minute is None:
+                raise Exception(
+                    f"unrecognized format seems to have 'hours' but not 'minutes' {item=}"
+                )
+
+            value += str(int(hour)).zfill(2)
+            value += ":"
+            value += str(int(minute)).zfill(2)
+            value += ":"
+            value += str(int(second if second is not None else "0")).zfill(2)
+
+        return value
+
+    raise Exception(f"invalid date format {item=}")
+
 
 def valid_iso_date(item):
     """
