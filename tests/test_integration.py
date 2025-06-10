@@ -11,34 +11,26 @@ to add more fields;
 """
 
 import pytest
-from carrottransform.cli.subcommands.run import *
-import pytest
-from unittest.mock import patch
 import importlib.resources
-import logging
 import re
 
 from pathlib import Path
-import shutil
 
 from click.testing import CliRunner
 from carrottransform.cli.subcommands.run import mapstream
 
 
-from carrottransform.cli.subcommands.run import *
-from pathlib import Path
-from unittest.mock import patch
+import csvrow
 
-print("refactor the csv functions to their own file since they are being used in another branch")
 
 @pytest.mark.unit
 def test_integration_test1(tmp_path: Path):
-
     # Get the package root directory
     package_root = importlib.resources.files("carrottransform")
     package_root = (
         package_root if isinstance(package_root, Path) else Path(str(package_root))
     )
+
     test_files = package_root.parent / "tests/test_data/integration_test1"
 
     ##
@@ -63,20 +55,21 @@ def test_integration_test1(tmp_path: Path):
             "--output-dir",
             f"{arg__output_dir}",
             "--omop-ddl-file",
-            f"@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
+            "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
             "--omop-config-file",
-            f"@carrot/config/omop.json",
+            "@carrot/config/omop.json",
         ],
     )
+    assert 0 == result.exit_code
 
     # TODO; validate the console output
 
     ##
     # load the src_PERSON.csv
-    src_persons = csv2dict(arg__person_file, lambda src: src.person_id)
+    src_persons = csvrow.csv2dict(arg__person_file, lambda src: src.person_id)
 
     # load the weight rows
-    src_weight_data = csv2dict(
+    src_weight_data = csvrow.csv2dict(
         test_files / "src_WEIGHT.csv",
         lambda src: f"{src.person_id}#{src.measurement_date}",
     )
@@ -88,12 +81,11 @@ def test_integration_test1(tmp_path: Path):
     # backmap the ids.
     # source -> target
     # target -> source
-    [s2t, t2s] = back_get(arg__output_dir / "person_ids.tsv")
+    [s2t, t2s] = csvrow.back_get(arg__output_dir / "person_ids.tsv")
 
     ##
     # check the birthdays and gender
-    for person in csv_rows(arg__output_dir / "person.tsv", "\t"):
-
+    for person in csvrow.csv_rows(arg__output_dir / "person.tsv", "\t"):
         # check the ids
         assert person.person_id in t2s
 
@@ -122,8 +114,7 @@ def test_integration_test1(tmp_path: Path):
         elif "female" == person.gender_source_value or (
             # this misspelling is intentional. the misspelling is in the test-data, and test-rules; not the shipped code.
             # carrot doesn't do any spell checking
-            "femail"
-            == person.gender_source_value
+            "femail" == person.gender_source_value
         ):
             assert 8532 == int(person.gender_concept_id)
         else:
@@ -133,11 +124,9 @@ def test_integration_test1(tmp_path: Path):
 
     ##
     # check measurements
-    for measurement in csv_rows(arg__output_dir / "measurement.tsv", "\t"):
-
+    for measurement in csvrow.csv_rows(arg__output_dir / "measurement.tsv", "\t"):
         # check the 35811769 value we're using for weight
         if "35811769" == measurement.measurement_concept_id:
-
             ##
             # "standard" checks for measurements? maybe?
             assert measurement.person_id in t2s
@@ -149,8 +138,10 @@ def test_integration_test1(tmp_path: Path):
 
             ## bespoke checks here
 
+            ##
+            # date/time is hard. the
             assert_datetimes(
-                expected="????",
+                expected=src.measurement_date,
                 datetime=measurement.measurement_datetime,
                 onlydate=measurement.measurement_date,
             )
@@ -179,7 +170,7 @@ def test_integration_test1(tmp_path: Path):
 
     ##
     # check the observation
-    for observation in csv_rows(arg__output_dir / "observation.tsv", "\t"):
+    for observation in csvrow.csv_rows(arg__output_dir / "observation.tsv", "\t"):
         print(observation.observation_concept_id)
 
         if "35810208" == observation.observation_concept_id:
@@ -255,102 +246,25 @@ def test_integration_test1(tmp_path: Path):
 
 
 def assert_datetimes(onlydate: str, datetime: str, expected: str):
-
-    assert re.fullmatch(
-        r"\d{4}-\d{2}-\d{2}", onlydate
-    ), f"onlydate `{onlydate}` is the wrong format"
-    assert re.fullmatch(
-        r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", datetime
-    ), f"datetime `{datetime}` is the wrong format"
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", onlydate), (
+        f"onlydate {onlydate=} is the wrong format"
+    )
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", datetime), (
+        f"datetime {datetime=} is the wrong format"
+    )
 
     assert datetime[:10] == onlydate
 
     if re.fullmatch(r"\d{4}-\d{2}-\d{2}", expected):
         assert expected == onlydate
-        assert datetime == f"{onlydate} 00:00"
+        assert datetime == f"{onlydate} 00:00:00"
+
+    elif re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", expected):
+        assert expected[:10] == onlydate
+        assert datetime == f"{expected}:00"
+
     else:
-        assert re.fullmatch(
-            r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", expected
-        ), "the source data `{expected}` is in the wrong format"
+        assert re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", expected), (
+            f"the source data {expected=} is in the wrong format"
+        )
         assert expected == datetime
-
-
-def back_get(person_ids):
-    assert person_ids.is_file()
-
-    with open(person_ids) as file:
-        [head, line] = file.readlines()
-
-        s2t = {}
-        t2s = {}
-
-        expected_id = 0
-
-        while "" != line:
-            source_id = ""
-            target_id = ""
-            expected_id += 1
-
-            while "\t" != line[0]:
-                source_id += line[0]
-                line = line[1:]
-
-            # drop the tab
-            line = line[1:]
-
-            target_id = str(expected_id)
-
-            # check it is what we expect
-            assert line.startswith(target_id)
-
-            # remove the target id data
-            line = line[len(target_id) :]
-
-            # save it
-            # target_id = int(target_id)
-            # source_id = int(source_id)
-
-            assert target_id not in t2s
-            assert source_id not in s2t
-
-            t2s[target_id] = source_id
-            s2t[source_id] = target_id
-
-        return [s2t, t2s]
-
-
-def csv2dict(path, key, delimiter=","):
-    """converts a .csv (or .tsv) into a dictionary using key:() -> to detrmine key"""
-
-    out = {}
-    for row in csv_rows(path, delimiter):
-        k = key(row)
-        assert k not in out
-        out[k] = row
-
-    return out
-
-
-def csv_rows(path, delimiter=","):
-    """converts each row of a .csv (or .tsv) into an object (not a dictionary) for comparisons and such"""
-    import csv
-
-    with open(path, newline="") as csvfile:
-        reader = csv.DictReader(csvfile, delimiter=delimiter)
-        for row in reader:
-
-            class Row:
-                def __init__(self, data):
-                    self.__dict__.update(data)
-
-                def __str__(self):
-                    return str(self.__dict__)
-
-            # Remove extra spaces from field names and values
-            yield Row(
-                {
-                    key.strip(): value.strip()
-                    for key, value in row.items()
-                    if "" != key.strip()
-                }
-            )

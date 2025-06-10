@@ -22,7 +22,6 @@ def click_transform(tmp_path: Path, limit: int = -1):
     shutil.copy2(rules_src, rules)
 
     # the source files
-    # ... i'm not renaming these since i'm not sure what would happen if i did
     for src in [
         "covid19_antibody.csv",
         "Covid19_test.csv",
