@@ -619,40 +619,11 @@ def normalise_to8601(item: str) -> str:
         r"(?P<year>\d{4})[-/](?P<month>\d{2})[-/](?P<day>\d{2})( (?P<hour>\d{2}):(?P<minute>\d{2})(:(?P<second>\d{2})(\.\d{6})?)?)?",
         item,
     )
-    if match:
-        data = match.groupdict()
-        year, month, day = data["year"], data["month"], data["day"]
-        hour, minute, second = data["hour"], data["minute"], data["second"]
-
-        value = str(int(year)).zfill(4)
-        value += "-"
-        value += str(int(month)).zfill(2)
-        value += "-"
-        value += str(int(day)).zfill(2)
-        value += " "
-
-        # concat the time_suffix
-        if hour is None:
-            value += "00:00:00"
-        else:
-            if minute is None:
-                raise Exception(
-                    f"unrecognized format seems to have 'hours' but not 'minutes' {item=}"
-                )
-
-            value += str(int(hour)).zfill(2)
-            value += ":"
-            value += str(int(minute)).zfill(2)
-            value += ":"
-            value += str(int(second if second is not None else "0")).zfill(2)
-
-        return value
-
-    # 12-04-1986
-    match = re.match(
-        r"(?P<day>\d{2})[-/](?P<month>\d{2})[-/](?P<year>\d{4})( (?P<hour>\d{2}):(?P<minute>\d{2})(:(?P<second>\d{2})(\.\d{6})?)?)?",
-        item,
-    )
+    if not match:
+        match = re.match(
+            r"(?P<day>\d{2})[-/](?P<month>\d{2})[-/](?P<year>\d{4})( (?P<hour>\d{2}):(?P<minute>\d{2})(:(?P<second>\d{2})(\.\d{6})?)?)?",
+            item,
+        )
     if match:
         data = match.groupdict()
         year, month, day = data["year"], data["month"], data["day"]
