@@ -16,10 +16,8 @@ import re
 
 from pathlib import Path
 
-from click.testing import CliRunner
-from carrottransform.cli.subcommands.run import mapstream
 
-
+import clicktools
 import csvrow
 
 
@@ -38,31 +36,17 @@ def test_integration_test1(tmp_path: Path):
     arg__input_dir = test_files
     arg__rules_file = test_files / "transform-rules.json"
     arg__person_file = test_files / "src_PERSON.csv"
-    arg__output_dir = tmp_path
 
     ##
-    # run click
-    runner = CliRunner()
-    result = runner.invoke(
-        mapstream,
-        [
-            "--input-dir",
-            f"{arg__input_dir}",
-            "--rules-file",
-            f"{arg__rules_file}",
-            "--person-file",
-            f"{arg__person_file}",
-            "--output-dir",
-            f"{arg__output_dir}",
-            "--omop-ddl-file",
-            "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
-            "--omop-config-file",
-            "@carrot/config/omop.json",
-        ],
+    #
+    (result, output) = clicktools.click_mapstream(
+        tmp_path,
+        ["src_PERSON.csv", "src_SMOKING.csv", "src_WEIGHT.csv"],
+        arg__input_dir,
+        arg__rules_file,
     )
-    assert 0 == result.exit_code
 
-    # TODO; validate the console output
+    assert 0 == result.exit_code
 
     ##
     # load the src_PERSON.csv
@@ -81,11 +65,11 @@ def test_integration_test1(tmp_path: Path):
     # backmap the ids.
     # source -> target
     # target -> source
-    [s2t, t2s] = csvrow.back_get(arg__output_dir / "person_ids.tsv")
+    [s2t, t2s] = csvrow.back_get(output / "person_ids.tsv")
 
     ##
     # check the birthdays and gender
-    for person in csvrow.csv_rows(arg__output_dir / "person.tsv", "\t"):
+    for person in csvrow.csv_rows(output / "person.tsv", "\t"):
         # check the ids
         assert person.person_id in t2s
 
@@ -124,7 +108,7 @@ def test_integration_test1(tmp_path: Path):
 
     ##
     # check measurements
-    for measurement in csvrow.csv_rows(arg__output_dir / "measurement.tsv", "\t"):
+    for measurement in csvrow.csv_rows(output / "measurement.tsv", "\t"):
         # check the 35811769 value we're using for weight
         if "35811769" == measurement.measurement_concept_id:
             ##
@@ -170,7 +154,7 @@ def test_integration_test1(tmp_path: Path):
 
     ##
     # check the observation
-    for observation in csvrow.csv_rows(arg__output_dir / "observation.tsv", "\t"):
+    for observation in csvrow.csv_rows(output / "observation.tsv", "\t"):
         print(observation.observation_concept_id)
 
         if "35810208" == observation.observation_concept_id:
