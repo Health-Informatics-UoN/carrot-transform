@@ -1,0 +1,5 @@
+person_id,gender_source_value,birth_datetime,diet
+321,male,1950-10-31,soda
+789345,female,1981-11-19,meat
+6789,femail,1985-03-01,cake
+321,male,1950-10-31,chips
