@@ -1,4 +1,4 @@
-person_id,observation_source_value,observation_datetime,
-789345,"CURRENT_SMOKER",2025-05-21 15:02,
-6789,"FORMER_SMOKER",2025-05-12 21:20,
-321,"NEVER_SMOKER",2025-05-22 03:14,
+person_id,observation_source_value,observation_datetime,unused
+789345,"CURRENT_SMOKER",2025-05-21 15:02,12.321
+6789,"FORMER_SMOKER",2025-05-12 21:20,-123.2312312
+321,"NEVER_SMOKER",2025-05-22 03:14,.76
