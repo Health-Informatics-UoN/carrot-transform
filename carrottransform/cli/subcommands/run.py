@@ -754,6 +754,20 @@ def load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_p
         if not valid_value(persondata[person_columns[person_id_source]]): #just checking that the id is not an empty string
             reject_count += 1
             continue
+
+        ### mireda checks
+        print(
+            f'{persondata=}'
+        )
+        print(
+            f'{birth_datetime_source=} '
+        )
+        print(
+            f'{person_columns=}'
+        )
+
+        assert birth_datetime_source in person_columns, f'{birth_datetime_source=} not found in the {person_columns=}'
+
         if not valid_date_value(persondata[person_columns[birth_datetime_source]]):
             reject_count += 1
             continue
