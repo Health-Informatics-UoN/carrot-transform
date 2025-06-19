@@ -103,7 +103,15 @@ class MappingRules:
             ## this loops over all the fields in the person part of the rules, which will lead to overwriting of the source variables and unneccesary looping
             for rule_name, rule_fields in source_rules_data.items():
                 if "birth_datetime" in rule_fields:
-                    birth_datetime_source = rule_fields["birth_datetime"]["source_field"]
+                    new_birth_datetime_source = rule_fields["birth_datetime"]["source_field"]
+                    if None is not birth_datetime_source and birth_datetime_source != new_birth_datetime_source:
+                        old = birth_datetime_source
+                        new = new_birth_datetime_source
+                        logger.warning(
+                            f"changing birth_datetime_source {old=} {new=}"
+                        )
+                    birth_datetime_source = new_birth_datetime_source
+
                 if "person_id" in rule_fields:
                     person_id_source = rule_fields["person_id"]["source_field"]
 

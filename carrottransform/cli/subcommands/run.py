@@ -152,7 +152,12 @@ def mapstream(
         sys.exit(-1)
 
     ## detect the person file
-    if person_file is None:
+    if person_file is not None:
+        # check and warn if the file is a mismatch
+        detected_person_file = args.auto_person_in_rules(rules_file)
+        if person_file != detected_person_file:
+            logger.warning(f"given argument {person_file=} doesn't match {detected_person_file=}")
+    else:
         try:
             person_file = args.auto_person_in_rules(rules_file)
             logger.debug(
@@ -755,18 +760,8 @@ def load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_p
             reject_count += 1
             continue
 
-        ### mireda checks
-        print(
-            f'{persondata=}'
-        )
-        print(
-            f'{birth_datetime_source=} '
-        )
-        print(
-            f'{person_columns=}'
-        )
-
-        assert birth_datetime_source in person_columns, f'{birth_datetime_source=} not found in the {person_columns=}'
+        if birth_datetime_source not in person_columns:
+            raise Exception(f'{birth_datetime_source=} not found in the {person_columns=}')
 
         if not valid_date_value(persondata[person_columns[birth_datetime_source]]):
             reject_count += 1
