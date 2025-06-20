@@ -50,7 +50,7 @@ if not logger.handlers:
               type=click.Choice(['w','a']),
               help="force write-mode on output files")
 @click.option("--person-file", type=PathArgs,
-              required=False,
+              required=True,
               help="File containing person_ids in the first column")
 @click.option("--omop-ddl-file", type=PathArgs,
               required=False,
@@ -152,12 +152,9 @@ def mapstream(
         sys.exit(-1)
 
     ## detect the person file
-    if person_file is not None:
-        # check and warn if the file is a mismatch
-        detected_person_file = args.auto_person_in_rules(rules_file)
-        if person_file != detected_person_file:
-            logger.warning(f"given argument {person_file=} doesn't match {detected_person_file=}")
-    else:
+    if person_file is None:
+        raise Exception("need the person file parameter")
+    if person_file is None:
         try:
             person_file = args.auto_person_in_rules(rules_file)
             logger.debug(
@@ -751,6 +748,16 @@ def load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_p
     logger.info(
         "Load Person Data {0}, {1}".format(birth_datetime_source, person_id_source)
     )
+
+    if None is person_id_source:
+        raise Exception(
+            f"person_id_source is none {saved_person_id_file=} {person_file=}"
+        )
+
+    if None is birth_datetime_source:
+        raise Exception(
+            f"birth_datetime_source is none {saved_person_id_file=} {person_file=}"
+        )
     
     ## get the column index of the PersonID from the input file
     person_col = person_columns[person_id_source]

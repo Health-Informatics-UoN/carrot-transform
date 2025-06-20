@@ -328,6 +328,8 @@ def test_with_auto_person(tmp_path: Path, caplog):
     do a full test without explicitly noting a person file
     """
 
+    raise Exception('this test should be removed?')
+
     ##
     # setup test environment(ish) in the folder
 

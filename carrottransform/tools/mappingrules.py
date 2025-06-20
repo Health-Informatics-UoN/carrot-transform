@@ -115,6 +115,16 @@ class MappingRules:
                 if "person_id" in rule_fields:
                     person_id_source = rule_fields["person_id"]["source_field"]
 
+        if None is person_id_source:
+            raise Exception(
+                f"person_id_source is none"
+            )
+
+        if None is birth_datetime_source:
+            raise Exception(
+                f"birth_datetime_source is none"
+            )
+
         return birth_datetime_source, person_id_source
 
     def parse_rules_src_to_tgt(self, infilename):
