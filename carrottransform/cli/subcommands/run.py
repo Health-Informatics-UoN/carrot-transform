@@ -151,8 +151,11 @@ def mapstream(
         )
         sys.exit(-1)
 
+    ## check the person file
     if person_file is None:
-        raise Exception("need the person file parameter")
+        # this shouldn't happen, but, if it does raise an exception
+        logger.info(f"person_file was not set")
+        sys.exit(1)
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(
