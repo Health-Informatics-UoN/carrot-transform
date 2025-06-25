@@ -50,7 +50,7 @@ if not logger.handlers:
               type=click.Choice(['w','a']),
               help="force write-mode on output files")
 @click.option("--person-file", type=PathArgs,
-              required=False,
+              required=True,
               help="File containing person_ids in the first column")
 @click.option("--omop-ddl-file", type=PathArgs,
               required=False,
@@ -151,34 +151,11 @@ def mapstream(
         )
         sys.exit(-1)
 
-    ## detect the person file
+    ## check the person file
     if person_file is None:
-        try:
-            person_file = args.auto_person_in_rules(rules_file)
-            logger.debug(
-                f"detected person file {person_file=}"
-            )
-
-        except args.SourceFieldError:
-            logger.exception(
-                f"can't determine --person-file because rules_file {rules_file=} doesn't have any PersonID values"
-            )
-            sys.exit(1)
-
-        except args.MultipleTablesError as e:
-            message = f"can't determine --person-file because rules_file {rules_file=} has {len(e.source_tables)=} suitable .csv defintions, they are;"
-
-            for file in e.source_tables:
-                message += "\n\t" + file
-
-            logger.exception(message)
-            sys.exit(1)
-
-        except args.ObjectStructureError:
-            logger.exception(
-                f"can't determine --person-file because rules_file {rules_file=} doesn't follow expected structure"
-            )
-            sys.exit(1)
+        # this shouldn't happen, but, if it does raise an exception
+        logger.info(f"person_file was not set")
+        sys.exit(1)
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(
