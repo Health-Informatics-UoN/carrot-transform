@@ -114,13 +114,17 @@ def test_integration_test1(tmp_path: Path):
     assert "321" in seen_ids
     assert "789345" in seen_ids
     assert "6789" in seen_ids
-    assert "289" in seen_ids
+    assert "289" in seen_ids, "this id was unused but should still be in there"
 
     ##
     # check measurements
     for measurement in csvrow.csv_rows(output / "measurement.tsv", "\t"):
         # check the 35811769 value we're using for weight
-        if "35811769" == measurement.measurement_concept_id:
+        if "35811769" != measurement.measurement_concept_id:
+            raise Exception(
+                f"unexpected {measurement.measurement_concept_id=} in {measurement=}"
+            )
+        else:
             ##
             # "standard" checks for measurements? maybe?
             assert measurement.person_id in t2s
@@ -155,11 +159,6 @@ def test_integration_test1(tmp_path: Path):
             assert "" == measurement.unit_source_value
             assert "" == measurement.value_source_value
 
-            continue
-
-        raise Exception(
-            "unexpected measurement measurement_concept_id = " + str(measurement)
-        )
     assert len(src_weight_data) == len(src_weight_seen)
 
     ##
@@ -233,7 +232,6 @@ def test_floats(tmp_path: Path):
     # setup the args
     arg__input_dir = test_files
     arg__rules_file = test_files / "rules.json"
-    arg__person_file = test_files / "src_PERSON.csv"
 
     ##
     #
@@ -257,24 +255,23 @@ def test_floats(tmp_path: Path):
     assert 4 == len(s2t)
 
     for measurement in csvrow.csv_rows(output / "measurement.tsv", "\t"):
-
         assert "35811769" == measurement.measurement_concept_id
 
-        source_day  = measurement.measurement_date
+        source_day = measurement.measurement_date
         source_id = int(t2s[measurement.person_id])
 
         if 6789 == source_id:
-            if '2023-10-12' == source_day:
-                assert '7532.1' == measurement.value_as_number
-            elif '2023-10-11' == source_day:
-                assert '76.0' == measurement.value_as_number
-            elif '2023-11-21' == source_day:
-                assert '86.123' == measurement.value_as_number
+            if "2023-10-12" == source_day:
+                assert "7532.1" == measurement.value_as_number
+            elif "2023-10-11" == source_day:
+                assert "76.0" == measurement.value_as_number
+            elif "2023-11-21" == source_day:
+                assert "86.123" == measurement.value_as_number
             else:
                 raise Exception(f"bad value for 6789 {source_day=}, {measurement=}")
         elif 321 == source_id:
-            assert '2025-01-03' == source_day
-            assert '23' == measurement.value_as_number
+            assert "2025-01-03" == source_day
+            assert "23" == measurement.value_as_number
         else:
             raise Exception(f"bad value, {source_id=}, {source_day=}, {measurement=}")
 
