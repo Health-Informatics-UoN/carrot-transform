@@ -215,6 +215,71 @@ def test_integration_test1(tmp_path: Path):
 
 
 @pytest.mark.unit
+def test_floats(tmp_path: Path):
+    """
+    checks if floats are mapped correctly
+
+    looks like they're left as-is when they're a whole number
+    """
+    # Get the package root directory
+    package_root = importlib.resources.files("carrottransform")
+    package_root = (
+        package_root if isinstance(package_root, Path) else Path(str(package_root))
+    )
+
+    test_files = package_root.parent / "tests/test_data/test_floats"
+
+    ##
+    # setup the args
+    arg__input_dir = test_files
+    arg__rules_file = test_files / "rules.json"
+    arg__person_file = test_files / "src_PERSON.csv"
+
+    ##
+    #
+    (result, output) = clicktools.click_mapstream(
+        tmp_path,
+        ["src_PERSON.csv", "src_SMOKING.csv", "src_WEIGHT.csv"],
+        arg__input_dir,
+        arg__rules_file,
+    )
+
+    assert 0 == result.exit_code
+
+    ### check data
+
+    ##
+    # backmap the ids.
+    # source -> target
+    # target -> source
+    [s2t, t2s] = csvrow.back_get(output / "person_ids.tsv")
+
+    assert 4 == len(s2t)
+
+    for measurement in csvrow.csv_rows(output / "measurement.tsv", "\t"):
+
+        assert "35811769" == measurement.measurement_concept_id
+
+        source_day  = measurement.measurement_date
+        source_id = int(t2s[measurement.person_id])
+
+        if 6789 == source_id:
+            if '2023-10-12' == source_day:
+                assert '7532.1' == measurement.value_as_number
+            elif '2023-10-11' == source_day:
+                assert '76.0' == measurement.value_as_number
+            elif '2023-11-21' == source_day:
+                assert '86.123' == measurement.value_as_number
+            else:
+                raise Exception(f"bad value for 6789 {source_day=}, {measurement=}")
+        elif 321 == source_id:
+            assert '2025-01-03' == source_day
+            assert '23' == measurement.value_as_number
+        else:
+            raise Exception(f"bad value, {source_id=}, {source_day=}, {measurement=}")
+
+
+@pytest.mark.unit
 def test_duplications(tmp_path: Path):
     # Get the package root directory
     package_root = importlib.resources.files("carrottransform")
