@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "pytest",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": ["-v"],
+            "justMyCode": false
+        },
+        {
+            "name": "pytest last fail",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": ["-v", "--lf"],
+            "justMyCode": false
+        }
+    ]
+}

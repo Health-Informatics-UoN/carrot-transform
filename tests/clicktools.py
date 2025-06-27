@@ -68,3 +68,43 @@ def click_transform(tmp_path: Path, limit: int = -1):
             f"{tmp_path / 'omop.json'}",
         ],
     )
+
+
+
+
+def click_mapstream(tmp_path: Path, src_names, src_from, rules: Path):
+    """sets up the/a test environment and runs the transform thing with it."""
+
+    # Get the package root directory
+    package_root = importlib.resources.files("carrottransform")
+    package_root = (
+        package_root if isinstance(package_root, Path) else Path(str(package_root))
+    )
+
+    # output dir needs to be pre-created
+    output = tmp_path / "out"
+    output.mkdir()
+
+    ##
+    # run click
+    runner = CliRunner()
+    result = runner.invoke(
+        mapstream,
+        [
+            "--input-dir",
+            f"{src_from}",
+            "--rules-file",
+            f"{rules}",
+            "--person-file",
+            f"{src_from / src_names[0]}",
+            "--output-dir",
+            f"{output}",
+            "--omop-ddl-file",
+            f"{package_root / 'config/OMOPCDM_postgresql_5.3_ddl.sql'}",
+            "--omop-config-file",
+            f"{package_root / 'config/omop.json'}",
+        ],
+    )
+    return (result, output)
+
+
