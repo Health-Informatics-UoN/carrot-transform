@@ -859,4 +859,3 @@ def run():
 run.add_command(mapstream,"mapstream")
 if __name__ == "__main__":
     run()
-
