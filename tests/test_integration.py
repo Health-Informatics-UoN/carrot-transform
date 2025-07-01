@@ -515,3 +515,4 @@ def assert_datetimes(onlydate: str, datetime: str, expected: str):
             f"the source data {expected=} is in the wrong format"
         )
         assert expected == datetime
+        assert expected == datetime
