@@ -40,7 +40,7 @@ def csv2dict(path, key, delimiter=","):
     out = {}
     for row in csv_rows(path, delimiter):
         k = key(row)
-        assert k not in out
+        assert k not in out, f"{path=} {k=}"
         out[k] = row
 
     return out
@@ -59,6 +59,9 @@ def csv_rows(path, delimiter=","):
 
                 def __str__(self):
                     return str(self.__dict__)
+
+                def __repr__(self):
+                    return self.__str__()
 
             # Remove extra spaces from field names and values
             yield Row(

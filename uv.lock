@@ -66,6 +66,7 @@ dependencies = [
     { name = "jinja2" },
     { name = "numpy" },
     { name = "pandas" },
+    { name = "ruff" },
 ]
 
 [package.dev-dependencies]
@@ -85,6 +86,7 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.1.4,<4" },
     { name = "numpy", specifier = "<2" },
     { name = "pandas", specifier = ">=2.2.3,<3" },
+    { name = "ruff", specifier = ">=0.12.0" },
 ]
 
 [package.metadata.requires-dev]
