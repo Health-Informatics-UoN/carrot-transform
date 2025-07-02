@@ -42,7 +42,7 @@ def test_normalise_to8601(expected, source):
 def test_dateimes_in_persons(tmp_path: Path, caplog):
     # capture all and run the transformation
     caplog.set_level(logging.DEBUG)
-    clicktools.click_transform(tmp_path, limit=10)
+    clicktools.click_example(tmp_path, limit=10)
 
     # get the target2source mapping
     [_, t2s] = csvrow.back_get(tmp_path / "out/person_ids.tsv")
@@ -83,7 +83,7 @@ def test_dateimes_in_persons(tmp_path: Path, caplog):
 def test_dateimes_in_observation(tmp_path: Path, caplog):
     # capture all and run the transformation
     caplog.set_level(logging.DEBUG)
-    clicktools.click_transform(tmp_path, limit=10)
+    clicktools.click_example(tmp_path, limit=10)
 
     ##
     # check the observation.tsv created by the above steps
@@ -109,7 +109,7 @@ def test_dateimes_in_observation(tmp_path: Path, caplog):
 def test_dateimes_in_measurement(tmp_path: Path, caplog):
     # capture all and run the transformation
     caplog.set_level(logging.DEBUG)
-    clicktools.click_transform(tmp_path, limit=10)
+    clicktools.click_example(tmp_path, limit=10)
 
     #
     # check the measurement.tsv created by the above steps
