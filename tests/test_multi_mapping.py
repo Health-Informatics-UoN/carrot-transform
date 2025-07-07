@@ -1,13 +1,5 @@
 """
-these test using carrot-transform end-to-end using fake spreadsheets and a rules.json
-
-currently it's only checking birthdate and gender
-
-to add more fields;
-- add them to the existing .csv or create new ones
-- produce a scan report
-- upload the scan report to carrot-mapper and set rules to map the data
-- download the rules.json, update this test, ensure that the fields all still match
+these tests check the multi-mapping needs for integration tests.
 """
 
 import pytest
@@ -208,3 +200,62 @@ def test_measure_weight_height(tmp_path: Path):
         )
 
     assert 13 == measurements
+
+
+@pytest.mark.unit
+def test_condition(tmp_path: Path):
+    arg__input_dir = Path(__file__).parent / "test_multi_mapping/test_condition"
+    arg__rules_file = arg__input_dir / "mapping.json"
+
+    ##
+    #
+    (result, output) = clicktools.click_mapstream(
+        tmp_path,
+        ["persons.csv", "scans.csv"],
+        arg__input_dir,
+        arg__rules_file,
+    )
+
+    assert 0 == result.exit_code
+
+    [s2t, t2s] = csvrow.back_get(output / "person_ids.tsv")
+    assert 4 == len(s2t)
+    assert 4 == len(t2s)
+
+    expect = {
+        s2t["81"]: {
+            "1998-02-01": {4227224: 1},
+            "1998-02-03": {4227224: 13},
+        },
+        s2t["91"]: {
+            "2001-01-03": {4227224: 1},
+            "2001-01-05": {4227224: 7},
+        },
+    }
+
+    # validate the results
+    occurrences: int = 0
+    for occurrence in csvrow.csv_rows(output / "condition_occurrence.tsv", "\t"):
+        occurrences += 1
+
+        person_id = occurrence.person_id
+        date = occurrence.condition_start_datetime
+        concept = int(occurrence.condition_concept_id)
+        assert str(concept) == occurrence.condition_concept_id
+        value = int(occurrence.condition_source_value)
+        assert str(value) == occurrence.condition_source_value
+
+        assert "" == occurrence.condition_start_date
+
+        # someday this will be fixed and not-true
+        assert date == occurrence.condition_end_datetime
+        date = date[:10]
+
+        assert occurrence.condition_end_date == date
+
+        assert person_id in expect
+        assert date in expect[occurrence.person_id]
+        assert concept in expect[occurrence.person_id][date]
+        assert value == expect[occurrence.person_id][date][concept]
+
+    assert 4 == occurrences
