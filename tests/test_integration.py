@@ -22,6 +22,60 @@ import csvrow
 
 
 @pytest.mark.unit
+def test_missing(tmp_path: Path):
+    (result, output, s2t, t2s) = clicktools.click_generic(
+        tmp_path,
+        Path(__file__).parent / "test_data/integration_test_missing/src_PERSON.csv",
+    )
+
+    assert 3 == len(s2t)
+    assert 3 == len(t2s)
+
+    # declare what we expect to see in the output
+    expect = {
+        321: {
+            "2025-05-22 13:14": "NEVER_SMOKER",
+            "2025-05-22 03:14": "NEVER_SMOKER",
+            "2025-05-22 02:14": "NEVER_SMOKER",
+            "2025-05-22 01:14": "NEVER_SMOKER",
+        },
+        789345: {
+            "2025-05-21 15:02": "CURRENT_SMOKER",
+        },
+    }
+
+    # define concepts
+    concepts = {
+        "NEVER_SMOKER": "903653",
+        "CURRENT_SMOKER": "40766945",
+    }
+
+    def startswith(longer: str, data):
+        for shorter in data:
+            if longer.startswith(shorter):
+                return shorter
+        return None
+
+    observations: int = 0
+    for observation in csvrow.csv_rows(output / "observation.tsv", "\t"):
+        src_person_id = int(t2s[observation.person_id])
+        assert src_person_id in expect, f"{src_person_id} wasnt in objeservation"
+
+        date_key = startswith(observation.observation_datetime, expect[src_person_id])
+        assert date_key is not None, (
+            f"{observation.observation_datetime=} not found in {expect[src_person_id]}"
+        )
+
+        value = expect[src_person_id][date_key]
+
+        assert observation.observation_concept_id == concepts[value]
+        assert observation.observation_source_value == value
+
+        observations += 1
+    assert 5 == observations
+
+
+@pytest.mark.unit
 def test_integration_test1(tmp_path: Path):
     # Get the package root directory
     package_root = importlib.resources.files("carrottransform")

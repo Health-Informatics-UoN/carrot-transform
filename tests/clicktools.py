@@ -5,9 +5,51 @@ import shutil
 
 from click.testing import CliRunner
 from carrottransform.cli.subcommands.run import mapstream
+import csvrow
 
 
-def click_example(tmp_path: Path, limit: int = -1):
+def click_generic(tmp_path: Path, person_file: Path):
+    if not person_file.is_file():
+        raise ValueError(f"person_file {person_file} does not exist")
+
+    # list all csvs in that folder, ensure the original file is the first one
+    csv_files = [
+        f.name
+        for f in person_file.parent.glob("*.csv")
+        if f.is_file() and f.name != person_file.name
+    ]
+    csv_files = list(csv_files)
+    csv_files.insert(0, person_file.name)
+
+    # find the only rules file in that folder
+    rules = [f for f in person_file.parent.glob("*.json") if f.is_file()]
+    rules = list(rules)
+    if len(rules) != 1:
+        raise ValueError(
+            f"expected exactly one json file, found {rules=} in {person_file.parent}"
+        )
+
+    ##
+    #
+    (result, output) = click_mapstream(
+        tmp_path,
+        csv_files,
+        person_file.parent,
+        rules[0],
+    )
+
+    assert 0 == result.exit_code
+
+    ##
+    #
+
+    # test the person_ids table
+    [s2t, t2s] = csvrow.back_get(output / "person_ids.tsv")
+
+    return (result, output, s2t, t2s)
+
+
+def click_example(tmp_path: Path, limit=-1):
     """sets up the/a test environment and runs the transform thing with it."""
 
     # Get the package root directory
