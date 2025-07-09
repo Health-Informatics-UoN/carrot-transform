@@ -76,6 +76,16 @@ def test_missing(tmp_path: Path):
 
 
 @pytest.mark.unit
+def test_missing_weights(tmp_path: Path):
+    (result, output, s2t, t2s) = clicktools.click_generic(
+        tmp_path,
+        Path(__file__).parent / "test_data/integration_missing_weights/src_PERSON.csv",
+    )
+
+    raise Exception("??? - once we get this far, check it")
+
+
+@pytest.mark.unit
 def test_integration_test1(tmp_path: Path):
     # Get the package root directory
     package_root = importlib.resources.files("carrottransform")
