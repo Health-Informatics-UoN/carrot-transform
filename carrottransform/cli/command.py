@@ -8,7 +8,7 @@ import click
 @click.option("--version","-v",is_flag=True)
 @click.pass_context
 def transform(ctx,version):
-    if ctx.invoked_subcommand == None :
+    if ctx.invoked_subcommand is None :
         if version:
             click.echo(c.__version__)
         else:

@@ -1,23 +1,16 @@
 
 import csv
 import datetime
-import fnmatch
-import importlib.resources
-import json
 import logging
-import os
 import re
 import sys
 import time
-from importlib import resources
 from pathlib import Path
-from typing import IO, Iterable, Iterator, List, Optional
-
+from typing import IO,  Iterator
+import importlib
 import click
 
-import carrottransform
 import carrottransform.tools as tools
-import carrottransform.tools.args as args
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.omopcdm import OmopCDM
 
@@ -154,7 +147,7 @@ def mapstream(
     ## check the person file
     if person_file is None:
         # this shouldn't happen, but, if it does raise an exception
-        logger.info(f"person_file was not set")
+        logger.info("person_file was not set")
         sys.exit(1)
 
     ## set omop filenames

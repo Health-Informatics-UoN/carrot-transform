@@ -1,5 +1,6 @@
 import pytest
 
+import os
 from carrottransform.cli.subcommands.run import *
 from pathlib import Path
 from unittest.mock import patch
