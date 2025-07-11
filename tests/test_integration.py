@@ -154,16 +154,17 @@ def test_integration_missing2(tmp_path: Path):
 
         # try to parse it into a number
         # ... we're doing this extra bit so we can test the existing code before fixing this problem
-        an = ''
-        try:
-            an = float(value_as_number)
-        except ValueError as e:
-            
-            assert value_as_number == source_value
+        an: str | float = ''
+        if '' != value_as_number:
+            try:
+                an = float(value_as_number)
+            except ValueError as e:
+                
+                assert value_as_number == source_value
 
-            if '' == fails:
-                fails = "there were some values that were not numbers"
-            fails += f", `{value_as_number}`"
+                if '' == fails:
+                    fails = "there were some values that were not numbers"
+                fails += f", `{value_as_number}`"
 
         # oh hey - did that work? check it
         if '' != an:
