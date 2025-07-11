@@ -76,13 +76,52 @@ def test_missing(tmp_path: Path):
 
 
 @pytest.mark.unit
-def test_missing_weights(tmp_path: Path):
+def test_integration_missing2(tmp_path: Path):
+    
+    # perform the test
     (result, output, s2t, t2s) = clicktools.click_generic(
         tmp_path,
-        Path(__file__).parent / "test_data/integration_missing_weights/src_PERSON.csv",
+        Path(__file__).parent / "test_data/integration_missing2/src_PERSON.csv",
     )
 
-    raise Exception("??? - once we get this far, check it")
+    # 
+    concepts = {
+        'height': 607590,
+        'weight': 903121,
+    }
+
+    expect: dict[str, dict[str, dict[str, str]]]  = {}
+    for line in """
+                11,2023-10-12,75,12
+                11,2024-01-03,,32
+                11,2019-01-03,1.2,87        
+                21,2023-11-21,86.123,23
+                21,2022-11-21,NULL,21
+                21,2021-10-11,NA,32
+                21,2019-11-21,,17
+                21,2024-01-01,21,
+                21,2024-01-01,,31
+                31,2023-10-11,76.0,
+                31,2019-07-11,72.0,12
+            """.strip().splitlines():
+        [person, date, weight, height] = map(lambda s: s.strip(), line.strip().split(","))
+
+        if person not in expect:
+            expect[person] = {}
+        
+        if date not in expect[person]:
+            expect[person][date] = {}
+
+        if weight != '':
+            assert 'weight' not in expect[person][date], "IRL this would be fine - but - the tester can't handle it"
+            expect[person][date]['weight'] = weight
+            
+        if height != '':
+            assert 'height' not in expect[person][date], "IRL this would be fine - but - the tester can't handle it"
+            expect[person][date]['height'] = height
+
+
+    raise Exception(f"??? - once we get this far, check it {output=}")
 
 
 @pytest.mark.unit
