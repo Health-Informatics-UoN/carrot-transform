@@ -90,7 +90,11 @@ def test_integration_missing2(tmp_path: Path):
         'weight': 903121,
     }
 
-    expect: dict[str, dict[str, dict[str, str]]]  = {}
+    expect: dict[str, dict[str, dict[int, str]]]  = {}
+    expected: dict[int, int] = {}
+    for _, id in concepts.items():
+        assert id not in expected
+        expected[id] = 0
     for line in """
                 11,2023-10-12,75,12
                 11,2024-01-03,,32
@@ -113,15 +117,70 @@ def test_integration_missing2(tmp_path: Path):
             expect[person][date] = {}
 
         if weight != '':
-            assert 'weight' not in expect[person][date], "IRL this would be fine - but - the tester can't handle it"
-            expect[person][date]['weight'] = weight
-            
+            key: int = concepts['weight']
+            assert key not in expect[person][date], "IRL this would be fine - but - the tester can't handle it"
+            expect[person][date][key] = weight
+            expected[key] += 1
+
         if height != '':
-            assert 'height' not in expect[person][date], "IRL this would be fine - but - the tester can't handle it"
-            expect[person][date]['height'] = height
+            key: int = concepts['height']
+            assert key not in expect[person][date], "IRL this would be fine - but - the tester can't handle it"
+            expect[person][date][key] = height
+            expected[key] += 1
+        
+    
+    # # now loop through the measurement sheet to see if we got them all
+    seen = []
+    fails = ''
+    measurements: dict[int, int] = {}
+    for _, id in concepts.items():
+        assert id not in measurements
+        measurements[id] = 0
+
+    for measurement in csvrow.csv_rows(output / "measurement.tsv", "\t"):
+
+        s_id = t2s[measurement.person_id]
+        s_date = measurement.measurement_datetime.split(' ')[0]
+        t_concept = int(measurement.measurement_concept_id)
+
+        # check we're not re-doing this
+        tag = f"{s_id} {s_date} {t_concept}"
+        assert tag not in seen
+        seen.append(tag)
+
+        #
+        value_as_number = measurement.value_as_number 
+        source_value = measurement.measurement_source_value
+
+        # try to parse it into a number
+        # ... we're doing this extra bit so we can test the existing code before fixing this problem
+        an = ''
+        try:
+            an = float(value_as_number)
+        except ValueError as e:
+            
+            assert value_as_number == source_value
+
+            if '' == fails:
+                fails = "there were some values that were not numbers"
+            fails += f", `{value_as_number}`"
+
+        # oh hey - did that work? check it
+        if '' != an:
+            assert float(source_value) == an
+
+        # now ... check thgat the source_value is as expectd
+        assert source_value == expect[s_id][s_date][t_concept]
+
+        # finally; increment seen_ so 
+        measurements[t_concept] += 1
 
 
-    raise Exception(f"??? - once we get this far, check it {output=}")
+    for key in measurements:
+        assert measurements[key] == expected[key]
+
+    if '' != fails:
+        raise Exception(fails)
 
 
 @pytest.mark.unit
