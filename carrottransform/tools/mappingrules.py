@@ -2,6 +2,7 @@ import os
 import json
 import carrottransform.tools as tools
 from .omopcdm import OmopCDM
+from pathlib import Path
 
 import logging
 logger = logging.getLogger(__name__)
@@ -12,7 +13,8 @@ class MappingRules:
     as a file-specific dictionary allowing rules to be "looked-up" depending on data content
     """
 
-    def __init__(self, rulesfilepath: os.PathLike, omopcdm: OmopCDM):
+    def __init__(self, rulesfilepath: Path, omopcdm: OmopCDM):
+
         ## just loads the json directly
         self.rules_data = tools.load_json(rulesfilepath)
         self.omopcdm = omopcdm
@@ -20,24 +22,19 @@ class MappingRules:
         self.parsed_rules = {}
         self.outfile_names = {}
 
-        self.dataset_name = self.get_dsname_from_rules()
-
-    def dump_parsed_rules(self):
-        return(json.dumps(self.parsed_rules, indent=2))
-
-    def get_dsname_from_rules(self):
+        # assign dataset name
         dsname = "Unknown"
-
         if "metadata" in self.rules_data:
             if "dataset" in self.rules_data["metadata"]:
                 dsname = self.rules_data["metadata"]["dataset"]
-
-        return dsname
+        self.dataset_name =  dsname
 
     def get_dataset_name(self):
+        """accessor"""
         return self.dataset_name
 
     def get_all_outfile_names(self):
+        """accessor"""
         return list(self.rules_data["cdm"])
 
     def get_all_infile_names(self):
@@ -53,7 +50,10 @@ class MappingRules:
         return file_list
         
     def get_infile_data_fields(self, infilename):
-        data_fields_lists = {}
+        """
+        for {input_file} return a list of the fields that are used for output, and, the files they're mapped to
+        """
+        data_fields_lists: dict[str, list[str]] = {}
 
         outfilenames, outdata = self.parse_rules_src_to_tgt(infilename)
 
@@ -61,8 +61,8 @@ class MappingRules:
             data_fields_lists[outfilename] = []
 
         for key, outfield_data in outdata.items():
-            keydata = key.split("~")
-            outfile = keydata[-1]
+            keydata: list[str] = key.split("~")
+            outfile: str = keydata[-1]
             for outfield_elem in outfield_data:
                 for infield, outfields in outfield_elem.items():
                     for outfield in outfields:
@@ -146,7 +146,6 @@ class MappingRules:
         self.parsed_rules[infilename] = outdata
         self.outfile_names[infilename] = outfilenames
         return outfilenames, outdata
-
 
     def process_rules(self, infilename, outfilename, rules):
         """
