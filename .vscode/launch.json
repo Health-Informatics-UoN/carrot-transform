@@ -1,0 +1,64 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Carrot Transform",
+      "type": "python",
+      "request": "launch",
+      "module": "carrottransform.cli.command",
+      "function": "transform",
+      "args": [
+        "run",
+        "mapstream",
+        "--input-dir",
+        "carrottransform/examples/test/inputs",
+        "--rules-file",
+        "carrottransform/examples/test/rules/rules_14June2021.json",
+        "--person-file",
+        "carrottransform/examples/test/inputs/Demographics.csv",
+        "--output-dir",
+        "carrottransform/examples/test/outputs",
+        "--omop-ddl-file",
+        "carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql",
+        "--omop-config-file",
+        "carrottransform/config/omop.json"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Debug Carrot Transform Rules test",
+      "type": "python",
+      "request": "launch",
+      "module": "carrottransform.cli.command",
+      "function": "transform",
+      "args": [
+        "run",
+        "mapstream",
+        "--input-dir",
+        "carrottransform/examples/test/inputs",
+        "--rules-file",
+        "carrottransform/examples/test/rules/v1.json",
+        "--person-file",
+        "carrottransform/examples/test/inputs/Demographics.csv",
+        "--output-dir",
+        "carrottransform/examples/test/outputs",
+        "--omop-ddl-file",
+        "carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql",
+        "--omop-config-file",
+        "carrottransform/config/omop.json"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Poetry: Carrot Transform",
+      "type": "python",
+      "request": "launch",
+      "module": "carrottransform.cli.command",
+      "function": "transform",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
+}
