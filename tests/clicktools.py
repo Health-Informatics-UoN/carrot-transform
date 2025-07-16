@@ -8,7 +8,10 @@ from carrottransform.cli.subcommands.run import mapstream
 import csvrow
 
 
-def click_generic(tmp_path: Path, person_file: Path):
+def click_generic(tmp_path: Path, person_file: Path | str):
+    if isinstance(person_file, str):
+        person_file = Path(__file__).parent / "test_data" / person_file
+
     if not person_file.is_file():
         raise ValueError(f"person_file {person_file} does not exist")
 
@@ -44,12 +47,14 @@ def click_generic(tmp_path: Path, person_file: Path):
     #
 
     # test the person_ids table
-    [s2t, t2s] = csvrow.back_get(output / "person_ids.tsv")
+    [person_id_source2target, person_id_target2source] = csvrow.back_get(
+        output / "person_ids.tsv"
+    )
 
-    return (result, output, s2t, t2s)
+    return (result, output, person_id_source2target, person_id_target2source)
 
 
-def click_example(tmp_path: Path, limit=-1):
+def click_example(tmp_path: Path, limit: int = -1):
     """sets up the/a test environment and runs the transform thing with it."""
 
     # Get the package root directory

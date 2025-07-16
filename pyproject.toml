@@ -52,5 +52,6 @@ build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 markers = [
-    "unit: marks tests as unit tests (deselect with '-m \"not unit\"')"
+    "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
+    "integration: marks integration tests"
 ]

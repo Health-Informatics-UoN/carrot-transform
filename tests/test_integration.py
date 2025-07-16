@@ -20,6 +20,10 @@ from pathlib import Path
 import clicktools
 import csvrow
 
+import re
+
+### 
+# tests for https://github.com/Health-Informatics-UoN/carrot-transform/issues/83
 
 @pytest.mark.unit
 def test_missing(tmp_path: Path):
@@ -183,9 +187,15 @@ def test_integration_missing2(tmp_path: Path):
     if '' != fails:
         raise Exception(fails)
 
+# end of tests for https://github.com/Health-Informatics-UoN/carrot-transform/issues/83
+##
 
-@pytest.mark.unit
+
+@pytest.mark.integration
 def test_integration_test1(tmp_path: Path):
+    # this test (is one of the ones that) needs to read the person file as part of verification
+    person_file = Path(__file__).parent / "test_data/integration_test1/src_PERSON.csv"
+
     # Get the package root directory
     package_root = importlib.resources.files("carrottransform")
     package_root = (
