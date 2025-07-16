@@ -313,8 +313,8 @@ def test_duplications(tmp_path: Path):
         assert "35811769" == measurement.measurement_concept_id
 
         # this shouldn't be blank - but that needs a config change
-        # https://github.com/Health-Informatics-UoN/carrot-transform/issues/82
-        assert "" == measurement.measurement_time  #
+        # https://github.com/Health-Informatics-UoN/carrot-transform/issues/89
+        assert "" == measurement.measurement_time
 
         assert "0" == measurement.measurement_type_concept_id
         assert "" == measurement.value_as_concept_id
@@ -650,7 +650,8 @@ def test_condition(tmp_path: Path):
 
         assert "" == occurrence.condition_start_date
 
-        # someday this will be fixed and not-true
+        # there's a known shortcoming of the conditions that make them act like observations
+        # https://github.com/Health-Informatics-UoN/carrot-transform/issues/88
         assert date == occurrence.condition_end_datetime
         date = date[:10]
 
