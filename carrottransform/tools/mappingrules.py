@@ -1,29 +1,30 @@
-import os
 import json
+from pathlib import Path
 import carrottransform.tools as tools
-from .omopcdm import OmopCDM
+from carrottransform.tools.omopcdm import OmopCDM
+from carrottransform.tools.logger import logger_setup
 
-import logging
-logger = logging.getLogger(__name__)
+logger = logger_setup()
+
 
 class MappingRules:
     """
-    self.rules_data stores the mapping rules as untransformed json, as each input file is processed rules are reorganised 
+    self.rules_data stores the mapping rules as untransformed json, as each input file is processed rules are reorganised
     as a file-specific dictionary allowing rules to be "looked-up" depending on data content
     """
 
-    def __init__(self, rulesfilepath: os.PathLike, omopcdm: OmopCDM):
+    def __init__(self, rulesfilepath: Path, omopcdm: OmopCDM):
         ## just loads the json directly
         self.rules_data = tools.load_json(rulesfilepath)
         self.omopcdm = omopcdm
-        
-        self.parsed_rules = {}
-        self.outfile_names = {}
+
+        self.parsed_rules: dict[str, dict[str, list[dict[str, list[str]]]]] = {}
+        self.outfile_names: dict[str, list[str]] = {}
 
         self.dataset_name = self.get_dsname_from_rules()
 
     def dump_parsed_rules(self):
-        return(json.dumps(self.parsed_rules, indent=2))
+        return json.dumps(self.parsed_rules, indent=2)
 
     def get_dsname_from_rules(self):
         dsname = "Unknown"
@@ -51,7 +52,7 @@ class MappingRules:
                             file_list.append(source_data["source_table"])
 
         return file_list
-        
+
     def get_infile_data_fields(self, infilename):
         data_fields_lists = {}
 
@@ -83,11 +84,17 @@ class MappingRules:
             outfile = keydata[-1]
             for outfield_elem in outfield_data:
                 for infield, outfield_list in outfield_elem.items():
-                    logger.debug("{0}, {1}, {2}".format(outfile, infield, str(outfield_list)))
+                    logger.debug(
+                        "{0}, {1}, {2}".format(outfile, infield, str(outfield_list))
+                    )
                     for outfield in outfield_list:
-                        if outfield.split('~')[0] in self.omopcdm.get_omop_datetime_fields(outfile):
+                        if outfield.split("~")[
+                            0
+                        ] in self.omopcdm.get_omop_datetime_fields(outfile):
                             datetime_source = infield
-                        if outfield.split('~')[0] == self.omopcdm.get_omop_person_id_field(outfile):
+                        if outfield.split("~")[
+                            0
+                        ] == self.omopcdm.get_omop_person_id_field(outfile):
                             person_id_source = infield
 
         return datetime_source, person_id_source
@@ -103,7 +110,9 @@ class MappingRules:
             ## this loops over all the fields in the person part of the rules, which will lead to overwriting of the source variables and unneccesary looping
             for rule_name, rule_fields in source_rules_data.items():
                 if "birth_datetime" in rule_fields:
-                    birth_datetime_source = rule_fields["birth_datetime"]["source_field"]
+                    birth_datetime_source = rule_fields["birth_datetime"][
+                        "source_field"
+                    ]
                 if "person_id" in rule_fields:
                     person_id_source = rule_fields["person_id"]["source_field"]
 
@@ -131,7 +140,9 @@ class MappingRules:
                     if key.split("~")[-1] == "person":
                         # Find matching source field keys and merge their dictionaries
                         for source_field, value in data.items():
-                            if source_field in outdata[key][0] and isinstance(outdata[key][0][source_field], dict):
+                            if source_field in outdata[key][0] and isinstance(
+                                outdata[key][0][source_field], dict
+                            ):
                                 # Merge the dictionaries for this source field
                                 outdata[key][0][source_field].update(value)
                             else:
@@ -147,14 +158,15 @@ class MappingRules:
         self.outfile_names[infilename] = outfilenames
         return outfilenames, outdata
 
-
     def process_rules(self, infilename, outfilename, rules):
         """
         Process rules for an infile, outfile combination
         """
         outkey = ""
         data = {}
-        plain_key = ""  ### used for mapping simple fields that are always mapped (e.g., dob)
+        plain_key = (
+            ""  ### used for mapping simple fields that are always mapped (e.g., dob)
+        )
         term_value_key = ""  ### used for mapping terms (e.g., gender, race, ethnicity)
 
         ## iterate through the rules, looking for rules that apply to the input file.
@@ -178,28 +190,51 @@ class MappingRules:
 
                                         temp_data_list = data[source_field].copy()
                                         data[source_field] = {}
-                                        data[source_field][str(inputvalue)] = temp_data_list
+                                        data[source_field][
+                                            str(inputvalue)
+                                        ] = temp_data_list
 
-                                data[source_field][str(inputvalue)].append(outfield + "~" + str(term))
+                                data[source_field][str(inputvalue)].append(
+                                    outfield + "~" + str(term)
+                                )
                             else:
-                                term_value_key = infilename + "~" + source_info["source_field"] + "~" + str(inputvalue) + "~" + outfilename
+                                term_value_key = (
+                                    infilename
+                                    + "~"
+                                    + source_info["source_field"]
+                                    + "~"
+                                    + str(inputvalue)
+                                    + "~"
+                                    + outfilename
+                                )
                                 if source_info["source_field"] not in data:
                                     data[source_info["source_field"]] = []
-                                data[source_info["source_field"]].append(outfield + "~" + str(term))
+                                data[source_info["source_field"]].append(
+                                    outfield + "~" + str(term)
+                                )
                     else:
-                        plain_key = infilename + "~" + source_info["source_field"] + "~" + outfilename
+                        plain_key = (
+                            infilename
+                            + "~"
+                            + source_info["source_field"]
+                            + "~"
+                            + outfilename
+                        )
                         if source_info["source_field"] not in data:
                             data[source_info["source_field"]] = []
-                        data[source_info["source_field"]].append(outfield + "~" + str(source_info["term_mapping"]))
+                        data[source_info["source_field"]].append(
+                            outfield + "~" + str(source_info["term_mapping"])
+                        )
                 else:
                     if source_info["source_field"] not in data:
                         data[source_info["source_field"]] = []
                     if type(data[source_info["source_field"]]) is dict:
-                        data[source_info["source_field"]][str(inputvalue)].append(outfield)
-                    else: 
+                        data[source_info["source_field"]][str(inputvalue)].append(
+                            outfield
+                        )
+                    else:
                         data[source_info["source_field"]].append(outfield)
         if term_value_key != "":
             return term_value_key, data
 
         return plain_key, data
-
