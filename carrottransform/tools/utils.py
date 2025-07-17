@@ -2,14 +2,16 @@ import csv
 import datetime
 import importlib.resources
 import logging
+from logging import Logger
 import re
 import sys
 from pathlib import Path
 from typing import IO, Iterator
 import carrottransform.tools as tools
 from carrottransform.tools.omopcdm import OmopCDM
+from carrottransform.tools.logger import logger_setup
 
-logger = logging.getLogger(__name__)
+logger = logger_setup()
 
 
 def get_target_records(

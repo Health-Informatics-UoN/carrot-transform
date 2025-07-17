@@ -6,6 +6,7 @@ import click
 import carrottransform.tools as tools
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.file_helpers import resolve_paths
+from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.utils import (
     check_dir_isvalid,
     check_files_in_rules_exist,
@@ -18,19 +19,7 @@ from carrottransform.tools.utils import (
     set_saved_person_id_file,
 )
 
-logger = logging.getLogger(__name__)
-if not logger.handlers:
-    logger.setLevel(logging.INFO)
-
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    console_handler.setFormatter(formatter)
-
-    logger.addHandler(console_handler)
+logger = logger_setup()
 
 
 @click.command()
