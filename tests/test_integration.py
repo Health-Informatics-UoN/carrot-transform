@@ -492,6 +492,10 @@ def test_duplications(tmp_path: Path):
     assert 1 == observation_count["6789"]
     assert 4 == observation_count["321"]
 
+@pytest.mark.unit
+def test_dual_weight_observations(tmp_path: Path):
+    raise Exception('run me!')
+
 
 def assert_datetimes(onlydate: str, datetime: str, expected: str):
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", onlydate), (
@@ -516,3 +520,5 @@ def assert_datetimes(onlydate: str, datetime: str, expected: str):
             f"the source data {expected=} is in the wrong format"
         )
         assert expected == datetime
+
+
