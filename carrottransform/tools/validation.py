@@ -13,7 +13,7 @@ def valid_value(item: str) -> bool:
     return True
 
 
-# Note from Peter:
+# Note from James:
 # DATE TESTING
 # ------------
 # I started by changing the get_datetime_value to be neater.
