@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def get_target_records(
     tgtfilename: str,
-    tgtcolmap: dict[str, dict[str, int]],
+    tgtcolmap: dict[str, int],
     rulesmap: dict[str, list[dict[str, list[str]]]],
     srcfield: str,
     srcdata: list[str],
@@ -22,7 +22,7 @@ def get_target_records(
     srcfilename: str,
     omopcdm: OmopCDM,
     metrics: tools.metrics.Metrics,
-) -> tuple[bool, list[str], tools.metrics.Metrics]:
+) -> tuple[bool, list[list[str]], tools.metrics.Metrics]:
     """
     build all target records for a given input field
     """
@@ -258,8 +258,11 @@ def normalise_to8601(item: str) -> str:
         match = re.match(
             r"(?P<hour>\d{2}):(?P<minute>\d{2})(:(?P<second>\d{2})(\.\d{6})?)?", both[1]
         )
-        data = match.groupdict()
-        hour, minute, second = data["hour"], data["minute"], data["second"]
+        if match:
+            data = match.groupdict()
+            hour, minute, second = data["hour"], data["minute"], data["second"]
+        else:
+            hour, minute, second = None, None, None
 
         # concat the time_suffix
         if hour is not None:
