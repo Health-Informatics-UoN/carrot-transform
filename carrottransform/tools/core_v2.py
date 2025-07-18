@@ -1,14 +1,19 @@
 import csv
-import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 
 import carrottransform.tools as tools
-from carrottransform.tools.mappingrules import MappingRules, V2TableMapping
+from carrottransform.tools.mappingrules import (
+    ConceptMapping,
+    DateMapping,
+    PersonIdMapping,
+    MappingRules,
+    V2TableMapping,
+)
 from carrottransform.tools.omopcdm import OmopCDM
-from carrottransform.tools.date_helpers import normalise_to8601
+from carrottransform.tools.date_helpers import normalise_to8601, get_datetime_value
 from carrottransform.tools.logger import logger_setup
-
+from carrottransform.tools.validation import valid_value
 
 logger = logger_setup()
 
@@ -41,7 +46,7 @@ def get_target_records_v2(
     notnull_numeric_fields = omopcdm.get_omop_notnull_numeric_fields(tgtfilename)
 
     # Check if source field has a value
-    if not _is_valid_value(str(srcdata[srccolmap[srcfield]])):
+    if not valid_value(str(srcdata[srccolmap[srcfield]])):
         metrics.increment_key_count(
             source=srcfilename,
             fieldname=srcfield,
@@ -110,13 +115,8 @@ def get_target_records_v2(
     return build_records, tgtrecords, metrics
 
 
-def _is_valid_value(value: str) -> bool:
-    """Check if a value is valid (not empty/null)"""
-    return value.strip() != ""
-
-
 def _get_value_mapping(
-    concept_mapping, source_value: str
+    concept_mapping: ConceptMapping, source_value: str
 ) -> Optional[Dict[str, List[int]]]:
     """
     Get value mapping for a source value, handling wildcards
@@ -164,7 +164,7 @@ def _apply_original_value_mappings(
 def _apply_person_id_mapping(
     tgtarray: List[str],
     tgtcolmap: Dict[str, int],
-    person_id_mapping,
+    person_id_mapping: PersonIdMapping,
     srcdata: List[str],
     srccolmap: Dict[str, int],
 ):
@@ -180,7 +180,7 @@ def _apply_person_id_mapping(
 def _apply_date_mappings(
     tgtarray: List[str],
     tgtcolmap: Dict[str, int],
-    date_mapping,
+    date_mapping: DateMapping,
     srcdata: List[str],
     srccolmap: Dict[str, int],
     date_col_data: Dict[str, str],
@@ -200,7 +200,7 @@ def _apply_date_mappings(
         if dest_field in tgtcolmap:
             # Handle date component fields (birth dates with year/month/day)
             if dest_field in date_component_data:
-                dt = _parse_date_value(source_date)
+                dt = get_datetime_value(source_date)
                 if dt is None:
                     metrics.increment_key_count(
                         source=srcfilename,
@@ -238,31 +238,10 @@ def _apply_date_mappings(
     return True
 
 
-def _parse_date_value(date_str: str) -> Optional[datetime.datetime]:
-    """Parse a date string using various formats"""
-    date_formats = [
-        "%Y-%m-%d",  # ISO format (YYYY-MM-DD)
-        "%d-%m-%Y",  # Reverse ISO format (DD-MM-YYYY)
-        "%d/%m/%Y",  # UK format (DD/MM/YYYY)
-    ]
-
-    # Handle datetime strings by taking only the date part
-    date_part = date_str.split(" ")[0]
-
-    for date_format in date_formats:
-        try:
-            return datetime.datetime.strptime(date_part, date_format)
-        except ValueError:
-            continue
-
-    return None
-
-
 def process_v2_data(
     mappingrules: MappingRules,
     omopcdm: OmopCDM,
     input_dir: Path,
-    output_dir: Path,
     person_lookup: Dict[str, str],
     record_numbers: Dict[str, int],
     fhd: Dict[str, Any],
