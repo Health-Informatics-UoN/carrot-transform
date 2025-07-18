@@ -9,13 +9,6 @@ def valid_value(value: str) -> bool:
     return value.strip() != ""
 
 
-# Note from James:
-# DATE TESTING
-# ------------
-# I started by changing the get_datetime_value to be neater.
-# I think it should be handled all as one thing, but I've spent too much time doing this already
-
-
 def valid_date_value(item: str) -> bool:
     """
     Check if a date item is non null and parses as ISO (YYYY-MM-DD), reverse-ISO
