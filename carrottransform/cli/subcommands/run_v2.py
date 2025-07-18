@@ -6,6 +6,7 @@ providing a clean, maintainable approach to data transformation.
 """
 
 import time
+from typing import Optional
 from pathlib import Path
 import click
 import carrottransform.tools as tools
@@ -76,9 +77,9 @@ def mapstream_v2(
     output_dir: Path,
     write_mode: str,
     person_file: Path,
-    omop_ddl_file: Path,
-    omop_config_file: Path,
-    omop_version: str,
+    omop_ddl_file: Optional[Path],
+    omop_config_file: Optional[Path],
+    omop_version: Optional[str],
     input_dir: Path,
 ):
     """
@@ -111,7 +112,7 @@ def mapstream_v2(
     check_dir_isvalid(input_dir)
     check_dir_isvalid(output_dir, create_if_missing=True)
 
-    # Set OMOP filenames
+    # Set default OMOP file paths when not explicitly provided
     omop_config_file, omop_ddl_file = set_omop_filenames(
         omop_ddl_file, omop_config_file, omop_version
     )
@@ -161,7 +162,6 @@ def mapstream_v2(
             mappingrules,
             omopcdm,
             input_dir,
-            output_dir,
             person_lookup,
             record_numbers,
             fhd,
