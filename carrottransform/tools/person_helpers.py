@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.validation import valid_value, valid_date_value
+from carrottransform.tools.mappingrules import MappingRules
 
 logger = logger_setup()
 
@@ -34,7 +35,11 @@ def load_saved_person_ids(person_file: Path):
 
 
 def load_person_ids(
-    saved_person_id_file, person_file, mappingrules, use_input_person_ids, delim=","
+    saved_person_id_file,
+    person_file,
+    mappingrules: MappingRules,
+    use_input_person_ids,
+    delim=",",
 ):
     person_ids, person_number = get_person_lookup(saved_person_id_file)
 
@@ -45,7 +50,8 @@ def load_person_ids(
     reject_count = 0
 
     personhdr = next(csvr)
-    logger.info(personhdr)
+    # TODO: not sure if this is needed
+    logger.info("Headers in Person file: %s", personhdr)
 
     # Make a dictionary of column names vs their positions
     for col in personhdr:

@@ -5,10 +5,9 @@ from .omopcdm import OmopCDM
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
+from carrottransform.tools.logger import logger_setup
 
-import logging
-
-logger = logging.getLogger(__name__)
+logger = logger_setup()
 
 
 @dataclass
@@ -68,15 +67,12 @@ class MappingRules:
         """
         Detect if the rules file is in v2 format by checking for characteristic v2 structures
         """
-        if "cdm" not in self.rules_data:
-            return False
-
         # Check if any table has the v2 structure (source_table -> mapping_types)
         for table_name, table_data in self.rules_data["cdm"].items():
             if isinstance(table_data, dict):
                 for key, value in table_data.items():
                     # v2 format has CSV filenames as keys, with mapping types as values
-                    if isinstance(value, dict) and any(
+                    if isinstance(value, dict) and all(
                         mapping_type in value
                         for mapping_type in [
                             "person_id_mapping",
