@@ -47,7 +47,7 @@ def resolve_paths(args: List[Optional[Path]]) -> List[Optional[Path]]:
     ]
 
 
-def check_dir_isvalid(directory: Path | None, create_if_missing: bool = False) -> None:
+def check_dir_isvalid(directory: Path, create_if_missing: bool = False) -> None:
     """Check if directory is valid, optionally create it if missing.
 
     Args:
