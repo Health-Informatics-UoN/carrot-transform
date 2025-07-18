@@ -14,7 +14,7 @@ import csvrow
 
 import re
 
-### 
+###
 # tests for https://github.com/Health-Informatics-UoN/carrot-transform/issues/83
 
 
@@ -671,9 +671,22 @@ def test_condition(tmp_path: Path):
 
     assert 4 == occurrences
 
+
 @pytest.mark.unit
 def test_dual_weight_observations(tmp_path: Path):
-    raise Exception('run me!')
+    (result, output, person_id_source2target, person_id_target2source) = (
+        clicktools.click_generic(tmp_path, "dual_weight_observations/patients.csv")
+    )
+
+    count = csvrow.row_count(output / "measurement.tsv", "\t")
+
+    assert count == 6, (
+        "the bug has been triggered, TODO; finish this test and fix the bug"
+    )
+
+    raise Exception(
+        f"all rows made it into the output - this was unexpected {tmp_path=}"
+    )
 
 
 def assert_datetimes(onlydate: str, datetime: str, expected: str):
@@ -702,5 +715,3 @@ def assert_datetimes(onlydate: str, datetime: str, expected: str):
             f"the source data {expected=} is in the wrong format"
         )
         assert expected == datetime
-
-
