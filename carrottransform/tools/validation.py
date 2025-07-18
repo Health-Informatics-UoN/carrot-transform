@@ -4,13 +4,9 @@ from carrottransform.tools.logger import logger_setup
 logger = logger_setup()
 
 
-def valid_value(item: str) -> bool:
-    """
-    Check if an item is non blank (null)
-    """
-    if item.strip() == "":
-        return False
-    return True
+def valid_value(value: str) -> bool:
+    """Check if a value is valid (not empty/null)"""
+    return value.strip() != ""
 
 
 # Note from James:
