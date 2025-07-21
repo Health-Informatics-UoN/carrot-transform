@@ -1,16 +1,22 @@
 import pytest
 
 import os
-from carrottransform.cli.subcommands.run import *
+import carrottransform.cli.subcommands.run as run
 from pathlib import Path
 from unittest.mock import patch
+import logging
+import importlib
+
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.mark.unit
 def test_valid_directory(tmp_path: Path):
     """Test with a valid directory path"""
 
-    check_dir_isvalid(tmp_path)  # Should not raise any exception
+    run.check_dir_isvalid(tmp_path)  # Should not raise any exception
+
 
 @pytest.mark.unit
 def test_invalid_directory(tmp_path: Path):
@@ -18,7 +24,7 @@ def test_invalid_directory(tmp_path: Path):
 
     non_existent_dir = tmp_path / "non_existent"
     with pytest.raises(SystemExit) as exc_info:
-        check_dir_isvalid(non_existent_dir)
+        run.check_dir_isvalid(non_existent_dir)
     assert exc_info.value.code == 1
 
 
@@ -27,15 +33,16 @@ def test_directory_only_path(tmp_path: Path):
     """Test with a directory path wrapped in a tuple - which should no longer work"""
 
     with pytest.raises(AttributeError) as exc_info:
-        check_dir_isvalid((tmp_path,))  # Should raise an exception
+        run.check_dir_isvalid((tmp_path,))  # Should raise an exception
     assert "'tuple' object has no attribute 'is_dir'" in str(exc_info.value)
+
 
 @pytest.mark.unit
 def test_explicit_file_path(tmp_path: Path):
     """Test when a specific file path is provided"""
 
     explicit_path = tmp_path / "file.tsv"
-    result = set_saved_person_id_file(explicit_path, tmp_path)
+    result = run.set_saved_person_id_file(explicit_path, tmp_path)
     assert result == explicit_path
 
 
@@ -44,7 +51,7 @@ def test_default_file_creation(tmp_path: Path):
     """Test when no file is specified (None case)"""
 
     output_dir = tmp_path
-    result = set_saved_person_id_file(None, output_dir)
+    result = run.set_saved_person_id_file(None, output_dir)
     expected_path = output_dir / "person_ids.tsv"
     assert result == expected_path
 
@@ -62,7 +69,7 @@ def test_existing_file_removal(tmp_path: Path):
 
     assert os.path.exists(existing_file)  # Verify file exists
 
-    result = set_saved_person_id_file(None, output_dir)
+    result = run.set_saved_person_id_file(None, output_dir)
     assert result == existing_file  # Check returned path
     assert not os.path.exists(existing_file)  # Verify file was removed
 
@@ -77,11 +84,10 @@ def test_matching_files(caplog):
 def test_extra_existing_file(caplog):
     """Test when there's an existing file not in rules"""
     with caplog.at_level(logging.WARNING):
-
         rules_files = ["file1.txt"]
         existing_files = ["file1.txt", "extra.txt"]
 
-        check_files_in_rules_exist(rules_files, existing_files)
+        run.check_files_in_rules_exist(rules_files, existing_files)
 
     assert (
         "WARNING: no mapping rules found for existing input file - extra.txt"
@@ -93,11 +99,10 @@ def test_extra_existing_file(caplog):
 def test_extra_rules_file(caplog):
     """Test when there's a rules file with no existing data"""
     with caplog.at_level(logging.WARNING):
-
         rules_files = ["file1.txt", "missing.txt"]
         existing_files = ["file1.txt"]
 
-        check_files_in_rules_exist(rules_files, existing_files)
+        run.check_files_in_rules_exist(rules_files, existing_files)
 
     assert "WARNING: no data for mapped input file - missing.txt" in caplog.text
 
@@ -106,11 +111,10 @@ def test_extra_rules_file(caplog):
 def test_multiple_mismatches(caplog):
     """Test when there are multiple mismatches in both directions"""
     with caplog.at_level(logging.WARNING):
-
         rules_files = ["file1.txt", "missing1.txt", "missing2.txt"]
         existing_files = ["file1.txt", "extra1.txt", "extra2.txt"]
 
-        check_files_in_rules_exist(rules_files, existing_files)
+        run.check_files_in_rules_exist(rules_files, existing_files)
 
     assert (
         "WARNING: no mapping rules found for existing input file - extra1.txt"
@@ -135,7 +139,7 @@ def test_successful_file_open(tmp_path: Path):
     with file_path.open("w", encoding="utf-8") as f:
         f.write(file_content)
 
-    file_handle, csv_reader = open_file(file_path)
+    file_handle, csv_reader = run.open_file(file_path)
 
     try:
         assert file_handle is not None
@@ -153,8 +157,7 @@ def test_nonexistent_file(tmp_path, caplog):
     """Test attempting to open a non-existent file"""
 
     with caplog.at_level(logging.ERROR):
-
-        result = open_file(tmp_path / "nonexistent.csv")
+        result = run.open_file(tmp_path / "nonexistent.csv")
 
         assert result is None
     assert "Unable to open:" in caplog.text
@@ -166,8 +169,7 @@ def test_directory_not_found(caplog):
     """Test attempting to open a file in a non-existent directory"""
 
     with caplog.at_level(logging.ERROR):
-
-        result = open_file(Path("/nonexistent/directory") / "test.csv")
+        result = run.open_file(Path("/nonexistent/directory") / "test.csv")
 
         assert result is None
 
@@ -188,7 +190,7 @@ def test_utf8_with_bom(tmp_path: Path):
         f.write(b"\xef\xbb\xbf")  # UTF-8 BOM
         f.write(content.encode("utf-8"))
 
-    file_handle, csv_reader = open_file(file_path)
+    file_handle, csv_reader = run.open_file(file_path)
 
     try:
         assert file_handle is not None
@@ -209,7 +211,7 @@ def test_explicit_filenames():
     ddl_file = Path("/path/to/ddl.sql")
     config_file = Path("/path/to/config.json")
 
-    result_config, result_ddl = set_omop_filenames(ddl_file, config_file, version)
+    result_config, result_ddl = run.set_omop_filenames(ddl_file, config_file, version)
 
     assert result_config == config_file
     assert result_ddl == ddl_file
@@ -226,7 +228,7 @@ def test_auto_filenames_from_version():
     expected_config = expected_base / "config/omop.json"
     expected_ddl = expected_base / f"config/OMOPCDM_postgresql_{version}_ddl.sql"
 
-    result_config, result_ddl = set_omop_filenames(None, None, version)
+    result_config, result_ddl = run.set_omop_filenames(None, None, version)
 
     assert result_config == expected_config
     assert result_ddl == expected_ddl
@@ -239,13 +241,13 @@ def test_no_changes_when_partial_files():
     version = "5.4"
 
     # Test with only DDL file
-    result_config, result_ddl = set_omop_filenames(ddl_file, None, version)
+    result_config, result_ddl = run.set_omop_filenames(ddl_file, None, version)
     assert result_config is None
     assert result_ddl == ddl_file
 
     # Test with only config file
     config_file = "/path/to/config.json"
-    result_config, result_ddl = set_omop_filenames(None, config_file, version)
+    result_config, result_ddl = run.set_omop_filenames(None, config_file, version)
     assert result_config == config_file
     assert result_ddl is None
 
@@ -257,7 +259,7 @@ def test_no_version():
     config_file = None
     version = None
 
-    result_config, result_ddl = set_omop_filenames(ddl_file, config_file, version)
+    result_config, result_ddl = run.set_omop_filenames(ddl_file, config_file, version)
 
     assert result_config is None
     assert result_ddl is None
@@ -269,7 +271,7 @@ def test_new_person_lookup(tmp_path: Path):
     """Test when no saved person ID file exists"""
     nonexistent_file = tmp_path / "nonexistent.tsv"
 
-    person_lookup, last_used_integer = get_person_lookup(nonexistent_file)
+    person_lookup, last_used_integer = run.get_person_lookup(nonexistent_file)
 
     assert person_lookup == {}
     assert last_used_integer == 1
@@ -284,7 +286,7 @@ def test_existing_person_lookup(mock_load, tmp_path: Path):
 
     existing_file.touch()
 
-    person_lookup, last_used_integer = get_person_lookup(existing_file)
+    person_lookup, last_used_integer = run.get_person_lookup(existing_file)
 
     assert person_lookup == {"person1": 1, "person2": 2}
     assert last_used_integer == 2

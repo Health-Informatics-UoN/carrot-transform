@@ -24,15 +24,18 @@ def load_json(f_in: Path):
 def resolve_paths(args: List[Optional[Path]]) -> List[Optional[Path]]:
     """Resolve special path syntaxes in command line arguments."""
     try:
-        package_path = (resources.files('carrottransform') / '__init__.py').parent
+        package_path = (resources.files("carrottransform") / "__init__.py").parent
     except Exception:
         # Fallback for development environment
         import carrottransform
+
         package_path = Path(carrottransform.__file__).resolve().parent
-    
+
     # Handle None values and replace @carrot with the actual package path
-    prefix = '@carrot'
+    prefix = "@carrot"
     return [
-        package_path / Path(str(arg).replace(prefix, '').replace('\\', '/').lstrip('/')) if arg is not None and str(arg).startswith(prefix) else arg 
+        package_path / Path(str(arg).replace(prefix, "").replace("\\", "/").lstrip("/"))
+        if arg is not None and str(arg).startswith(prefix)
+        else arg
         for arg in args
     ]

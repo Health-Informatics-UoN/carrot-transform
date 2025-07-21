@@ -8,11 +8,12 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+
 class OmopCDM:
     """
     Load and parse OMOP DDL data, to make an in-memory json CDM
     Merge in manual additions (currently necessary to identify, person id, date / time fields and autonumber fields)
-    Define a series of "get" functions to allow CDM component discovery 
+    Define a series of "get" functions to allow CDM component discovery
     """
 
     def __init__(self, omopddl, omopcfg):
@@ -33,16 +34,14 @@ class OmopCDM:
         self.person_id_field = self.get_columns("person_id_field")
         self.auto_number_field = self.get_columns("auto_number_field")
 
-
     def load_ddl(self, omopddl: Path):
         try:
-            fp = omopddl.open("r") 
+            fp = omopddl.open("r")
         except Exception:
             logger.exception("OMOP ddl file ({0}) not found".format(omopddl))
             sys.exit()
 
-        
-        return(self.process_ddl(fp))
+        return self.process_ddl(fp)
 
     def process_ddl(self, fp):
         """
@@ -57,13 +56,13 @@ class OmopCDM:
         output_dict["date_fields"] = {}
 
         ## matching for version number - matches '--postgres', any number of chars and some digits of the form X.Y, plus an end of string or end of line
-        ver_rgx = re.compile(r'^--postgresql.*(\d+\.\d+)$')
+        ver_rgx = re.compile(r"^--postgresql.*(\d+\.\d+)$")
         ## matching for table name - matches 'CREATE TABLE @', some letters (upper and lower case), '.' and some more letters (lower case)
-        start_rgx = re.compile(r'^CREATE\s*TABLE\s*(\@?[a-zA-Z]+\.)?([a-zA-Z_]+)')
+        start_rgx = re.compile(r"^CREATE\s*TABLE\s*(\@?[a-zA-Z]+\.)?([a-zA-Z_]+)")
         ## matches some whitespace, lower case letters(or underscores), whitespace, letters (upper/lower and underscores)
-        datatype_rgx = re.compile(r'^\s*([a-z_]+)\s+([a-zA-Z_]+)')
+        datatype_rgx = re.compile(r"^\s*([a-z_]+)\s+([a-zA-Z_]+)")
         ## matching for end of file - matches close bracket, semi colon, end of file or line
-        end_rgx = re.compile(r'.*[)];$')
+        end_rgx = re.compile(r".*[)];$")
         vermatched = False
         processing_table_data = False
         tabname = ""
@@ -101,12 +100,16 @@ class OmopCDM:
                         output_dict["datetime_fields"][tabname] = []
                     if tabname not in output_dict["date_fields"]:
                         output_dict["date_fields"][tabname] = []
-  
+
                     # Add in required column / field data
                     output_dict["all_columns"][tabname].append(fname)
                     if ftype.lower() in self.numeric_types:
                         output_dict["numeric_fields"][tabname].append(fname)
-                    if ftype.lower() in self.numeric_types and "NOT" in line and "NULL" in line:
+                    if (
+                        ftype.lower() in self.numeric_types
+                        and "NOT" in line
+                        and "NULL" in line
+                    ):
                         output_dict["notnull_numeric_fields"][tabname].append(fname)
                     if ftype.lower() in self.datetime_types:
                         output_dict["datetime_fields"][tabname].append(fname)
@@ -116,17 +119,17 @@ class OmopCDM:
             ematch = end_rgx.search(line)
             if ematch is not None:
                 processing_table_data = False
-  
-        return(output_dict)
-    
+
+        return output_dict
+
     def dump_ddl(self):
-        return(json.dumps(self.omop_json, indent=2))
+        return json.dumps(self.omop_json, indent=2)
 
     def merge_json(self, omopjson, omopcfg):
         tmp_json = tools.load_json(omopcfg)
         for key, data in tmp_json.items():
             omopjson[key] = data
-        return(omopjson)
+        return omopjson
 
     def get_columns(self, colkey):
         if colkey in self.omop_json:

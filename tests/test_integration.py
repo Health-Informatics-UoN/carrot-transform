@@ -14,7 +14,7 @@ import csvrow
 
 import re
 
-### 
+###
 # tests for https://github.com/Health-Informatics-UoN/carrot-transform/issues/83
 
 

@@ -7,8 +7,6 @@ import json
 from pathlib import Path
 
 
-
-
 class SourceFieldError(Exception):
     """Raised when the rules.json does't set person_id/source_field to PersonID."""
 
@@ -28,7 +26,6 @@ def auto_person_in_rules(rules: Path) -> Path:
 
     # query the objects for the items
     for _, person in object_query(data, "cdm/person").items():
-
         # check if the source field is correct
         if "PersonID" != object_query(person, "person_id/source_field"):
             raise SourceFieldError()

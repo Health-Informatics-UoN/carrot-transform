@@ -1,13 +1,12 @@
-
 import csv
 import datetime
 import logging
+import importlib
 import re
 import sys
 import time
 from pathlib import Path
-from typing import IO,  Iterator
-import importlib
+from typing import IO, Iterator
 import click
 
 import carrottransform.tools as tools
@@ -23,56 +22,84 @@ if not logger.handlers:
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
 
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     console_handler.setFormatter(formatter)
-
 
     logger.addHandler(console_handler)
 
 
 @click.command()
-@click.option("--rules-file", type=PathArgs,
-              required=True,
-              help="json file containing mapping rules")
-@click.option("--output-dir", type=PathArgs,
-              default=None,
-              required=True,
-              help="define the output directory for OMOP-format tsv files")
-@click.option("--write-mode",
-              default='w',
-              type=click.Choice(['w','a']),
-              help="force write-mode on output files")
-@click.option("--person-file", type=PathArgs,
-              required=True,
-              help="File containing person_ids in the first column")
-@click.option("--omop-ddl-file", type=PathArgs,
-              required=False,
-              help="File containing OHDSI ddl statements for OMOP tables")
-@click.option("--omop-config-file", type=PathArgs,
-              required=False,
-              help="File containing additional / override json config for omop outputs")
-@click.option("--omop-version",
-              required=False,
-              help="Quoted string containing omop version - eg '5.3'")
-@click.option("--saved-person-id-file", type=PathArgs,
-              default=None,
-              required=False,
-              help="Full path to person id file used to save person_id state and share person_ids between data sets")
-@click.option("--use-input-person-ids",
-              required=False,
-              default='N',
-              help="Use person ids as input without generating new integers")
-@click.option("--last-used-ids-file", type=PathArgs,
-              default=None,
-              required=False,
-              help="Full path to last used ids file for OMOP tables - format: tablename\tlast_used_id, \nwhere last_used_id must be an integer")
-@click.option("--log-file-threshold",
-              required=False,
-              default=0,
-              help="Lower outcount limit for logfile output")
-@click.option("--input-dir", type=PathArgs,
+@click.option(
+    "--rules-file",
+    type=PathArgs,
     required=True,
-    help="Input directories")
+    help="json file containing mapping rules",
+)
+@click.option(
+    "--output-dir",
+    type=PathArgs,
+    default=None,
+    required=True,
+    help="define the output directory for OMOP-format tsv files",
+)
+@click.option(
+    "--write-mode",
+    default="w",
+    type=click.Choice(["w", "a"]),
+    help="force write-mode on output files",
+)
+@click.option(
+    "--person-file",
+    type=PathArgs,
+    required=True,
+    help="File containing person_ids in the first column",
+)
+@click.option(
+    "--omop-ddl-file",
+    type=PathArgs,
+    required=False,
+    help="File containing OHDSI ddl statements for OMOP tables",
+)
+@click.option(
+    "--omop-config-file",
+    type=PathArgs,
+    required=False,
+    help="File containing additional / override json config for omop outputs",
+)
+@click.option(
+    "--omop-version",
+    required=False,
+    help="Quoted string containing omop version - eg '5.3'",
+)
+@click.option(
+    "--saved-person-id-file",
+    type=PathArgs,
+    default=None,
+    required=False,
+    help="Full path to person id file used to save person_id state and share person_ids between data sets",
+)
+@click.option(
+    "--use-input-person-ids",
+    required=False,
+    default="N",
+    help="Use person ids as input without generating new integers",
+)
+@click.option(
+    "--last-used-ids-file",
+    type=PathArgs,
+    default=None,
+    required=False,
+    help="Full path to last used ids file for OMOP tables - format: tablename\tlast_used_id, \nwhere last_used_id must be an integer",
+)
+@click.option(
+    "--log-file-threshold",
+    required=False,
+    default=0,
+    help="Lower outcount limit for logfile output",
+)
+@click.option("--input-dir", type=PathArgs, required=True, help="Input directories")
 def mapstream(
     rules_file: Path,
     output_dir: Path,
@@ -91,9 +118,22 @@ def mapstream(
     Map to output using input streams
     """
 
-
     # Resolve any @package paths in the arguments
-    resolved_paths = resolve_paths([
+    resolved_paths = resolve_paths(
+        [
+            rules_file,
+            output_dir,
+            person_file,
+            omop_ddl_file,
+            omop_config_file,
+            saved_person_id_file,
+            last_used_ids_file,
+            input_dir,
+        ]
+    )
+
+    # Assign back resolved paths
+    [
         rules_file,
         output_dir,
         person_file,
@@ -101,14 +141,9 @@ def mapstream(
         omop_config_file,
         saved_person_id_file,
         last_used_ids_file,
-        input_dir
-    ])
-    
-    # Assign back resolved paths
-    [rules_file, output_dir, person_file, omop_ddl_file, 
-     omop_config_file, saved_person_id_file, last_used_ids_file, 
-     input_dir] = resolved_paths
-    
+        input_dir,
+    ] = resolved_paths
+
     # Initialisation
     # - check for values in optional arguments
     # - read in configuration files
@@ -139,9 +174,7 @@ def mapstream(
 
     # check on the rules file
     if (rules_file is None) or (not rules_file.is_file()):
-        logger.exception(
-            f"rules file was set to `{rules_file=}` and is missing"
-        )
+        logger.exception(f"rules file was set to `{rules_file=}` and is missing")
         sys.exit(-1)
 
     ## check the person file
@@ -155,9 +188,10 @@ def mapstream(
         omop_ddl_file, omop_config_file, omop_version
     )
     ## check directories are valid
-    check_dir_isvalid(input_dir) # Input directory must exist - we need the files in it
-    check_dir_isvalid(output_dir, create_if_missing=True) # Create output directory if needed
-
+    check_dir_isvalid(input_dir)  # Input directory must exist - we need the files in it
+    check_dir_isvalid(
+        output_dir, create_if_missing=True
+    )  # Create output directory if needed
 
     saved_person_id_file = set_saved_person_id_file(saved_person_id_file, output_dir)
 
@@ -191,9 +225,9 @@ def mapstream(
 
     try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
-        person_lookup, rejected_person_count = load_person_ids(saved_person_id_file,
-                                                               person_file, mappingrules,
-                                                               use_input_person_ids)
+        person_lookup, rejected_person_count = load_person_ids(
+            saved_person_id_file, person_file, mappingrules, use_input_person_ids
+        )
         ## open person_ids output file
         with saved_person_id_file.open(mode="w") as fhpout:
             ## write the header to the file
@@ -205,7 +239,9 @@ def mapstream(
         ## Initialise output files (adding them to a dict), output a header for each
         ## these aren't being closed deliberately
         for tgtfile in output_files:
-            fhd[tgtfile] = (output_dir / tgtfile).with_suffix(".tsv").open(mode=write_mode)
+            fhd[tgtfile] = (
+                (output_dir / tgtfile).with_suffix(".tsv").open(mode=write_mode)
+            )
             if write_mode == "w":
                 outhdr = omopcdm.get_omop_column_list(tgtfile)
                 fhd[tgtfile].write("\t".join(outhdr) + "\n")
@@ -217,7 +253,9 @@ def mapstream(
         logger.exception(f"I/O - error({e.errno}): {e.strerror} -> {str(e)}")
         exit()
 
-    logger.info(f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}")
+    logger.info(
+        f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
+    )
 
     ## Compare files found in the input_dir with those expected based on mapping rules
     existing_input_files = [f.name for f in input_dir.glob("*.csv")]
@@ -240,17 +278,17 @@ def mapstream(
     for srcfilename in rules_input_files:
         rcount = 0
 
-
         fhcsvr = open_file(input_dir / srcfilename)
-        if fhcsvr is None: # check if it's none before unpacking
+        if fhcsvr is None:  # check if it's none before unpacking
             raise Exception(f"Couldn't find file {srcfilename} in {input_dir}")
-        fh, csvr = fhcsvr # unpack now because we can't unpack none
-
+        fh, csvr = fhcsvr  # unpack now because we can't unpack none
 
         ## create dict for input file, giving the data and output file
         tgtfiles, src_to_tgt = mappingrules.parse_rules_src_to_tgt(srcfilename)
-        infile_datetime_source, infile_person_id_source = mappingrules.get_infile_date_person_id(srcfilename)
-        
+        infile_datetime_source, infile_person_id_source = (
+            mappingrules.get_infile_date_person_id(srcfilename)
+        )
+
         outcounts = {}
         rejcounts = {}
         for tgtfile in tgtfiles:
@@ -274,13 +312,13 @@ def mapstream(
         # for each input record
         for indata in csvr:
             metrics.increment_key_count(
-                    source=srcfilename,
-                    fieldname="all",
-                    tablename="all",
-                    concept_id="all",
-                    additional="",
-                    count_type="input_count"
-                )
+                source=srcfilename,
+                fieldname="all",
+                tablename="all",
+                concept_id="all",
+                additional="",
+                count_type="input_count",
+            )
             rcount += 1
 
             # if there is a date, parse it - read it is a string and convert to YYYY-MM-DD HH:MM:SS
@@ -289,13 +327,13 @@ def mapstream(
                 indata[datetime_col] = fulldate
             else:
                 metrics.increment_key_count(
-                        source=srcfilename,
-                        fieldname="all",
-                        tablename="all",
-                        concept_id="all",
-                        additional="",
-                        count_type="input_date_fields"
-                    )
+                    source=srcfilename,
+                    fieldname="all",
+                    tablename="all",
+                    concept_id="all",
+                    additional="",
+                    count_type="input_date_fields",
+                )
                 continue
 
             for tgtfile in tgtfiles:
@@ -308,9 +346,6 @@ def mapstream(
                     datacols = dflist[tgtfile]
 
                 for datacol in datacols:
-                    
-
-
                     built_records, outrecords, metrics = get_target_records(
                         tgtfile,
                         tgtcolmap,
@@ -320,50 +355,52 @@ def mapstream(
                         inputcolmap,
                         srcfilename,
                         omopcdm,
-                        metrics
+                        metrics,
                     )
-
-
 
                     if built_records:
                         for outrecord in outrecords:
-
-
                             if auto_num_col is not None:
-                                outrecord[tgtcolmap[auto_num_col]] = str(record_numbers[tgtfile])
+                                outrecord[tgtcolmap[auto_num_col]] = str(
+                                    record_numbers[tgtfile]
+                                )
                                 ### most of the rest of this section is actually to do with metrics
                                 record_numbers[tgtfile] += 1
 
                             if (outrecord[tgtcolmap[pers_id_col]]) in person_lookup:
-                                outrecord[tgtcolmap[pers_id_col]] = person_lookup[outrecord[tgtcolmap[pers_id_col]]]
+                                outrecord[tgtcolmap[pers_id_col]] = person_lookup[
+                                    outrecord[tgtcolmap[pers_id_col]]
+                                ]
                                 outcounts[tgtfile] += 1
 
                                 metrics.increment_with_datacol(
-                                        source_path=srcfilename,
-                                        target_file=tgtfile,
-                                        datacol=datacol,
-                                        out_record=outrecord
-                                    )
+                                    source_path=srcfilename,
+                                    target_file=tgtfile,
+                                    datacol=datacol,
+                                    out_record=outrecord,
+                                )
 
                                 # write the line to the file
                                 fhd[tgtfile].write("\t".join(outrecord) + "\n")
                             else:
                                 metrics.increment_key_count(
-                                        source=srcfilename,
-                                        fieldname="all",
-                                        tablename=tgtfile,
-                                        concept_id="all",
-                                        additional="",
-                                        count_type="invalid_person_ids",
-                                    )
+                                    source=srcfilename,
+                                    fieldname="all",
+                                    tablename=tgtfile,
+                                    concept_id="all",
+                                    additional="",
+                                    count_type="invalid_person_ids",
+                                )
                                 rejidcounts[srcfilename] += 1
-                    
+
                     if tgtfile == "person":
                         break
 
         fh.close()
 
-        logger.info(f"INPUT file data : {srcfilename}: input count {str(rcount)}, time since start {time.time() - start_time:.5} secs")
+        logger.info(
+            f"INPUT file data : {srcfilename}: input count {str(rcount)}, time since start {time.time() - start_time:.5} secs"
+        )
         for outtablename, count in outcounts.items():
             logger.info(f"TARGET: {outtablename}: output count {str(count)}")
     # END main processing loop
@@ -371,7 +408,7 @@ def mapstream(
     logger.info(
         "--------------------------------------------------------------------------------"
     )
-    
+
     data_summary = metrics.get_mapstream_summary()
     try:
         dsfh = (output_dir / "summary_mapstream.tsv").open(mode="w")
@@ -387,15 +424,16 @@ def mapstream(
 
 
 def get_target_records(
-        tgtfilename: str,
-        tgtcolmap: dict[str, dict[str, int]],
-        rulesmap: dict[str, list[dict[str, list[str]]]],
-        srcfield: str,
-        srcdata: list[str],
-        srccolmap: dict[str, int],
-        srcfilename: str,
-        omopcdm: OmopCDM,
-        metrics: tools.metrics.Metrics) -> tuple[bool, list[str], tools.metrics.Metrics]:
+    tgtfilename: str,
+    tgtcolmap: dict[str, dict[str, int]],
+    rulesmap: dict[str, list[dict[str, list[str]]]],
+    srcfield: str,
+    srcdata: list[str],
+    srccolmap: dict[str, int],
+    srcfilename: str,
+    omopcdm: OmopCDM,
+    metrics: tools.metrics.Metrics,
+) -> tuple[bool, list[str], tools.metrics.Metrics]:
     """
     build all target records for a given input field
     """
@@ -406,16 +444,23 @@ def get_target_records(
     date_component_data = omopcdm.get_omop_date_field_components(tgtfilename)
     notnull_numeric_fields = omopcdm.get_omop_notnull_numeric_fields(tgtfilename)
 
-
     # Build keys to look up rules
     srckey = f"{srcfilename}~{srcfield}~{tgtfilename}"
-    summarykey = srckey + "~all~"
-    
+    srckey + "~all~"
+
     # Check if source field has a value
     if valid_value(str(srcdata[srccolmap[srcfield]])):
         ## check if either or both of the srckey and summarykey are in the rules
-        srcfullkey = srcfilename + "~" + srcfield + "~" + str(srcdata[srccolmap[srcfield]]) + "~" + tgtfilename
-        
+        srcfullkey = (
+            srcfilename
+            + "~"
+            + srcfield
+            + "~"
+            + str(srcdata[srccolmap[srcfield]])
+            + "~"
+            + tgtfilename
+        )
+
         dictkeys = []
         # Check if we have rules for either the full key or just the source field
         if tgtfilename == "person":
@@ -434,7 +479,7 @@ def get_target_records(
                 for out_data_elem in rulesmap[dictkey]:
                     valid_data_elem = True
                     ## create empty list to store the data. Populate numerical data elements with 0 instead of empty string.
-                    tgtarray = ['']*len(tgtcolmap)
+                    tgtarray = [""] * len(tgtcolmap)
                     # Initialize numeric fields to 0
                     for req_integer in notnull_numeric_fields:
                         tgtarray[tgtcolmap[req_integer]] = "0"
@@ -452,7 +497,9 @@ def get_target_records(
                                         tgtarray[tgtcolmap[outcol]] = term
                                     else:
                                         # Direct field copy
-                                        tgtarray[tgtcolmap[output_col_data]] = srcdata[srccolmap[infield]]
+                                        tgtarray[tgtcolmap[output_col_data]] = srcdata[
+                                            srccolmap[infield]
+                                        ]
                         else:
                             # Handle direct field copies and non-person records
                             for output_col_data in outfield_list:
@@ -462,7 +509,9 @@ def get_target_records(
                                     tgtarray[tgtcolmap[outcol]] = term
                                 else:
                                     # Direct field copy
-                                    tgtarray[tgtcolmap[output_col_data]] = srcdata[srccolmap[infield]]
+                                    tgtarray[tgtcolmap[output_col_data]] = srcdata[
+                                        srccolmap[infield]
+                                    ]
 
                             # get the value. this is out 8061 value that was previously normalised
                             source_date = srcdata[srccolmap[infield]]
@@ -479,49 +528,54 @@ def get_target_records(
                                     # maybe brithdates can be None?
 
                                     metrics.increment_key_count(
-                                            source=srcfilename,
-                                            fieldname=srcfield,
-                                            tablename=tgtfilename,
-                                            concept_id="all",
-                                            additional="",
-                                            count_type="invalid_date_fields"
-                                        )
+                                        source=srcfilename,
+                                        fieldname=srcfield,
+                                        tablename=tgtfilename,
+                                        concept_id="all",
+                                        additional="",
+                                        count_type="invalid_date_fields",
+                                    )
                                     valid_data_elem = False
                                 else:
-
-
-                                    year_field = date_component_data[output_col_data]["year"]
-                                    month_field = date_component_data[output_col_data]["month"]
-                                    day_field = date_component_data[output_col_data]["day"]
+                                    year_field = date_component_data[output_col_data][
+                                        "year"
+                                    ]
+                                    month_field = date_component_data[output_col_data][
+                                        "month"
+                                    ]
+                                    day_field = date_component_data[output_col_data][
+                                        "day"
+                                    ]
                                     tgtarray[tgtcolmap[year_field]] = str(dt.year)
                                     tgtarray[tgtcolmap[month_field]] = str(dt.month)
                                     tgtarray[tgtcolmap[day_field]] = str(dt.day)
 
                                     tgtarray[tgtcolmap[output_col_data]] = source_date
 
-
-                            elif output_col_data in date_col_data: # date_col_data for key $K$ is where $only_date(srcdata[K])$ should be copied and is there for all dates
-                                
+                            elif (
+                                output_col_data in date_col_data
+                            ):  # date_col_data for key $K$ is where $only_date(srcdata[K])$ should be copied and is there for all dates
                                 # this fork of the if/else seems to be for non-birthdates which're handled differently
-
 
                                 # copy the full value into this "full value"
                                 tgtarray[tgtcolmap[output_col_data]] = source_date
 
                                 # select the first 10 chars which will be YYYY-MM-DD
-                                tgtarray[tgtcolmap[date_col_data[output_col_data]]] = source_date[:10]
+                                tgtarray[tgtcolmap[date_col_data[output_col_data]]] = (
+                                    source_date[:10]
+                                )
 
                     if valid_data_elem:
                         tgtrecords.append(tgtarray)
     else:
         metrics.increment_key_count(
-                source=srcfilename,
-                fieldname=srcfield,
-                tablename=tgtfilename,
-                concept_id="all",
-                additional="",
-                count_type="invalid_source_fields"
-            )
+            source=srcfilename,
+            fieldname=srcfield,
+            tablename=tgtfilename,
+            concept_id="all",
+            additional="",
+            count_type="invalid_source_fields",
+        )
 
     return build_records, tgtrecords, metrics
 
@@ -540,14 +594,19 @@ def valid_value(item):
 # I started by changing the get_datetime_value to be neater.
 # I think it should be handled all as one thing, but I've spent too much time doing this already
 
+
 def valid_date_value(item):
     """
     Check if a date item is non null and parses as ISO (YYYY-MM-DD), reverse-ISO
     or dd/mm/yyyy or mm/dd/yyyy
     """
     if item.strip() == "":
-        return(False)
-    if not valid_iso_date(item) and not valid_reverse_iso_date(item) and not valid_uk_date(item):
+        return False
+    if (
+        not valid_iso_date(item)
+        and not valid_reverse_iso_date(item)
+        and not valid_uk_date(item)
+    ):
         logger.warning("Bad date : `{0}`".format(item))
         return False
     return True
@@ -564,13 +623,13 @@ def get_datetime_value(item):
         "%d-%m-%Y",  # Reverse ISO format (DD-MM-YYYY)
         "%d/%m/%Y",  # UK old-style format (DD/MM/YYYY)
     ]
-    
+
     for date_format in date_formats:
         try:
             return datetime.datetime.strptime(item, date_format)
         except ValueError:
             continue
-    
+
     # If we get here, none of the formats worked
     return None
 
@@ -641,6 +700,7 @@ def valid_iso_date(item):
 
     return True
 
+
 def valid_reverse_iso_date(item):
     """
     Check if a date item is non null and parses as reverse ISO (DD-MM-YYYY)
@@ -667,6 +727,7 @@ def valid_uk_date(item):
 
 # End of date code
 
+
 def load_last_used_ids(last_used_ids_file: Path, last_used_ids):
     fh = last_used_ids_file.open(mode="r", encoding="utf-8-sig")
     csvr = csv.reader(fh, delimiter="\t")
@@ -692,7 +753,10 @@ def load_saved_person_ids(person_file: Path):
     fh.close()
     return person_ids, last_int
 
-def load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_person_ids, delim=","):
+
+def load_person_ids(
+    saved_person_id_file, person_file, mappingrules, use_input_person_ids, delim=","
+):
     person_ids, person_number = get_person_lookup(saved_person_id_file)
 
     fh = person_file.open(mode="r", encoding="utf-8-sig")
@@ -716,51 +780,62 @@ def load_person_ids(saved_person_id_file, person_file, mappingrules, use_input_p
     logger.info(
         "Load Person Data {0}, {1}".format(birth_datetime_source, person_id_source)
     )
-    
+
     ## get the column index of the PersonID from the input file
     person_col = person_columns[person_id_source]
 
     for persondata in csvr:
-        if not valid_value(persondata[person_columns[person_id_source]]): #just checking that the id is not an empty string
+        if not valid_value(
+            persondata[person_columns[person_id_source]]
+        ):  # just checking that the id is not an empty string
             reject_count += 1
             continue
         if not valid_date_value(persondata[person_columns[birth_datetime_source]]):
             reject_count += 1
             continue
-        if persondata[person_col] not in person_ids: #if not already in person_ids dict, add it
+        if (
+            persondata[person_col] not in person_ids
+        ):  # if not already in person_ids dict, add it
             if use_input_person_ids == "N":
-                person_ids[persondata[person_col]] = str(person_number) #create a new integer person_id
+                person_ids[persondata[person_col]] = str(
+                    person_number
+                )  # create a new integer person_id
                 person_number += 1
             else:
-                person_ids[persondata[person_col]] = str(persondata[person_col]) #use existing person_id
+                person_ids[persondata[person_col]] = str(
+                    persondata[person_col]
+                )  # use existing person_id
     fh.close()
 
     return person_ids, reject_count
 
-@click.group(help="Commands for using python configurations to run the ETL transformation.")
+
+@click.group(
+    help="Commands for using python configurations to run the ETL transformation."
+)
 def py():
     pass
 
 
 def check_dir_isvalid(directory: Path, create_if_missing: bool = False) -> None:
     """Check if directory is valid, optionally create it if missing.
-    
+
     Args:
         directory: Directory path as string or tuple
         create_if_missing: If True, create directory if it doesn't exist
     """
-    
+
     ## check directory has been set
     if directory is None:
         logger.warning("Directory not provided.")
         sys.exit(1)
-        
-    ## if not a directory, create it if requested (including parents. This option is for the output directory only).         
+
+    ## if not a directory, create it if requested (including parents. This option is for the output directory only).
     if not directory.is_dir():
         if create_if_missing:
             try:
                 ## deliberately not using the exist_ok option, as we want to know whether it was created or not to provide different logger messages.
-                directory.mkdir(parents = True) 
+                directory.mkdir(parents=True)
                 logger.info(f"Created directory: {directory}")
             except OSError as e:
                 logger.warning(f"Failed to create directory {directory}: {e}")
@@ -792,7 +867,10 @@ def set_saved_person_id_file(
             sys.exit(1)
     return saved_person_id_file
 
-def check_files_in_rules_exist(rules_input_files: list[str], existing_input_files: list[str]) -> None:
+
+def check_files_in_rules_exist(
+    rules_input_files: list[str], existing_input_files: list[str]
+) -> None:
     for infile in existing_input_files:
         if infile not in rules_input_files:
             msg = (
@@ -806,10 +884,10 @@ def check_files_in_rules_exist(rules_input_files: list[str], existing_input_file
             msg = "WARNING: no data for mapped input file - {0}".format(infile)
             logger.warning(msg)
 
+
 def open_file(file_path: Path) -> tuple[IO[str], Iterator[list[str]]] | None:
     """opens a file and does something related to CSVs"""
     try:
-        
         fh = file_path.open(mode="r", encoding="utf-8-sig")
         csvr = csv.reader(fh)
         return fh, csvr
@@ -846,9 +924,12 @@ def get_person_lookup(saved_person_id_file: Path) -> tuple[dict[str, str], int]:
         last_used_integer = 1
     return person_lookup, last_used_integer
 
+
 @click.group(help="Commands for mapping data to the OMOP CommonDataModel (CDM).")
 def run():
     pass
-run.add_command(mapstream,"mapstream")
+
+
+run.add_command(mapstream, "mapstream")
 if __name__ == "__main__":
     run()
