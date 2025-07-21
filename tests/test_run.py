@@ -1,6 +1,18 @@
 import pytest
+import os
+import logging
+import importlib
+from carrottransform.tools.file_helpers import (
+    check_dir_isvalid,
+    check_files_in_rules_exist,
+    open_file,
+    set_omop_filenames,
+)
+from carrottransform.tools.person_helpers import (
+    get_person_lookup,
+    set_saved_person_id_file,
+)
 
-from carrottransform.cli.subcommands.run import *
 from pathlib import Path
 from unittest.mock import patch
 
@@ -10,6 +22,7 @@ def test_valid_directory(tmp_path: Path):
     """Test with a valid directory path"""
 
     check_dir_isvalid(tmp_path)  # Should not raise any exception
+
 
 @pytest.mark.unit
 def test_invalid_directory(tmp_path: Path):
@@ -28,6 +41,7 @@ def test_directory_only_path(tmp_path: Path):
     with pytest.raises(AttributeError) as exc_info:
         check_dir_isvalid((tmp_path,))  # Should raise an exception
     assert "'tuple' object has no attribute 'is_dir'" in str(exc_info.value)
+
 
 @pytest.mark.unit
 def test_explicit_file_path(tmp_path: Path):
@@ -275,7 +289,7 @@ def test_new_person_lookup(tmp_path: Path):
 
 
 @pytest.mark.unit
-@patch("carrottransform.cli.subcommands.run.load_saved_person_ids")
+@patch("carrottransform.tools.person_helpers.load_saved_person_ids")
 def test_existing_person_lookup(mock_load, tmp_path: Path):
     """Test when saved person ID file exists"""
     existing_file = tmp_path / "existing.tsv"
