@@ -17,7 +17,7 @@ from carrottransform.tools.validation import valid_value
 
 logger = logger_setup()
 
-
+#  TODO: don't output the meaningless records
 def get_target_records_v2(
     tgtfilename: str,
     tgtcolmap: Dict[str, int],
