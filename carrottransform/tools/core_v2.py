@@ -287,15 +287,16 @@ def process_v2_data(
             if not datetime_source or not person_id_source:
                 logger.warning(f"Missing date or person ID mapping for {srcfilename}")
                 continue
-
-            datetime_col = inputcolmap[datetime_source]
-            person_id_col = inputcolmap[person_id_source]
+            # index of the datetime column in the input file
+            datetime_col: int = inputcolmap[datetime_source]
 
             # Get data fields for this file
+            # for example, Demographics.csv: {'observation': ['ethnicity'], 'person': ['sex']}
             dflist = mappingrules.get_infile_data_fields(srcfilename)
 
             # Process each row
             for indata in csvr:
+                # TODO: understand the purpose and impact of this
                 metrics.increment_key_count(
                     source=srcfilename,
                     fieldname="all",
@@ -326,9 +327,14 @@ def process_v2_data(
                         tgtfile in mappingrules.v2_mappings
                         and srcfilename in mappingrules.v2_mappings[tgtfile]
                     ):
+                        # mapping rules for the target table
                         v2_mapping = mappingrules.v2_mappings[tgtfile][srcfilename]
+                        # column map for the target table
+                        # for example: {'person_id': 0, 'gender_concept_id': 1,...}
                         tgtcolmap = tgtcolmaps[tgtfile]
+                        #  identify the auto-number column for the target table
                         auto_num_col = omopcdm.get_omop_auto_number_field(tgtfile)
+                        # identify the person id column for the target table
                         pers_id_col = omopcdm.get_omop_person_id_field(tgtfile)
 
                         # Get data fields for this target table
@@ -343,12 +349,12 @@ def process_v2_data(
                                 tgtfile,
                                 tgtcolmap,
                                 v2_mapping,
-                                datacol,
-                                indata,
-                                inputcolmap,
-                                srcfilename,
-                                omopcdm,
-                                metrics,
+                                srcfield=datacol,
+                                srcdata=indata,
+                                srccolmap=inputcolmap,
+                                srcfilename=srcfilename,
+                                omopcdm=omopcdm,
+                                metrics=metrics,
                             )
 
                             if built_records:
