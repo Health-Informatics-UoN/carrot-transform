@@ -7,15 +7,16 @@ permissions:
 
 on:
   push: # always run on push
-  pull_request: # just always run on pull request
+  pull_request: # always run on pull request
 
 jobs:
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest]
         python-version:
           - '3.10'
           - '3.11'

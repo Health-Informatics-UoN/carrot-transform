@@ -170,7 +170,16 @@ class MappingRules:
                                 if source_field not in data:
                                     data[source_field] = {}
                                 if str(inputvalue) not in data[source_field]:
-                                    data[source_field][str(inputvalue)] = []
+                                    try:
+                                        data[source_field][str(inputvalue)] = []
+                                    except TypeError:
+                                        ### need to convert data[source_field] to a dict
+                                        ### like this: {'F': ['gender_concept_id~8532', 'gender_source_concept_id~8532', 'gender_source_value']}
+
+                                        temp_data_list = data[source_field].copy()
+                                        data[source_field] = {}
+                                        data[source_field][str(inputvalue)] = temp_data_list
+
                                 data[source_field][str(inputvalue)].append(outfield + "~" + str(term))
                             else:
                                 term_value_key = infilename + "~" + source_info["source_field"] + "~" + str(inputvalue) + "~" + outfilename

@@ -3,13 +3,10 @@ name = "carrot_transform"
 version = "0.3.6"
 description = ""
 authors = [{ name = "anwarfg", email = "913028+anwarfg@users.noreply.github.com" }]
-requires-python = "~=3.10"
+requires-python = ">=3.10"
 readme = "README.md"
 dependencies = [
     "click>=8.1.7,<9",
-    "pandas>=2.2.3,<3",
-    "jinja2>=3.1.4,<4",
-    "numpy<2",
     "ruff>=0.12.0",
 ]
 license = "MIT"
@@ -22,7 +19,7 @@ carrot-transform = "carrottransform.cli.command:transform"
 [dependency-groups]
 test = [
     "pytest>=8.3.4,<9",
-    "numpy<2",
+    "pandas>=2.2.3,<3",
 ]
 dev = [
     "black>=24.2.0,<25",
@@ -53,5 +50,6 @@ build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 markers = [
-    "unit: marks tests as unit tests (deselect with '-m \"not unit\"')"
+    "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
+    "integration: marks integration tests"
 ]
