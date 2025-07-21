@@ -33,8 +33,8 @@ def get_target_records_v2(
     Build target records for v2 format - clean implementation
 
     Handles:
+    - Multiple concept IDs: Creates separate records for each concept ID
     - Wildcard (*) mappings: Maps all field values to the same concept
-    - Direct concept mappings: Maps specific values to concept IDs
     - Original value mappings: Direct field copying (like v1's condition_source_value)
     """
     build_records = False
@@ -64,55 +64,112 @@ def get_target_records_v2(
     concept_mapping = v2_mapping.concept_mappings[srcfield]
     source_value = str(srcdata[srccolmap[srcfield]])
 
-    # Create target record
-    tgtarray = [""] * len(tgtcolmap)
-
-    # Initialize numeric fields to 0
-    for req_integer in notnull_numeric_fields:
-        if req_integer in tgtcolmap:
-            tgtarray[tgtcolmap[req_integer]] = "0"
-
-    # Handle concept mappings (specific values or wildcards)
+    # Get value mapping (concept mappings or wildcard)
     value_mapping = _get_value_mapping(concept_mapping, source_value)
-    if value_mapping:
+    
+    # Only proceed if we have concept mappings OR original value fields
+    if not value_mapping and not concept_mapping.original_value_fields:
+        return build_records, tgtrecords, metrics
+
+    # Generate all concept combinations
+    concept_combinations = _get_concept_combinations(value_mapping)
+    
+    # If no concept combinations but we have original_value fields, create one record
+    if not concept_combinations and concept_mapping.original_value_fields:
+        concept_combinations = [{}]  # Empty mapping for original values only
+
+    # Create records for each concept combination
+    for concept_combo in concept_combinations:
         build_records = True
-        _apply_concept_mappings(tgtarray, tgtcolmap, value_mapping)
+        
+        # Create target record
+        tgtarray = [""] * len(tgtcolmap)
 
-    # Handle original value fields (direct field copying)
-    if concept_mapping.original_value_fields:
-        build_records = True
-        _apply_original_value_mappings(
-            tgtarray, tgtcolmap, concept_mapping.original_value_fields, source_value
-        )
+        # Initialize numeric fields to 0
+        for req_integer in notnull_numeric_fields:
+            if req_integer in tgtcolmap:
+                tgtarray[tgtcolmap[req_integer]] = "0"
 
-    # Handle person ID mapping
-    if v2_mapping.person_id_mapping:
-        _apply_person_id_mapping(
-            tgtarray, tgtcolmap, v2_mapping.person_id_mapping, srcdata, srccolmap
-        )
+        # Apply this specific concept combination
+        _apply_single_concept_mapping(tgtarray, tgtcolmap, concept_combo)
 
-    # Handle date mappings
-    if v2_mapping.date_mapping:
-        success = _apply_date_mappings(
-            tgtarray,
-            tgtcolmap,
-            v2_mapping.date_mapping,
-            srcdata,
-            srccolmap,
-            date_col_data,
-            date_component_data,
-            srcfilename,
-            srcfield,
-            tgtfilename,
-            metrics,
-        )
-        if not success:
-            return False, [], metrics
+        # Handle original value fields (direct field copying)
+        if concept_mapping.original_value_fields:
+            _apply_original_value_mappings(
+                tgtarray, tgtcolmap, concept_mapping.original_value_fields, source_value
+            )
 
-    if build_records:
+        # Handle person ID mapping
+        if v2_mapping.person_id_mapping:
+            _apply_person_id_mapping(
+                tgtarray, tgtcolmap, v2_mapping.person_id_mapping, srcdata, srccolmap
+            )
+
+        # Handle date mappings
+        if v2_mapping.date_mapping:
+            success = _apply_date_mappings(
+                tgtarray,
+                tgtcolmap,
+                v2_mapping.date_mapping,
+                srcdata,
+                srccolmap,
+                date_col_data,
+                date_component_data,
+                srcfilename,
+                srcfield,
+                tgtfilename,
+                metrics,
+            )
+            if not success:
+                return False, [], metrics
+
         tgtrecords.append(tgtarray)
 
     return build_records, tgtrecords, metrics
+
+
+def _get_concept_combinations(value_mapping: Optional[Dict[str, List[int]]]) -> List[Dict[str, int]]:
+    """
+    Generate all concept combinations for multiple concept IDs
+    
+    For example, if value_mapping is:
+    {
+        "observation_concept_id": [35827395, 35825531],
+        "observation_source_concept_id": [35827395, 35825531]
+    }
+    
+    This returns:
+    [
+        {"observation_concept_id": 35827395, "observation_source_concept_id": 35827395},
+        {"observation_concept_id": 35825531, "observation_source_concept_id": 35825531}
+    ]
+    """
+    if not value_mapping:
+        return []
+    
+    # Find the maximum number of concept IDs across all fields
+    max_concepts = max(len(concept_ids) for concept_ids in value_mapping.values() if concept_ids)
+    
+    combinations = []
+    for i in range(max_concepts):
+        combo = {}
+        for dest_field, concept_ids in value_mapping.items():
+            if concept_ids:
+                # Use the concept at index i, or the last one if not enough concepts
+                concept_index = min(i, len(concept_ids) - 1)
+                combo[dest_field] = concept_ids[concept_index]
+        combinations.append(combo)
+    
+    return combinations
+
+
+def _apply_single_concept_mapping(
+    tgtarray: List[str], tgtcolmap: Dict[str, int], concept_combo: Dict[str, int]
+):
+    """Apply a single concept combination to target array"""
+    for dest_field, concept_id in concept_combo.items():
+        if dest_field in tgtcolmap:
+            tgtarray[tgtcolmap[dest_field]] = str(concept_id)
 
 
 def _get_value_mapping(
