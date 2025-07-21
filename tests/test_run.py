@@ -1,11 +1,13 @@
 import pytest
-
 import os
+import logging
+import importlib
+from carrottransform.tools.person_helpers import (
+    get_person_lookup,
+)
 import carrottransform.cli.subcommands.run as run
 from pathlib import Path
 from unittest.mock import patch
-import logging
-import importlib
 
 
 logger = logging.getLogger(__name__)
@@ -271,14 +273,14 @@ def test_new_person_lookup(tmp_path: Path):
     """Test when no saved person ID file exists"""
     nonexistent_file = tmp_path / "nonexistent.tsv"
 
-    person_lookup, last_used_integer = run.get_person_lookup(nonexistent_file)
+    person_lookup, last_used_integer = get_person_lookup(nonexistent_file)
 
     assert person_lookup == {}
     assert last_used_integer == 1
 
 
 @pytest.mark.unit
-@patch("carrottransform.cli.subcommands.run.load_saved_person_ids")
+@patch("carrottransform.tools.person_helpers.load_saved_person_ids")
 def test_existing_person_lookup(mock_load, tmp_path: Path):
     """Test when saved person ID file exists"""
     existing_file = tmp_path / "existing.tsv"
@@ -286,7 +288,7 @@ def test_existing_person_lookup(mock_load, tmp_path: Path):
 
     existing_file.touch()
 
-    person_lookup, last_used_integer = run.get_person_lookup(existing_file)
+    person_lookup, last_used_integer = get_person_lookup(existing_file)
 
     assert person_lookup == {"person1": 1, "person2": 2}
     assert last_used_integer == 2
