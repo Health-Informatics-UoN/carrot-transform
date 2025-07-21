@@ -1,5 +1,5 @@
-import os
 import json
+from pathlib import Path
 import carrottransform.tools as tools
 from .omopcdm import OmopCDM
 from pathlib import Path
@@ -45,7 +45,7 @@ class MappingRules:
     as a file-specific dictionary allowing rules to be "looked-up" depending on data content
     """
 
-    def __init__(self, rulesfilepath: os.PathLike, omopcdm: OmopCDM):
+    def __init__(self, rulesfilepath: Path, omopcdm: OmopCDM):
         ## just loads the json directly
         self.rules_data = tools.load_json(Path(rulesfilepath))
         self.omopcdm = omopcdm
@@ -401,6 +401,7 @@ class MappingRules:
                                         data[source_field][
                                             str(inputvalue)
                                         ] = temp_data_list
+
                                 data[source_field][str(inputvalue)].append(
                                     outfield + "~" + str(term)
                                 )
