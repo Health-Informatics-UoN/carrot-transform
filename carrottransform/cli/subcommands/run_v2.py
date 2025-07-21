@@ -133,8 +133,12 @@ def mapstream_v2(
 
     # Setup person IDs
     saved_person_id_file = set_saved_person_id_file(None, output_dir)
+    # TODO: maybe don't need to pass mappingrules here?
     person_lookup, rejected_person_count = load_person_ids(
-        saved_person_id_file, person_file, mappingrules, "N"
+        saved_person_id_file,
+        person_file,
+        mappingrules,
+        use_input_person_ids="N",
     )
 
     # Save person IDs

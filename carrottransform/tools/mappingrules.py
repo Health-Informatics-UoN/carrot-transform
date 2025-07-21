@@ -236,6 +236,7 @@ class MappingRules:
         else:
             return self._get_infile_date_person_id_v1(infilename)
 
+    # TODO: combine this with _get_person_source_field_info_v2
     def _get_infile_date_person_id_v2(self, infilename: str) -> tuple[str, str]:
         """Get datetime and person_id source fields for v2 format"""
         datetime_source = ""
@@ -288,7 +289,10 @@ class MappingRules:
     def _get_person_source_field_info_v2(
         self, tgtfilename: str
     ) -> tuple[Optional[str], Optional[str]]:
-        """Get person source field info for v2 format"""
+        """
+        Get person source field info for v2 format, 
+        from the dest. table "Person" in the rules file.
+        """
         birth_datetime_source = None
         person_id_source = None
 
