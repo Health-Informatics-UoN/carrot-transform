@@ -14,7 +14,7 @@ import csvrow
 
 import re
 
-### 
+###
 # tests for https://github.com/Health-Informatics-UoN/carrot-transform/issues/83
 
 
@@ -672,11 +672,26 @@ def test_condition(tmp_path: Path):
     assert 4 == occurrences
 
 
-
 @pytest.mark.unit
 def test_dual_weight_observations(tmp_path: Path):
-    raise Exception('run me!')
+    """this should trigger the key error"""
 
+    ##
+    # declare the expectations ... actually we have none; we expect a faiolure
+
+    ##
+    # perform the test
+    (result, output, person_id_source2target, person_id_target2source) = (
+        clicktools.click_generic(
+            tmp_path,
+            "dual_weight_observations/patients.csv",
+            expect_error=True,
+        )
+    )
+
+    ##
+    # check the results
+    raise Exception("run me!")
 
 
 def assert_datetimes(onlydate: str, datetime: str, expected: str):

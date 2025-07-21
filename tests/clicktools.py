@@ -8,7 +8,12 @@ from carrottransform.cli.subcommands.run import mapstream
 import csvrow
 
 
-def click_generic(tmp_path: Path, person_file: Path | str, rules: Path | None = None):
+def click_generic(
+    tmp_path: Path,
+    person_file: Path | str,
+    rules: Path | None = None,
+    expect_error: bool = False,
+):
     if isinstance(person_file, str):
         person_file = Path(__file__).parent / "test_data" / person_file
 
@@ -43,8 +48,15 @@ def click_generic(tmp_path: Path, person_file: Path | str, rules: Path | None = 
         rules,
     )
 
-    assert 0 == result.exit_code
-
+    ##
+    # if there was an error, return somethign different
+    if result.exit_code != 0:
+        if expect_error:
+            return (result.exit_code, result, output)
+        else:
+            raise ValueError(f"expected no error, found {result=}")
+    elif expect_error:
+        raise ValueError(f"expected an error, found {result=}")
     ##
     #
 
