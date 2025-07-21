@@ -774,11 +774,13 @@ def load_person_ids(
         person_col_in_hdr_number += 1
 
     ## check the mapping rules for person to find where to get the person data) i.e., which column in the person file contains dob, sex
-    birth_datetime_source, person_id_source = mappingrules.get_person_source_field_info(
-        "person"
+    birth_datetime_source_column_name, person_id_source = (
+        mappingrules.get_person_source_field_info("person")
     )
     logger.info(
-        "Load Person Data {0}, {1}".format(birth_datetime_source, person_id_source)
+        "Load Person Data {0}, {1}".format(
+            birth_datetime_source_column_name, person_id_source
+        )
     )
 
     ## get the column index of the PersonID from the input file
@@ -790,7 +792,9 @@ def load_person_ids(
         ):  # just checking that the id is not an empty string
             reject_count += 1
             continue
-        if not valid_date_value(persondata[person_columns[birth_datetime_source]]):
+        if not valid_date_value(
+            persondata[person_columns[birth_datetime_source_column_name]]
+        ):
             reject_count += 1
             continue
         if (
