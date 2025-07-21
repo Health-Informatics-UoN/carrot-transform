@@ -4,7 +4,6 @@ tests the complete system in a few ways. needs better verification of the output
 
 from carrottransform.cli.subcommands.run import *
 import pytest
-from unittest.mock import patch
 import importlib.resources
 import logging
 

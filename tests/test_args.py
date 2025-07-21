@@ -2,7 +2,6 @@ import pytest
 
 from pathlib import Path
 import carrottransform
-import json
 from carrottransform.tools.args import *
 
 

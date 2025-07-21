@@ -1,8 +1,6 @@
 import json
 import logging
-import os
 import sys
-import json
 import importlib.resources as resources
 from typing import List, Optional
 from pathlib import Path
@@ -16,7 +14,7 @@ logger = logging.getLogger(__name__)
 def load_json(f_in: Path):
     try:
         data = json.load(f_in.open())
-    except Exception as err:
+    except Exception:
         logger.exception("{0} not found. Or cannot parse as json".format(f_in))
         sys.exit()
 

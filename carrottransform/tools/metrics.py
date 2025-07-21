@@ -1,9 +1,9 @@
 
-import logging
-logger = logging.getLogger(__name__)
-
 from dataclasses import dataclass, field
 from typing import Dict, List
+
+import logging
+logger = logging.getLogger(__name__)
 
 @dataclass
 class DataKey:
