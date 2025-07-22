@@ -54,10 +54,12 @@ def get_target_records_v2(
             additional="",
             count_type="invalid_source_fields",
         )
+        logger.warning(f"Invalid value in source field {srcfield}")
         return build_records, tgtrecords, metrics
 
     # Check if we have a concept mapping for this field
     if srcfield not in v2_mapping.concept_mappings:
+        logger.warning(f"No concept mapping for {srcfield}")
         return build_records, tgtrecords, metrics
 
     concept_mapping = v2_mapping.concept_mappings[srcfield]
@@ -75,6 +77,7 @@ def get_target_records_v2(
     
     # If no concept combinations but we have original_value fields, create one record
     if not concept_combinations and concept_mapping.original_value_fields:
+        logger.warning(f"No concept combinations for {srcfield}")
         concept_combinations = [{}]  # Empty mapping for original values only
 
     # Create records for each concept combination
@@ -120,6 +123,7 @@ def get_target_records_v2(
                 metrics,
             )
             if not success:
+                logger.warning(f"Failed to apply date mappings for {srcfield}")
                 return False, [], metrics
 
         tgtrecords.append(tgtarray)
@@ -248,6 +252,7 @@ def _apply_date_mappings(
 ) -> bool:
     """Apply date mappings with proper error handling"""
     if date_mapping.source_field not in srccolmap:
+        logger.warning(f"Date mapping source field not found in source data: {date_mapping.source_field}")
         return True
 
     source_date = srcdata[srccolmap[date_mapping.source_field]]
@@ -256,7 +261,8 @@ def _apply_date_mappings(
         if dest_field in tgtcolmap:
             # Handle date component fields (birth dates with year/month/day)
             if dest_field in date_component_data:
-                dt = get_datetime_value(source_date)
+                # TODO: check the case where the date is not in the format YYYY-MM-DD 00:00:00
+                dt = get_datetime_value(source_date.split(" ")[0])
                 if dt is None:
                     metrics.increment_key_count(
                         source=srcfilename,
@@ -266,6 +272,7 @@ def _apply_date_mappings(
                         additional="",
                         count_type="invalid_date_fields",
                     )
+                    logger.warning(f"Invalid date fields: {srcfield}")
                     return False
 
                 # Set individual date components
