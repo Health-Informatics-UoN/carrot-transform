@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "date_created": "2025-07-15T10:52:19.435625+00:00",
+    "dataset": "transform"
+  },
+  "cdm": {
+    "observation": {
+      "Demographics.csv": {
+        "person_id_mapping": {
+          "source_field": "PersonID",
+          "dest_field": "person_id"
+        },
+        "date_mapping": {
+          "source_field": "date_of_birth",
+          "dest_field": ["observation_datetime"]
+        },
+        "concept_mappings": {
+          "ethnicity": {
+            "White and Asian": {
+              "observation_concept_id": [35827395, 35825531],
+              "observation_source_concept_id": [35827395, 35825531]
+            },
+            "Asian": {
+              "observation_source_concept_id": [35825508],
+              "observation_concept_id": [35825508]
+            },
+            "Indian": {
+              "observation_source_concept_id": [35826241],
+              "observation_concept_id": [35826241]
+            },
+            "White": {
+              "observation_source_concept_id": [35827394],
+              "observation_concept_id": [35827394]
+            },
+            "Black": {
+              "observation_source_concept_id": [35825567],
+              "observation_concept_id": [35825567]
+            },
+            "original_value": ["observation_source_value", "value_as_string"]
+          }
+        }
+      }
+    },
+    "person": {
+      "Demographics.csv": {
+        "person_id_mapping": {
+          "source_field": "PersonID",
+          "dest_field": "person_id"
+        },
+        "date_mapping": {
+          "source_field": "date_of_birth",
+          "dest_field": ["birth_datetime"]
+        },
+        "concept_mappings": {
+          "sex": {
+            "M": {
+              "gender_source_concept_id": [8507],
+              "gender_concept_id": [8507]
+            },
+            "F": {
+              "gender_source_concept_id": [8532],
+              "gender_concept_id": [8532]
+            },
+            "original_value": ["gender_source_value"]
+          }
+        }
+      }
+    }
+  }
+}

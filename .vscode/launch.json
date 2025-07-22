@@ -72,6 +72,30 @@
       ],
       "console": "integratedTerminal",
       "justMyCode": false
+    },
+    {
+      "name": "V2 - Observation focused - Debug Carrot Transform Rules",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "carrottransform.cli.command",
+      "args": [
+        "run_v2",
+        "mapstream",
+        "--input-dir",
+        "carrottransform/examples/test/inputs",
+        "--rules-file",
+        "carrottransform/examples/test/rules/v2-observation.json",
+        "--person-file",
+        "carrottransform/examples/test/inputs/Demographics.csv",
+        "--output-dir",
+        "carrottransform/examples/test/outputs",
+        "--omop-ddl-file",
+        "carrottransform/config/OMOPCDM_postgresql_5.4_ddl.sql",
+        "--omop-config-file",
+        "carrottransform/config/omop.json"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
     }
   ]
 }

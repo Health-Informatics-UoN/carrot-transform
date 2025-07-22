@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "date_created": "2025-07-15T10:52:19.435625+00:00",
+    "date_created": "2025-07-22T11:13:38.203888+00:00",
     "dataset": "transform"
   },
   "cdm": {
@@ -12,7 +12,7 @@
         },
         "date_mapping": {
           "source_field": "visit_date",
-          "dest_field": ["condition_end_datetime", "condition_start_datetime"]
+          "dest_field": ["condition_start_datetime", "condition_end_datetime"]
         },
         "concept_mappings": {
           "symptom1": {
@@ -38,8 +38,8 @@
         "concept_mappings": {
           "IgG": {
             "*": {
-              "measurement_concept_id": [37398191],
-              "measurement_source_concept_id": [37398191]
+              "measurement_source_concept_id": [37398191],
+              "measurement_concept_id": [37398191]
             },
             "original_value": ["measurement_source_value", "value_as_number"]
           }
@@ -59,26 +59,18 @@
         "concept_mappings": {
           "ethnicity": {
             "White and Asian": {
-              "observation_concept_id": [35827395, 35825531],
-              "observation_source_concept_id": [35827395, 35825531]
-            },
-            "Asian": {
-              "observation_source_concept_id": [35825508],
-              "observation_concept_id": [35825508]
+              "observation_concept_id": [35825531, 35827395],
+              "observation_source_concept_id": [35825531, 35827395]
             },
             "Indian": {
-              "observation_source_concept_id": [35826241],
-              "observation_concept_id": [35826241]
+              "observation_concept_id": [35826241],
+              "observation_source_concept_id": [35826241]
             },
-            "White": {
-              "observation_source_concept_id": [35827394],
-              "observation_concept_id": [35827394]
+            "Asian": {
+              "observation_concept_id": [35825508],
+              "observation_source_concept_id": [35825508]
             },
-            "Black": {
-              "observation_source_concept_id": [35825567],
-              "observation_concept_id": [35825567]
-            },
-            "original_value": ["observation_source_value", "value_as_string"]
+            "original_value": ["value_as_string", "observation_source_value"]
           }
         }
       }
@@ -94,14 +86,25 @@
           "dest_field": ["birth_datetime"]
         },
         "concept_mappings": {
+          "ethnicity": {
+            "Black": {
+              "race_source_concept_id": [38003600],
+              "race_concept_id": [38003600]
+            },
+            "White": {
+              "race_concept_id": [8527],
+              "race_source_concept_id": [8527]
+            },
+            "original_value": ["race_source_value"]
+          },
           "sex": {
             "M": {
-              "gender_source_concept_id": [8507],
-              "gender_concept_id": [8507]
+              "gender_concept_id": [8507],
+              "gender_source_concept_id": [8507]
             },
             "F": {
-              "gender_source_concept_id": [8532],
-              "gender_concept_id": [8532]
+              "gender_concept_id": [8532],
+              "gender_source_concept_id": [8532]
             },
             "original_value": ["gender_source_value"]
           }
