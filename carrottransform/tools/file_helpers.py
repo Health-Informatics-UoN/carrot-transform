@@ -2,7 +2,6 @@ import csv
 import json
 import logging
 import sys
-import json
 import importlib.resources as resources
 from typing import IO, Iterator, List, Optional
 from pathlib import Path
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 def load_json(f_in: Path):
     try:
         data = json.load(f_in.open())
-    except Exception as err:
+    except Exception:
         logger.exception("{0} not found. Or cannot parse as json".format(f_in))
         sys.exit()
 
@@ -95,7 +94,6 @@ def check_files_in_rules_exist(
 def open_file(file_path: Path) -> tuple[IO[str], Iterator[list[str]]] | None:
     """opens a file and does something related to CSVs"""
     try:
-
         fh = file_path.open(mode="r", encoding="utf-8-sig")
         csvr = csv.reader(fh)
         return fh, csvr
