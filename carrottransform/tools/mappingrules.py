@@ -2,9 +2,10 @@ import json
 from pathlib import Path
 import carrottransform.tools as tools
 from carrottransform.tools.omopcdm import OmopCDM
-from carrottransform.tools.logger import logger_setup
 
-logger = logger_setup()
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class MappingRules:
@@ -88,9 +89,13 @@ class MappingRules:
                         "{0}, {1}, {2}".format(outfile, infield, str(outfield_list))
                     )
                     for outfield in outfield_list:
-                        if outfield.split("~")[0] in self.omopcdm.get_omop_datetime_fields(outfile):
+                        if outfield.split("~")[
+                            0
+                        ] in self.omopcdm.get_omop_datetime_fields(outfile):
                             datetime_source = infield
-                        if outfield.split("~")[0] == self.omopcdm.get_omop_person_id_field(outfile):
+                        if outfield.split("~")[
+                            0
+                        ] == self.omopcdm.get_omop_person_id_field(outfile):
                             person_id_source = infield
 
         return datetime_source, person_id_source
@@ -158,9 +163,9 @@ class MappingRules:
         """
         Process rules for an infile, outfile combination
         """
-        outkey = ""
         data = {}
-        plain_key = ""  ### used for mapping simple fields that are always mapped (e.g., dob)
+        ### used for mapping simple fields that are always mapped (e.g., dob)
+        plain_key = ""
         term_value_key = ""  ### used for mapping terms (e.g., gender, race, ethnicity)
 
         ## iterate through the rules, looking for rules that apply to the input file.
@@ -184,9 +189,9 @@ class MappingRules:
 
                                         temp_data_list = data[source_field].copy()
                                         data[source_field] = {}
-                                        data[source_field][
-                                            str(inputvalue)
-                                        ] = temp_data_list
+                                        data[source_field][str(inputvalue)] = (
+                                            temp_data_list
+                                        )
 
                                 data[source_field][str(inputvalue)].append(
                                     outfield + "~" + str(term)

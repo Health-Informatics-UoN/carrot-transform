@@ -120,7 +120,6 @@ def get_target_records(
                                     )
                                     valid_data_elem = False
                                 else:
-
                                     year_field = date_component_data[output_col_data][
                                         "year"
                                     ]
@@ -139,7 +138,6 @@ def get_target_records(
                             elif (
                                 output_col_data in date_col_data
                             ):  # date_col_data for key $K$ is where $only_date(srcdata[K])$ should be copied and is there for all dates
-
                                 # this fork of the if/else seems to be for non-birthdates which're handled differently
 
                                 # copy the full value into this "full value"
