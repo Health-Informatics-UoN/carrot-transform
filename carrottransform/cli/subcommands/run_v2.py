@@ -23,7 +23,7 @@ from carrottransform.tools.person_helpers import (
     load_person_ids,
     set_saved_person_id_file,
 )
-from carrottransform.tools.core_v2 import process_v2_data
+from carrottransform.tools.process_v2 import process_v2_data
 
 
 logger = logger_setup()
