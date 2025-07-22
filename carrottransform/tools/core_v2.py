@@ -54,12 +54,10 @@ def get_target_records_v2(
             additional="",
             count_type="invalid_source_fields",
         )
-        logger.warning(f"Invalid value in source field {srcfield}")
         return build_records, tgtrecords, metrics
 
     # Check if we have a concept mapping for this field
     if srcfield not in v2_mapping.concept_mappings:
-        logger.warning(f"No concept mapping for {srcfield}")
         return build_records, tgtrecords, metrics
 
     concept_mapping = v2_mapping.concept_mappings[srcfield]
@@ -77,7 +75,6 @@ def get_target_records_v2(
     
     # If no concept combinations but we have original_value fields, create one record
     if not concept_combinations and concept_mapping.original_value_fields:
-        logger.warning(f"No concept combinations for {srcfield}")
         concept_combinations = [{}]  # Empty mapping for original values only
 
     # Create records for each concept combination
