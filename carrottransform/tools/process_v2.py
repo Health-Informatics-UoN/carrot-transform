@@ -80,7 +80,7 @@ def process_v2_data(
                     additional="",
                     count_type="input_count",
                 )
-
+                # TODO: what is the purpose of this normalization?
                 # Normalize date
                 fulldate = normalise_to8601(indata[datetime_col])
                 if fulldate is None:
