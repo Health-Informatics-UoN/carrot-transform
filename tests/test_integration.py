@@ -14,6 +14,30 @@ import csvrow
 
 import re
 
+
+##
+# concept constants
+# these are concept values that happen to be used in these tests. they're not a universal thing - they're just what is being used here.
+
+#
+concept__height = 903133
+concept__weight = 903121
+
+#
+concept__mammogram_01 = 4031867
+concept__mammogram_10 = 4031244
+concept__mitoses = 4240068
+concept__pitting = 4227224
+
+# smoking constants
+concept__active = 3959110
+concept__quit = 3957361
+concept__never = 35821355
+
+# end of concept constants
+##
+
+
 ###
 # tests for https://github.com/Health-Informatics-UoN/carrot-transform/issues/83
 
@@ -37,11 +61,10 @@ def test_integration_test1(tmp_path: Path):
         clicktools.click_generic(
             tmp_path,
             person_file,
-        )
-    )
 
-    verify_expectations(
-        output, person_id_source2target, person_id_target2source, persons=4
+            #
+            persons=4
+        )
     )
 
     ##
@@ -493,31 +516,6 @@ def test_mapping_person(tmp_path: Path):
             raise Exception(f"unexpected {src_person_id=} in {observation=}")
 
 
-class KV:
-    def __init__(self, **data):
-        self.__dict__.update(data)
-
-    def __str__(self):
-        return str(self.__dict__)
-
-    def __repr__(self):
-        return self.__str__()
-
-
-concept = KV(
-    height=903133,
-    weight=903121,
-    mammogram_01=4031867,
-    mammogram_10=4031244,
-    mitoses=4240068,
-    pitting=4227224,
-    # smoking constants
-    active=3959110,
-    quit=3957361,
-    never=35821355,
-)
-
-
 @pytest.mark.integration
 def test_observe_smoking(tmp_path: Path):
     """
@@ -545,22 +543,15 @@ def test_observe_smoking(tmp_path: Path):
     persons = 4
 
     ##
-    # perform the test
+    # perform the test & check the results
     (result, output, person_id_source2target, person_id_target2source) = (
         clicktools.click_generic(
             tmp_path,
             "observe_smoking/demos.csv",
+            #
+            persons=persons,
+            observations=observations,
         )
-    )
-
-    ##
-    # check the results
-    verify_expectations(
-        output,
-        person_id_source2target,
-        person_id_target2source,
-        persons=persons,
-        observations=observations,
     )
 
 
@@ -569,46 +560,38 @@ def test_measure_weight_height(tmp_path: Path):
     """
     this test checks to be sure that two measurements (width and height) don't "collide" or interfere with eachother
     """
-    global concept
 
     ##
     #
     persons = 4
     measurements = {
         21: {
-            "2021-12-02": {concept.height: 123, concept.weight: 31},
-            "2021-12-01": {concept.height: 122},
-            "2021-12-03": {concept.height: 12, concept.weight: 12},
-            "2022-12-01": {concept.weight: 28},
+            "2021-12-02": {concept__height: 123, concept__weight: 31},
+            "2021-12-01": {concept__height: 122},
+            "2021-12-03": {concept__height: 12, concept__weight: 12},
+            "2022-12-01": {concept__weight: 28},
         },
         81: {
-            "2022-12-02": {concept.height: 23, concept.weight: 27},
-            "2021-03-01": {concept.height: 92},
-            "2020-03-01": {concept.weight: 92},
+            "2022-12-02": {concept__height: 23, concept__weight: 27},
+            "2021-03-01": {concept__height: 92},
+            "2020-03-01": {concept__weight: 92},
         },
         91: {
-            "2021-02-03": {concept.height: 72, concept.weight: 12},
-            "2021-02-01": {concept.weight: 1},
+            "2021-02-03": {concept__height: 72, concept__weight: 12},
+            "2021-02-01": {concept__weight: 1},
         },
     }
 
     ##
-    # run the test
+    # run the test & verify the results
     (result, output, person_id_source2target, person_id_target2source) = (
         clicktools.click_generic(
             tmp_path,
             "measure_weight_height/persons.csv",
+            #
+            persons=persons,
+            measurements=measurements,
         )
-    )
-
-    ##
-    #
-    verify_expectations(
-        output,
-        person_id_source2target,
-        person_id_target2source,
-        persons=persons,
-        measurements=measurements,
     )
 
 
@@ -618,167 +601,32 @@ def test_condition(tmp_path: Path):
     this checks that values are sent to the condition tsv as expected
     """
 
-    global concept
-
     ##
     # arrange
     persons = 4
     expect = {
         81: {
-            "1998-02-01": {concept.pitting: 1},
-            "1998-02-03": {concept.pitting: 13},
+            "1998-02-01": {concept__pitting: 1},
+            "1998-02-03": {concept__pitting: 13},
         },
         91: {
-            "2001-01-03": {concept.pitting: 1},
-            "2001-01-05": {concept.pitting: 7},
+            "2001-01-03": {concept__pitting: 1},
+            "2001-01-05": {concept__pitting: 7},
         },
     }
 
     ##
-    # act
+    # act & assert
 
     (result, output, person_id_source2target, person_id_target2source) = (
         clicktools.click_generic(
             tmp_path,
             "condition/persons.csv",
+            # expectations
+            persons=persons,
+            conditions=expect,
         )
     )
-
-    ##
-    # assert
-    verify_expectations(
-        output,
-        person_id_source2target,
-        person_id_target2source,
-        persons=persons,
-        occurrences=expect,
-    )
-
-
-def verify_expectations(
-    output: Path,
-    person_id_source2target,
-    person_id_target2source,
-    persons: int | None = None,
-    measurements: dict | None = None,
-    observations: dict | None = None,
-    occurrences: dict | None = None,
-) -> None:
-    """
-    this is a helper function to check that the expectations are what we expect
-    """
-
-    def record_count(collection):
-        count = 0
-        for person in collection:
-            for date in collection[person]:
-                count += len(collection[person][date])
-        return count
-
-    if persons is not None:
-        assert len(person_id_source2target) == persons
-        assert len(person_id_target2source) == persons
-
-    # the state in observations
-    if observations is not None:
-        observations_seen: int = 0
-        for observation in csvrow.csv_rows(output / "observation.tsv", "\t"):
-            observations_seen += 1
-
-            assert assert_to_int(observation.observation_type_concept_id) == 0
-            assert observation.value_as_number == ""
-            assert observation.observation_date == observation.observation_datetime[:10]
-            assert observation.value_as_concept_id == ""
-            assert observation.qualifier_concept_id == ""
-            assert observation.unit_concept_id == ""
-            assert observation.provider_id == ""
-            assert observation.visit_occurrence_id == ""
-            assert observation.visit_detail_id == ""
-            assert observation.unit_source_value == ""
-            assert observation.qualifier_source_value == ""
-            assert (
-                observation.observation_concept_id
-                == observation.observation_source_concept_id
-            )
-            assert observation.value_as_string == observation.observation_source_value
-
-            assert observation.person_id in person_id_target2source
-            src_person_id = assert_to_int(person_id_target2source[observation.person_id])
-
-            observation_date = observation.observation_date
-            observation_concept_id = observation.observation_concept_id
-            observation_source_value = observation.observation_source_value
-
-            assert src_person_id in observations, observation
-            assert observation_date in observations[src_person_id], observation
-            assert (
-                observation_concept_id in observations[src_person_id][observation_date]
-            ), observation
-
-            assert (
-                observations[src_person_id][observation_date][observation_concept_id]
-                == observation_source_value
-            ), observation
-
-        # check to be sure we saw all the observations
-        expected_observation_count = record_count(observations)
-        assert expected_observation_count == observations_seen, (
-            "expected %d observations, got %d"
-            % expected_observation_count
-            % observations_seen
-        )
-
-    # check measurements
-    if measurements is not None:
-        measurements_seen: int = 0
-        for measurement in csvrow.csv_rows(output / "measurement.tsv", "\t"):
-            measurements_seen += 1
-
-            src_person_id = assert_to_int(person_id_target2source[measurement.person_id])
-            date = measurement.measurement_date
-            concept = assert_to_int(measurement.measurement_concept_id)
-            value = assert_to_int(measurement.value_as_number)
-
-            assert src_person_id in measurements, f"{src_person_id=} {measurement=} "
-            assert date in measurements[src_person_id], (
-                f"{src_person_id=} {date=} {measurement=}"
-            )
-            assert concept in measurements[src_person_id][date], (
-                f"{src_person_id=} {date=} {concept=} {measurement=}"
-            )
-
-            assert measurements[src_person_id][date][concept] == value, (
-                f"{date=} {concept=} {measurement=}"
-            )
-        expected_measurement_count = record_count(measurements)
-        assert measurements_seen == expected_measurement_count
-
-    # check for conditon occurences
-    if occurrences is not None:
-        occurrences_seen: int = 0
-        for occurrence in csvrow.csv_rows(output / "condition_occurrence.tsv", "\t"):
-            occurrences_seen += 1
-
-            src_person_id = assert_to_int(person_id_target2source[occurrence.person_id])
-            src_date = occurrence.condition_start_datetime
-            concept_id = assert_to_int(occurrence.condition_concept_id) 
-            src_value = assert_to_int(occurrence.condition_source_value)
-
-            assert occurrence.condition_start_date == ""
-
-            # there's a known shortcoming of the conditions that make them act like observations
-            # https://github.com/Health-Informatics-UoN/carrot-transform/issues/88
-            assert src_date == occurrence.condition_end_datetime
-            src_date = src_date[:10]
-
-            assert occurrence.condition_end_date == src_date
-
-            assert src_person_id in occurrences
-            assert src_date in occurrences[src_person_id]
-            assert concept_id in occurrences[src_person_id][src_date]
-            assert occurrences[src_person_id][src_date][concept_id] == src_value
-
-        assert record_count(occurrences) == occurrences_seen
 
 
 def assert_datetimes(onlydate: str, datetime: str, expected: str):
@@ -809,10 +657,3 @@ def assert_datetimes(onlydate: str, datetime: str, expected: str):
             f"the source data {expected=} is in the wrong format"
         )
         assert expected == datetime
-
-def assert_to_int(value: str) -> int:
-    """used to convert strings to ints and double check that the conversion works both ways
-    """
-    result = int(value)
-    assert str(result) == value
-    return result
