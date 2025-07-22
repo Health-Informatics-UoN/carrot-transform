@@ -20,6 +20,7 @@ logger = logger_setup()
 _person_processed_cache: set[str] = set()
 
 #  TODO: don't output the meaningless records
+#  TODO: refactor this
 def get_target_records_v2(
     tgtfilename: str,
     tgtcolmap: Dict[str, int],
