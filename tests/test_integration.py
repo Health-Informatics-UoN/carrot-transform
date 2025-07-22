@@ -61,9 +61,8 @@ def test_integration_test1(tmp_path: Path):
         clicktools.click_generic(
             tmp_path,
             person_file,
-
             #
-            persons=4
+            persons=4,
         )
     )
 

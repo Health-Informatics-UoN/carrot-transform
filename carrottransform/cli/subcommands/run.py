@@ -2,6 +2,7 @@ import sys
 import time
 from pathlib import Path
 import click
+
 import carrottransform.tools as tools
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.file_helpers import (
@@ -335,7 +336,6 @@ def mapstream(
                     datacols = dflist[tgtfile]
 
                 for datacol in datacols:
-
                     built_records, outrecords, metrics = get_target_records(
                         tgtfile,
                         tgtcolmap,
@@ -350,7 +350,6 @@ def mapstream(
 
                     if built_records:
                         for outrecord in outrecords:
-
                             if auto_num_col is not None:
                                 outrecord[tgtcolmap[auto_num_col]] = str(
                                     record_numbers[tgtfile]

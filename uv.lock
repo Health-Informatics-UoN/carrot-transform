@@ -70,6 +70,7 @@ dependencies = [
 dev = [
     { name = "black" },
     { name = "build" },
+    { name = "ruff" },
 ]
 test = [
     { name = "pandas" },
@@ -86,6 +87,7 @@ requires-dist = [
 dev = [
     { name = "black", specifier = ">=24.2.0,<25" },
     { name = "build", specifier = ">=1.2.2.post1" },
+    { name = "ruff", specifier = ">=0.12.0" },
 ]
 test = [
     { name = "pandas", specifier = ">=2.2.3,<3" },
