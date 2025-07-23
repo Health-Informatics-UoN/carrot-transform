@@ -3,40 +3,16 @@ from pathlib import Path
 import carrottransform.tools as tools
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-from dataclasses import dataclass
+from carrottransform.tools.types import (
+    PersonIdMapping,
+    DateMapping,
+    ConceptMapping,
+    V2TableMapping,
+)
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.omopcdm import OmopCDM
 
 logger = logger_setup()
-
-@dataclass
-class PersonIdMapping:
-    source_field: str
-    dest_field: str
-
-
-@dataclass
-class DateMapping:
-    source_field: str
-    dest_fields: List[str]
-
-
-@dataclass
-class ConceptMapping:
-    source_field: str
-    value_mappings: Dict[
-        str, Dict[str, List[int]]
-    ]  # value -> dest_field -> concept_ids
-    original_value_fields: List[str]
-
-
-@dataclass
-class V2TableMapping:
-    source_table: str
-    person_id_mapping: Optional[PersonIdMapping]
-    date_mapping: Optional[DateMapping]
-    concept_mappings: Dict[str, ConceptMapping]  # source_field -> ConceptMapping
-
 
 class MappingRules:
     """
