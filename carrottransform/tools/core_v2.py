@@ -1,7 +1,4 @@
-import csv
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
-
+from typing import Dict, List, Optional, Tuple
 import carrottransform.tools as tools
 from carrottransform.tools.mappingrules import (
     ConceptMapping,
@@ -19,7 +16,6 @@ logger = logger_setup()
 # Global cache to track processed person records
 _person_processed_cache: set[str] = set()
 
-#  TODO: don't output the meaningless records
 #  TODO: refactor this
 def get_target_records_v2(
     tgtfilename: str,
