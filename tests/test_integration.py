@@ -7,6 +7,7 @@ import pytest
 
 from pathlib import Path
 
+import logging
 
 import clicktools
 import csvrow
@@ -670,6 +671,31 @@ def test_condition(tmp_path: Path):
         assert value == expect[occurrence.person_id][date][concept]
 
     assert 4 == occurrences
+
+
+@pytest.mark.unit
+def test_mireda_key_error(tmp_path: Path, caplog):
+    """this is the oprignal buggy version that should trigger the key error"""
+
+    # capture all
+    caplog.set_level(logging.DEBUG)
+
+    person_file = (
+        Path(__file__).parent
+        / "test_data/mireda_key_error/demographics_mother_gold.csv"
+    )
+    (result, output) = clicktools.click_generic(
+        tmp_path,
+        person_file,
+        failure=True,
+    )
+
+    assert result.exit_code == -1
+
+    [cause, key] = caplog.text.splitlines(keepends=False)[-2:]
+
+    assert "exception caused by different field names in different file" in cause
+    assert "e_dob" in key
 
 
 def assert_datetimes(onlydate: str, datetime: str, expected: str):

@@ -1,4 +1,5 @@
 import csv
+from pathlib import Path
 
 
 def back_get(person_ids):
@@ -44,6 +45,13 @@ def csv2dict(path, key, delimiter=","):
         out[k] = row
 
     return out
+
+
+def row_count(path: Path, delimiter: str = ",") -> int:
+    count: int = 0
+    for _ in csv_rows(path, delimiter):
+        count += 1
+    return count
 
 
 def csv_rows(path, delimiter=","):
