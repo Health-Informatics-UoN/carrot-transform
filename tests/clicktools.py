@@ -12,7 +12,7 @@ def click_generic(
     tmp_path: Path,
     person_file: Path | str,
     rules: Path | None = None,
-    expect_error: bool = False,
+    failure: bool = False,
 ):
     if isinstance(person_file, str):
         person_file = Path(__file__).parent / "test_data" / person_file
@@ -51,11 +51,11 @@ def click_generic(
     ##
     # if there was an error, return somethign different
     if result.exit_code != 0:
-        if expect_error:
-            return (result.exit_code, result, output)
+        if failure:
+            return (result, output)
         else:
             raise ValueError(f"expected no error, found {result=}")
-    elif expect_error:
+    elif failure:
         raise ValueError(f"expected an error, found {result=}")
     ##
     #

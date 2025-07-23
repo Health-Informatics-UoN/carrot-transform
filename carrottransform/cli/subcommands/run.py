@@ -214,10 +214,30 @@ def mapstream(
     tgtcolmaps = {}
 
     try:
-        ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
-        person_lookup, rejected_person_count = load_person_ids(
-            saved_person_id_file, person_file, mappingrules, use_input_person_ids
-        )
+        try:
+            ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
+            person_lookup, rejected_person_count = load_person_ids(
+                saved_person_id_file, person_file, mappingrules, use_input_person_ids
+            )
+        except KeyError as keyError:
+            import traceback, sys
+            # Get the current exception info
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+
+            # get the initial line that caused the error
+            frame_info = list(traceback.extract_tb(exc_traceback))[-1]
+
+            # check to see if it's the field name exception
+            if "if not valid_date_value(persondata[person_columns[birth_datetime_source]]):" != frame_info.line:
+                raise keyError
+
+            # this is not a great way to handle it
+            logger.error("exception caused by different field names in different files")
+            # https://github.com/Health-Informatics-UoN/carrot-transform/issues/76
+            # https://github.com/Health-Informatics-UoN/carrot-transform/issues/72
+            logger.error(keyError)
+            sys.exit(-1)
+
         ## open person_ids output file
         with saved_person_id_file.open(mode="w") as fhpout:
             ## write the header to the file
