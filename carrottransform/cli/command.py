@@ -1,6 +1,6 @@
 # Package entry point - sets up the "run" subcommand
 from .subcommands.run import run
-from .subcommands.run_v2 import run_v2
+from .subcommands.run_better import run_v2
 
 import carrottransform as c
 import click
