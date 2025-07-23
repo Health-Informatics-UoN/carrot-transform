@@ -176,9 +176,9 @@ def get_target_records_v2(
     # Generate all concept combinations
     concept_combinations = _get_concept_combinations(value_mapping)
     
-    # If no concept combinations but we have original_value fields, create one record
-    if not concept_combinations and concept_mapping.original_value_fields:
-        concept_combinations = [{}]  # Empty mapping for original values only
+    # If no concept combinations (value with not concepts tied to it), don't build records
+    if not concept_combinations:
+        return build_records, tgtrecords, metrics 
 
     # Create records for each concept combination
     for concept_combo in concept_combinations:
