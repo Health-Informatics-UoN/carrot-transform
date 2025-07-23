@@ -7,9 +7,7 @@ from dataclasses import dataclass
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.omopcdm import OmopCDM
 
-import logging
-
-logger = logging.getLogger(__name__)
+logger = logger_setup()
 
 @dataclass
 class PersonIdMapping:
