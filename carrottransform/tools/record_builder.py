@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Tuple, Set
 from abc import ABC, abstractmethod
-from carrottransform.tools.mappingrules import ConceptMapping
+from carrottransform.tools.mapping_types import ConceptMapping
 from carrottransform.tools.date_helpers import get_datetime_value
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.validation import valid_value

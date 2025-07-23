@@ -1,7 +1,31 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TextIO
 from dataclasses import dataclass
+from pathlib import Path
 import carrottransform.tools as tools
 from carrottransform.tools.omopcdm import OmopCDM
+from carrottransform.tools.mapping_types import V2TableMapping
+from carrottransform.tools.mappingrules import MappingRules
+
+@dataclass
+class ProcessingContext:
+    """Context object containing all processing configuration and state"""
+    mappingrules: MappingRules
+    omopcdm: OmopCDM
+    input_dir: Path
+    person_lookup: Dict[str, str]
+    record_numbers: Dict[str, int]
+    file_handles: Dict[str, TextIO]
+    target_column_maps: Dict[str, Dict[str, int]]
+    metrics: tools.metrics.Metrics
+    
+    @property
+    def input_files(self) -> List[str]:
+        return self.mappingrules.get_all_infile_names()
+    
+    @property
+    def output_files(self) -> List[str]:
+        return self.mappingrules.get_all_outfile_names()
+
 
 @dataclass
 class RecordResult:
@@ -9,34 +33,6 @@ class RecordResult:
     build_records: bool
     records: List[List[str]]
     metrics: tools.metrics.Metrics 
-
-@dataclass
-class PersonIdMapping:
-    source_field: str
-    dest_field: str
-
-
-@dataclass
-class DateMapping:
-    source_field: str
-    dest_fields: List[str]
-
-
-@dataclass
-class ConceptMapping:
-    source_field: str
-    value_mappings: Dict[
-        str, Dict[str, List[int]]
-    ]  # value -> dest_field -> concept_ids
-    original_value_fields: List[str]
-
-
-@dataclass
-class V2TableMapping:
-    source_table: str
-    person_id_mapping: Optional[PersonIdMapping]
-    date_mapping: Optional[DateMapping]
-    concept_mappings: Dict[str, ConceptMapping]  # source_field -> ConceptMapping
 
 @dataclass
 class RecordContext:

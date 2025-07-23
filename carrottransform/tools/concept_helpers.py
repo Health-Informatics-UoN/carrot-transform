@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional
-from carrottransform.tools.mappingrules import ConceptMapping
+from carrottransform.tools.mapping_types import ConceptMapping
 
 def generate_combinations(value_mapping: Optional[Dict[str, List[int]]]) -> List[Dict[str, int]]:
     """
