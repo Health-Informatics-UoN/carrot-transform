@@ -220,7 +220,8 @@ def mapstream(
                 saved_person_id_file, person_file, mappingrules, use_input_person_ids
             )
         except KeyError as keyError:
-            import traceback, sys
+            import traceback
+
             # Get the current exception info
             exc_type, exc_value, exc_traceback = sys.exc_info()
 
@@ -228,7 +229,10 @@ def mapstream(
             frame_info = list(traceback.extract_tb(exc_traceback))[-1]
 
             # check to see if it's the field name exception
-            if "if not valid_date_value(persondata[person_columns[birth_datetime_source]]):" != frame_info.line:
+            if (
+                "if not valid_date_value(persondata[person_columns[birth_datetime_source]]):"
+                != frame_info.line
+            ):
                 raise keyError
 
             # this is not a great way to handle it
