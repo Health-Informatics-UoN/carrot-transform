@@ -2,9 +2,7 @@
 tests the complete system in a few ways. needs better verification of the outputs
 """
 
-from carrottransform.cli.subcommands.run import *
 import pytest
-from unittest.mock import patch
 import importlib.resources
 import logging
 
@@ -17,7 +15,6 @@ from carrottransform.cli.subcommands.run import mapstream
 
 @pytest.mark.unit
 def test_no_args():
-
     runner = CliRunner()
     result = runner.invoke(mapstream, [])
 
@@ -97,18 +94,18 @@ def test_with_example(tmp_path: Path, caplog):
 
     ##
     # check click results
-    if None != result.exception:
+    if result.exception is not None:
         raise result.exception
 
-    if 0 != result.exit_code:  # if it wasn't a pass ... echo output
-        m = f"result.exit_code = {result.exit_code}"
+    if result.exit_code != 0:  # if it wasn't a pass ... echo output
+        message = f"result.exit_code = {result.exit_code}"
 
-        for l in result.output.split("\n"):
-            m += "\n> " + l
+        for output_line in result.output.split("\n"):
+            message += "\n> " + output_line
 
-        raise Exception(m)
+        raise Exception(message)
 
-    assert 0 == result.exit_code
+    assert result.exit_code == 0
 
     ##
     # check log messages
@@ -211,14 +208,14 @@ def test_with_two_dirs(tmp_path: Path, caplog):
 
     ##
     # click has caught exceptions
-    if None == result.exception:
+    if result.exception is None:
         raise Exception("that test should have failed")
 
     ##
     # check some details of the exception
-    assert isinstance(
-        result.exception, Exception
-    ), f"expected Exception was {type(result.exception)} @ {result.exception}"
+    assert isinstance(result.exception, Exception), (
+        f"expected Exception was {type(result.exception)} @ {result.exception}"
+    )
     assert f"Couldn't find file covid19_antibody.csv in {input2}" == str(
         result.exception
     )
@@ -326,7 +323,6 @@ def test_with_auto_person(tmp_path: Path, caplog):
         "vaccine.csv",
     ]:
         shutil.copy2(package_root / "examples/test/inputs" / src, tmp_path / src)
-    person = tmp_path / "Demographics.csv"
 
     # output dir needs to be pre-created
     output = tmp_path / "out"

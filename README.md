@@ -44,6 +44,28 @@ To have the project up and running, please follow the [Quick Start Guide](https:
 
 If you need to perform development, [there's a brief guide here](https://carrot.ac.uk/transform/development) to get the tool up and running.
 
+## Formatting and Linting
+
+This project is using [ruff](https://docs.astral.sh/ruff/) to check formatting and linting. 
+The only dependency is the [`uv` command line tool.](https://docs.astral.sh/uv/)
+The `.vscode/tasks.json` file contains a task to run this tool for the currently open file. 
+The commands can be run on thier own (in the root folder) like this ...
+
+```bash
+# reformat all the files in `./`
+λ uv run ruff format .
+
+# run linting checks all the files in `./` 
+λ uv run ruff check .
+
+# check and fix all the files in `./`
+λ uv run ruff check --fix .
+
+# check and fix all the files in `./` but do so so more eggrsively
+λ uv run ruff check --fix --unsafe-fixes .
+```
+
+
 ## Release Procedure 
 
 To release a new version of `carrot-transform` follow these steps: 

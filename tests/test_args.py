@@ -2,8 +2,8 @@ import pytest
 
 from pathlib import Path
 import carrottransform
-import json
-from carrottransform.tools.args import *
+from carrottransform.tools.args import auto_person_in_rules
+from carrottransform.tools.args import MultipleTablesError
 
 
 @pytest.mark.unit
