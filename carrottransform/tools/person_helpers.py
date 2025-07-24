@@ -76,6 +76,7 @@ def load_person_ids(
 
     return person_ids, reject_count
 
+
 # TODO: understand the purpose of this function and simplify it
 def set_saved_person_id_file(
     saved_person_id_file: Path | None, output_dir: Path
@@ -108,6 +109,7 @@ def _get_person_lookup(saved_person_id_file: Path) -> tuple[dict[str, str], int]
         person_lookup = {}
         last_used_integer = 1
     return person_lookup, last_used_integer
+
 
 def _load_saved_person_ids(person_file: Path):
     fh = person_file.open(mode="r", encoding="utf-8-sig")

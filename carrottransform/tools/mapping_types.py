@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 
+
 # To prevent circular import, these types should be in a separate file rather than in the types.py
 @dataclass
 class PersonIdMapping:
@@ -28,4 +29,4 @@ class V2TableMapping:
     source_table: str
     person_id_mapping: Optional[PersonIdMapping]
     date_mapping: Optional[DateMapping]
-    concept_mappings: Dict[str, ConceptMapping]  # source_field -> ConceptMapping 
+    concept_mappings: Dict[str, ConceptMapping]  # source_field -> ConceptMapping

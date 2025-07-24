@@ -126,7 +126,6 @@ def set_omop_filenames(
     """
     # Only set defaults if BOTH files are None AND version is provided
     if omop_ddl_file is None and omop_config_file is None and omop_version is not None:
-
         logger.info(f"Using default OMOP files for version {omop_version}")
 
         # Set default config file - convert Traversable to Path

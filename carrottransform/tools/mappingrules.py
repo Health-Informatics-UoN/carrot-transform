@@ -13,6 +13,7 @@ from carrottransform.tools.omopcdm import OmopCDM
 
 logger = logger_setup()
 
+
 class MappingRules:
     """
     self.rules_data stores the mapping rules as untransformed json, as each input file is processed rules are reorganised
@@ -268,7 +269,7 @@ class MappingRules:
         self, tgtfilename: str
     ) -> tuple[Optional[str], Optional[str]]:
         """
-        Get person source field info for v2 format, 
+        Get person source field info for v2 format,
         from the dest. table "Person" in the rules file.
         """
         birth_datetime_source = None
