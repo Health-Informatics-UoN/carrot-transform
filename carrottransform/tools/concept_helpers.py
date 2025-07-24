@@ -7,6 +7,8 @@ def generate_combinations(
 ) -> List[Dict[str, int]]:
     """
     Generate all concept combinations for multiple concept IDs
+    NOTE: this logic can handle un-even number of concept IDs across fields, even though this scenario needs more investigation.
+    For now, the len of dest_fields should be equal
 
     For example, if value_mapping is:
     {
