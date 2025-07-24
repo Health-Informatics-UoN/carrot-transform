@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.validation import valid_value, valid_date_value
+from carrottransform.tools.mappingrules import MappingRules
 
 logger = logger_setup()
 
@@ -18,34 +19,24 @@ def load_last_used_ids(last_used_ids_file: Path, last_used_ids):
     return last_used_ids
 
 
-def load_saved_person_ids(person_file: Path):
-    fh = person_file.open(mode="r", encoding="utf-8-sig")
-    csvr = csv.reader(fh, delimiter="\t")
-    last_int = 1
-    person_ids = {}
-
-    next(csvr)
-    for persondata in csvr:
-        person_ids[persondata[0]] = persondata[1]
-        last_int += 1
-
-    fh.close()
-    return person_ids, last_int
-
-
 def load_person_ids(
-    saved_person_id_file, person_file, mappingrules, use_input_person_ids, delim=","
+    saved_person_id_file,
+    person_file,
+    mappingrules: MappingRules,
+    use_input_person_ids,
+    delim=",",
 ):
-    person_ids, person_number = get_person_lookup(saved_person_id_file)
+    person_ids, person_number = _get_person_lookup(saved_person_id_file)
 
     fh = person_file.open(mode="r", encoding="utf-8-sig")
     csvr = csv.reader(fh, delimiter=delim)
     person_columns = {}
     person_col_in_hdr_number = 0
     reject_count = 0
-
+    # Header row of the person file
     personhdr = next(csvr)
-    logger.info(personhdr)
+    # TODO: not sure if this is needed
+    logger.info("Headers in Person file: %s", personhdr)
 
     # Make a dictionary of column names vs their positions
     for col in personhdr:
@@ -55,9 +46,6 @@ def load_person_ids(
     ## check the mapping rules for person to find where to get the person data) i.e., which column in the person file contains dob, sex
     birth_datetime_source, person_id_source = mappingrules.get_person_source_field_info(
         "person"
-    )
-    logger.info(
-        "Load Person Data {0}, {1}".format(birth_datetime_source, person_id_source)
     )
 
     ## get the column index of the PersonID from the input file
@@ -89,6 +77,7 @@ def load_person_ids(
     return person_ids, reject_count
 
 
+# TODO: understand the purpose of this function and simplify it
 def set_saved_person_id_file(
     saved_person_id_file: Path | None, output_dir: Path
 ) -> Path:
@@ -112,11 +101,26 @@ def set_saved_person_id_file(
     return saved_person_id_file
 
 
-def get_person_lookup(saved_person_id_file: Path) -> tuple[dict[str, str], int]:
+def _get_person_lookup(saved_person_id_file: Path) -> tuple[dict[str, str], int]:
     # Saved-person-file existence test, reload if found, return last used integer
     if saved_person_id_file.is_file():
-        person_lookup, last_used_integer = load_saved_person_ids(saved_person_id_file)
+        person_lookup, last_used_integer = _load_saved_person_ids(saved_person_id_file)
     else:
         person_lookup = {}
         last_used_integer = 1
     return person_lookup, last_used_integer
+
+
+def _load_saved_person_ids(person_file: Path):
+    fh = person_file.open(mode="r", encoding="utf-8-sig")
+    csvr = csv.reader(fh, delimiter="\t")
+    last_int = 1
+    person_ids = {}
+
+    next(csvr)
+    for persondata in csvr:
+        person_ids[persondata[0]] = persondata[1]
+        last_int += 1
+
+    fh.close()
+    return person_ids, last_int

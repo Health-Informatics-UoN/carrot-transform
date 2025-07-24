@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "date_created": "2025-07-15T10:49:43.214421+00:00",
+    "date_created": "2025-07-22T10:41:33.297641+00:00",
     "dataset": "transform"
   },
   "cdm": {
@@ -24,13 +24,13 @@
           "source_table": "Demographics.csv",
           "source_field": "ethnicity"
         },
-        "value_as_string": {
-          "source_table": "Demographics.csv",
-          "source_field": "ethnicity"
-        },
         "person_id": {
           "source_table": "Demographics.csv",
           "source_field": "PersonID"
+        },
+        "value_as_string": {
+          "source_table": "Demographics.csv",
+          "source_field": "ethnicity"
         }
       },
       "Indian 34534": {
@@ -61,67 +61,7 @@
           "source_field": "ethnicity"
         }
       },
-      "White 34535": {
-        "person_id": {
-          "source_table": "Demographics.csv",
-          "source_field": "PersonID"
-        },
-        "observation_datetime": {
-          "source_table": "Demographics.csv",
-          "source_field": "date_of_birth"
-        },
-        "observation_source_concept_id": {
-          "source_table": "Demographics.csv",
-          "source_field": "ethnicity",
-          "term_mapping": { "White": 35827394 }
-        },
-        "observation_concept_id": {
-          "source_table": "Demographics.csv",
-          "source_field": "ethnicity",
-          "term_mapping": { "White": 35827394 }
-        },
-        "observation_source_value": {
-          "source_table": "Demographics.csv",
-          "source_field": "ethnicity"
-        },
-        "value_as_string": {
-          "source_table": "Demographics.csv",
-          "source_field": "ethnicity"
-        }
-      },
-      "Black or Black British 34536": {
-        "person_id": {
-          "source_table": "Demographics.csv",
-          "source_field": "PersonID"
-        },
-        "observation_datetime": {
-          "source_table": "Demographics.csv",
-          "source_field": "date_of_birth"
-        },
-        "observation_source_concept_id": {
-          "source_table": "Demographics.csv",
-          "source_field": "ethnicity",
-          "term_mapping": { "Black": 35825567 }
-        },
-        "observation_concept_id": {
-          "source_table": "Demographics.csv",
-          "source_field": "ethnicity",
-          "term_mapping": { "Black": 35825567 }
-        },
-        "observation_source_value": {
-          "source_table": "Demographics.csv",
-          "source_field": "ethnicity"
-        },
-        "value_as_string": {
-          "source_table": "Demographics.csv",
-          "source_field": "ethnicity"
-        }
-      },
       "White and Asian 34537": {
-        "value_as_string": {
-          "source_table": "Demographics.csv",
-          "source_field": "ethnicity"
-        },
         "person_id": {
           "source_table": "Demographics.csv",
           "source_field": "PersonID"
@@ -141,6 +81,10 @@
           "term_mapping": { "White and Asian": 35827395 }
         },
         "observation_source_value": {
+          "source_table": "Demographics.csv",
+          "source_field": "ethnicity"
+        },
+        "value_as_string": {
           "source_table": "Demographics.csv",
           "source_field": "ethnicity"
         }
@@ -150,27 +94,27 @@
           "source_table": "Demographics.csv",
           "source_field": "ethnicity"
         },
-        "person_id": {
+        "observation_source_value": {
           "source_table": "Demographics.csv",
-          "source_field": "PersonID"
-        },
-        "observation_datetime": {
-          "source_table": "Demographics.csv",
-          "source_field": "date_of_birth"
-        },
-        "observation_source_concept_id": {
-          "source_table": "Demographics.csv",
-          "source_field": "ethnicity",
-          "term_mapping": { "White and Asian": 35825531 }
+          "source_field": "ethnicity"
         },
         "observation_concept_id": {
           "source_table": "Demographics.csv",
           "source_field": "ethnicity",
           "term_mapping": { "White and Asian": 35825531 }
         },
-        "observation_source_value": {
+        "observation_source_concept_id": {
           "source_table": "Demographics.csv",
-          "source_field": "ethnicity"
+          "source_field": "ethnicity",
+          "term_mapping": { "White and Asian": 35825531 }
+        },
+        "observation_datetime": {
+          "source_table": "Demographics.csv",
+          "source_field": "date_of_birth"
+        },
+        "person_id": {
+          "source_table": "Demographics.csv",
+          "source_field": "PersonID"
         }
       }
     },
@@ -206,6 +150,10 @@
     },
     "person": {
       "FEMALE 34539": {
+        "gender_source_value": {
+          "source_table": "Demographics.csv",
+          "source_field": "sex"
+        },
         "person_id": {
           "source_table": "Demographics.csv",
           "source_field": "PersonID"
@@ -223,10 +171,6 @@
           "source_table": "Demographics.csv",
           "source_field": "sex",
           "term_mapping": { "F": 8532 }
-        },
-        "gender_source_value": {
-          "source_table": "Demographics.csv",
-          "source_field": "sex"
         }
       },
       "MALE 34540": {
@@ -234,6 +178,26 @@
           "source_table": "Demographics.csv",
           "source_field": "sex"
         },
+        "gender_concept_id": {
+          "source_table": "Demographics.csv",
+          "source_field": "sex",
+          "term_mapping": { "M": 8507 }
+        },
+        "gender_source_concept_id": {
+          "source_table": "Demographics.csv",
+          "source_field": "sex",
+          "term_mapping": { "M": 8507 }
+        },
+        "birth_datetime": {
+          "source_table": "Demographics.csv",
+          "source_field": "date_of_birth"
+        },
+        "person_id": {
+          "source_table": "Demographics.csv",
+          "source_field": "PersonID"
+        }
+      },
+      "White 212273": {
         "person_id": {
           "source_table": "Demographics.csv",
           "source_field": "PersonID"
@@ -242,15 +206,43 @@
           "source_table": "Demographics.csv",
           "source_field": "date_of_birth"
         },
-        "gender_source_concept_id": {
+        "race_source_concept_id": {
           "source_table": "Demographics.csv",
-          "source_field": "sex",
-          "term_mapping": { "M": 8507 }
+          "source_field": "ethnicity",
+          "term_mapping": { "White": 8527 }
         },
-        "gender_concept_id": {
+        "race_concept_id": {
           "source_table": "Demographics.csv",
-          "source_field": "sex",
-          "term_mapping": { "M": 8507 }
+          "source_field": "ethnicity",
+          "term_mapping": { "White": 8527 }
+        },
+        "race_source_value": {
+          "source_table": "Demographics.csv",
+          "source_field": "ethnicity"
+        }
+      },
+      "African 212274": {
+        "person_id": {
+          "source_table": "Demographics.csv",
+          "source_field": "PersonID"
+        },
+        "birth_datetime": {
+          "source_table": "Demographics.csv",
+          "source_field": "date_of_birth"
+        },
+        "race_source_concept_id": {
+          "source_table": "Demographics.csv",
+          "source_field": "ethnicity",
+          "term_mapping": { "Black": 38003600 }
+        },
+        "race_concept_id": {
+          "source_table": "Demographics.csv",
+          "source_field": "ethnicity",
+          "term_mapping": { "Black": 38003600 }
+        },
+        "race_source_value": {
+          "source_table": "Demographics.csv",
+          "source_field": "ethnicity"
         }
       }
     },

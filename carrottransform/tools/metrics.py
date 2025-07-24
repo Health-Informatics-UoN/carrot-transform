@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-import logging
+from carrottransform.tools.logger import logger_setup
 
-logger = logging.getLogger(__name__)
+logger = logger_setup()
 
 
 @dataclass

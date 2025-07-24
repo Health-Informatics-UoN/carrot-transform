@@ -42,7 +42,7 @@
         "--output-dir",
         "carrottransform/examples/test/outputs",
         "--omop-ddl-file",
-        "carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql",
+        "carrottransform/config/OMOPCDM_postgresql_5.4_ddl.sql",
         "--omop-config-file",
         "carrottransform/config/omop.json"
       ],

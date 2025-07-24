@@ -30,9 +30,6 @@ def normalise_to8601(item: str) -> str:
     could use just one regex but that seems bad.
     """
 
-    if not isinstance(item, str):
-        raise Exception("can only normliase a string")
-
     both = item.split(" ")
 
     match = re.match(r"(?P<year>\d{4})[-/](?P<month>\d{2})[-/](?P<day>\d{2})", both[0])

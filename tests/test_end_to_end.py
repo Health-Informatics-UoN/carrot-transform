@@ -112,7 +112,6 @@ def test_with_example(tmp_path: Path, caplog):
     for message in [
         "Loaded mapping rules from: ",
         "['PersonID', 'sex', 'date_of_birth', 'ethnicity']",
-        "Load Person Data date_of_birth, PersonID",
         "person_id stats: total loaded 1000, reject count 0",
         "WARNING: no mapping rules found for existing input file - Covid19_test.csv",
         "WARNING: no mapping rules found for existing input file - vaccine.csv",

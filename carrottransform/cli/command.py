@@ -1,5 +1,6 @@
 # Package entry point - sets up the "run" subcommand
 from .subcommands.run import run
+from .subcommands.run_v2 import run_v2
 
 import carrottransform as c
 import click
@@ -18,6 +19,7 @@ def transform(ctx, version):
 
 
 transform.add_command(run, "run")
+transform.add_command(run_v2, "run_v2")
 
 if __name__ == "__main__":
     transform()
