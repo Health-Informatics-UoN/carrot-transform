@@ -673,41 +673,21 @@ def test_condition(tmp_path: Path):
     assert 4 == occurrences
 
 
-# @pytest.mark.unit
-# def test_dual_weight_observations(tmp_path: Path):
-#     """this should trigger the key error"""
-
-#     ##
-#     # declare the expectations ... actually we have none; we expect a faiolure
-
-#     ##
-#     # perform the test
-#     (result, output, person_id_source2target, person_id_target2source) = (
-#         clicktools.click_generic(
-#             tmp_path,
-#             "dual_weight_observations/patients.csv",
-#             expect_error=True,
-#         )
-#     )
-
-#     ##
-#     # check the results
-#     raise Exception("run me!")
-
 @pytest.mark.unit
 def test_mireda_key_error(tmp_path: Path, caplog):
     """this is the oprignal buggy version that should trigger the key error"""
 
     # capture all
     caplog.set_level(logging.DEBUG)
-    
-    person_file = (Path(__file__).parent / "test_data/mireda_key_error/demographics_mother_gold.csv")
-    (result, output) = (
-        clicktools.click_generic(
-            tmp_path,
-            person_file,
-            failure=True,
-        )
+
+    person_file = (
+        Path(__file__).parent
+        / "test_data/mireda_key_error/demographics_mother_gold.csv"
+    )
+    (result, output) = clicktools.click_generic(
+        tmp_path,
+        person_file,
+        failure=True,
     )
 
     assert result.exit_code == -1
@@ -715,8 +695,7 @@ def test_mireda_key_error(tmp_path: Path, caplog):
     [cause, key] = caplog.text.splitlines(keepends=False)[-2:]
 
     assert "exception caused by different field names in different file" in cause
-    assert 'e_dob' in key
-
+    assert "e_dob" in key
 
 
 def assert_datetimes(onlydate: str, datetime: str, expected: str):
