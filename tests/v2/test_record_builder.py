@@ -165,8 +165,8 @@ class TestStandardRecordBuilder:
         assert len(result.records) == 0
 
     def test_build_records_with_no_mapping(self, sample_context):
-        """Test building records when no concept mapping exists"""
-        sample_context.srcfield = "unmapped_field"
+        """Test building records when no concept mapping exists for a specified source field"""
+        sample_context.srcfield = "birth_date"
 
         builder = StandardRecordBuilder(sample_context)
         result = builder.build_records()
@@ -182,19 +182,25 @@ class TestStandardRecordBuilder:
             value_mappings={
                 "SMOKER": {
                     "observation_concept_id": [3025315, 3021414],  # Multiple concepts
-                    "value_as_concept_id": [4188539],  # Single concept
+                    "observation_source_concept_id": [
+                        3025315,
+                        3021414,
+                    ],  # Single concept
                 }
             },
             original_value_fields=["observation_source_value"],
         )
 
         sample_context.v2_mapping.concept_mappings["smoking"] = multi_concept_mapping
-        sample_context.srcfield = "smoking"
         sample_context.srcdata[1] = "SMOKER"
+        sample_context.srccolmap["smoking"] = 1
+        sample_context.srcfield = "smoking"
+
         sample_context.tgtcolmap = {
             "observation_concept_id": 0,
             "value_as_concept_id": 1,
-            "observation_source_value": 2,
+            "observation_source_concept_id": 2,
+            "observation_source_value": 3,
         }
 
         builder = StandardRecordBuilder(sample_context)
@@ -205,11 +211,11 @@ class TestStandardRecordBuilder:
 
         # First combination
         assert result.records[0][0] == "3025315"  # First observation_concept_id
-        assert result.records[0][1] == "4188539"  # value_as_concept_id (reused)
+        assert result.records[0][2] == "3025315"  # first observation_source_concept_id
 
         # Second combination
         assert result.records[1][0] == "3021414"  # Second observation_concept_id
-        assert result.records[1][1] == "4188539"  # value_as_concept_id (reused)
+        assert result.records[1][2] == "3021414"  # second observation_source_concept_id
 
 
 # Unit Tests for PersonRecordBuilder
@@ -380,7 +386,6 @@ class TestRecordBuilderPerformance:
         )
 
         sample_context.v2_mapping.concept_mappings["test_field"] = large_mapping
-        sample_context.srcfield = "test_field"
         sample_context.srcdata[1] = "TEST"
 
         builder = StandardRecordBuilder(sample_context)
