@@ -214,7 +214,7 @@ class PersonRecordBuilder(TargetRecordBuilder):
 
         # Handle date mappings
         if not self.apply_date_mappings(tgtarray):
-            logger.warning(f"Failed to apply date mappings for person table")
+            logger.warning("Failed to apply date mappings for person table")
             return None
 
         return tgtarray

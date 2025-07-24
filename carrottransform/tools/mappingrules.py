@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 import carrottransform.tools as tools
-from pathlib import Path
 from typing import Dict, Any, List, Optional
 from carrottransform.tools.mapping_types import (
     PersonIdMapping,

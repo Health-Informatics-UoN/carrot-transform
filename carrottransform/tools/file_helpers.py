@@ -3,9 +3,8 @@ import json
 import logging
 import sys
 import importlib.resources as resources
-from typing import IO, Iterator, List, Optional, Union
+from typing import IO, Iterator, List, Optional
 from pathlib import Path
-import importlib.resources
 
 logger = logging.getLogger(__name__)
 
