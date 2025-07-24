@@ -47,11 +47,6 @@ def load_person_ids(
     birth_datetime_source, person_id_source = mappingrules.get_person_source_field_info(
         "person"
     )
-    logger.info(
-        "Birth datetime source column: {0}, Person ID source column: {1}".format(
-            birth_datetime_source, person_id_source
-        )
-    )
 
     ## get the column index of the PersonID from the input file
     person_col = person_columns[person_id_source]
