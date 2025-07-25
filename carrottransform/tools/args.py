@@ -74,7 +74,8 @@ def person_rules_check(person_file: Path, rules_file: Path) -> None:
     
     # check if the seen file is correct
     seen_table: str = list(seen_inputs)[0]
-    if not str(person_file).endswith(f'/{seen_table}'):
+
+    if person_file.name != seen_table:
         raise WrongInputException(rules_file, person_file, seen_table)
 
 def object_query(data: dict[str, dict | str], path: str):

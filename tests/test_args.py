@@ -5,33 +5,6 @@ import carrottransform
 from carrottransform.tools.args import person_rules_check, OnlyOnePersonInputAllowed,NoPersonMappings
 from carrottransform.tools.args import person_rules_check
 
-# def auto_person_in_rules(rules: Path) -> Path:
-#     """scan a rules file to see where it's getting its `PersonID` from"""
-
-#     # for better error reporting, record all the sourcetables
-#     source_tables = set()
-
-#     # grab the data
-#     data = json.load(rules.open())
-
-#     # query the objects for the items
-#     for _, person in object_query(data, "cdm/person").items():
-#         # check if the source field is correct
-#         if "PersonID" != object_query(person, "person_id/source_field"):
-#             raise SourceFieldError()
-
-#         source_tables.add(object_query(person, "person_id/source_table"))
-
-#     # check result
-#     if len(source_tables) == 1:
-#         return rules.parent / next(iter(source_tables))
-
-#     # raise an error
-#     multipleTablesError = MultipleTablesError()
-#     multipleTablesError.source_tables = sorted(source_tables)
-#     raise multipleTablesError
-
-
 @pytest.mark.parametrize(
     "exception",
     [

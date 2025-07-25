@@ -22,7 +22,7 @@ from carrottransform.tools.person_helpers import (
     load_person_ids,
     set_saved_person_id_file,
 )
-from carrottransform.tools.args import person_rules_check
+from carrottransform.tools.args import person_rules_check,OnlyOnePersonInputAllowed
 
 logger = logger_setup()
 
@@ -186,6 +186,11 @@ def mapstream(
     ## check on the person_file_rules
     try:
         person_rules_check(rules_file= rules_file, person_file= person_file)
+    except OnlyOnePersonInputAllowed as e:
+        logger.error(
+            f'Person properties were mapped from ({e._inputs}) but can only come from the person file {person_file.name=}'
+        )
+        sys.exit(-1)
     except Exception as e:
         logger.exception(f"person_file_rules check failed: {e}")
         sys.exit(-1)
