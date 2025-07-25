@@ -677,6 +677,8 @@ def test_condition(tmp_path: Path):
 def test_mireda_key_error(tmp_path: Path, caplog):
     """this is the oprignal buggy version that should trigger the key error"""
 
+    raise Exception("change this to check that we get the error the new tests impost")
+
     # capture all
     caplog.set_level(logging.DEBUG)
 

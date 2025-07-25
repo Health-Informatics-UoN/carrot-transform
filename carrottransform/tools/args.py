@@ -19,7 +19,13 @@ class NoPersonMappings(Exception):
         self._rules_file = rules_file
         self._person_file = person_file
 
+class WrongInputException(Exception):
+    """Raised when they try to read fromt he wrong table - and only the wrong table"""
 
+    def __init__(self, rules_file: Path, person_file: Path, source_table: str):
+        self._rules_file = rules_file
+        self._person_file = person_file
+        self._source_table = source_table
 
 class ObjectQueryError(Exception):
     """Raised when the object path format is invalid."""
@@ -31,16 +37,47 @@ class ObjectStructureError(Exception):
 def person_rules_check(person_file: Path, rules_file: Path) -> None:
     """check that the person rules file is correct"""
 
+    # check the args are real files
+    if not person_file.is_file():
+        raise Exception(f"person file not found: {person_file=}")
+    if not rules_file.is_file():
+        raise Exception(f"person file not found: {rules_file=}")
+
     # load the rules file
     with open(rules_file) as file:
         import json
         rules_json = json.load(file)
 
-    raise Exception("??? loop through the rules for person rules")
-    raise Exception("??? - mark we found a person rule")
-    raise Exception("??? - loop through the person rules and only allow one person file")
+    # loop through the rules for person rules with wrong_inputs
+    seen_inputs: set[str] = set() # TODO; should we just collect all inputs and then raise/continue based on that?
+    try:
+        for rule_name, person in object_query(rules_json, "cdm/person").items():
 
-def object_query(data: dict[str, dict | str], path: str) -> dict | str:
+            found_a_rule = True
+            for col in person:
+                source_table: str  = person[col]["source_table"]
+
+                seen_inputs.add(source_table)
+    except ObjectStructureError as e:
+        if "Key 'person' not found in object" == str(e):
+            raise NoPersonMappings(rules_file, person_file)
+        else:
+            raise e
+
+    # for imaginary cases when there is a `"people":{}` entry that's empty
+    if not found_a_rule:
+        raise NoPersonMappings(rules_file, person_file)
+
+    # detect too many input files
+    if 1 < len(seen_inputs):
+        raise OnlyOnePersonInputAllowed(rules_file, person_file, seen_inputs)
+    
+    # check if the seen file is correct
+    seen_table: str = list(seen_inputs)[0]
+    if not str(person_file).endswith(f'/{seen_table}'):
+        raise WrongInputException(rules_file, person_file, seen_table)
+
+def object_query(data: dict[str, dict | str], path: str):
     """
     Navigate a nested dictionary using a `/`-delimited path string.
 

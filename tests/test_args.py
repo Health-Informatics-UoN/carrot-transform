@@ -37,7 +37,7 @@ from carrottransform.tools.args import person_rules_check
     [
         pytest.param(
             OnlyOnePersonInputAllowed(
-                person_file = Path("tests/test_data/args/demographics.csv"),
+                person_file = Path("tests/test_data/args/empty-person-file.csv"),
                 rules_file = Path("tests/test_data/args/reads-from-other-tables.json"),
                 inputs = {
                     "demos_m.csv",
@@ -48,21 +48,35 @@ from carrottransform.tools.args import person_rules_check
         ),
         pytest.param(
             NoPersonMappings(
-                person_file = Path("tests/test_data/args/demographics.csv"),
-                rules_file = Path("tests/test_data/args/reads-from-other-tables.json")
+                person_file = Path("tests/test_data/args/empty-person-file.csv"),
+                rules_file = Path("tests/test_data/args/no-person-rules.json")
             ),
             id="test when no person mappings are defined"
         ),
+
+
+        #
+        # TODO; test reading from only a single wrong person file
+        #
+
+
+        
         pytest.param(
             OnlyOnePersonInputAllowed(
                 person_file = Path("tests/test_data/mireda_key_error/demographics_mother_gold.csv"),
                 rules_file = Path("tests/test_data/mireda_key_error/original_rules.json"),
                 inputs = {
                     "infant_data_gold.csv",
+                    "demographics_child_gold.csv",
                 }
             ),
             id="test the mireda rules file"
         ),
+
+        
+        #
+        # TODO; do a valid test here. one that passes.
+        #
     ],
 )
 def test_person_rules_throws(exception):
@@ -84,12 +98,18 @@ def test_person_rules_throws(exception):
         caught = e
 
     # assert
-    assert caught != False
-    assert isinstance(caught, OnlyOnePersonInputAllowed)
-    assert exception._person_file == caught._person_file    
-    assert exception._rules_file == caught._rules_file
-    assert exception._inputs == caught._inputs
+    if exception is None:
+        assert caught == False
+    else:
+        
+        assert caught != False
+        
+        
+        
+        assert isinstance(caught, type(exception)), f"{type(caught)=} != {type(exception)=}"
 
-    raise Exception("check that inputs == caught._inputs")
+        assert exception._person_file == caught._person_file    
+        assert exception._rules_file == caught._rules_file
 
-
+        if isinstance(caught, OnlyOnePersonInputAllowed):
+            assert exception._inputs == caught._inputs

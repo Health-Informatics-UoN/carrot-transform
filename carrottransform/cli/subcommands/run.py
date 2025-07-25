@@ -22,6 +22,7 @@ from carrottransform.tools.person_helpers import (
     load_person_ids,
     set_saved_person_id_file,
 )
+from carrottransform.tools.args import person_rules_check
 
 logger = logger_setup()
 
@@ -115,7 +116,16 @@ def mapstream(
     """
 
     # Resolve any @package paths in the arguments
-    resolved_paths = resolve_paths(
+    [
+        rules_file,
+        output_dir,
+        person_file,
+        omop_ddl_file,
+        omop_config_file,
+        saved_person_id_file,
+        last_used_ids_file,
+        input_dir,
+    ] = resolve_paths(
         [
             rules_file,
             output_dir,
@@ -127,18 +137,6 @@ def mapstream(
             input_dir,
         ]
     )
-
-    # Assign back resolved paths
-    [
-        rules_file,
-        output_dir,
-        person_file,
-        omop_ddl_file,
-        omop_config_file,
-        saved_person_id_file,
-        last_used_ids_file,
-        input_dir,
-    ] = resolved_paths  # type: ignore
 
     # Initialisation
     # - check for values in optional arguments
@@ -184,6 +182,15 @@ def mapstream(
     )  # Create output directory if needed
 
     saved_person_id_file = set_saved_person_id_file(saved_person_id_file, output_dir)
+
+    ## check on the person_file_rules
+    try:
+        person_rules_check(rules_file= rules_file, person_file= person_file)
+    except Exception as e:
+        logger.exception(f"person_file_rules check failed: {e}")
+        sys.exit(-1)
+
+
 
     start_time = time.time()
     ## create OmopCDM object, which contains attributes and methods for the omop data tables.
