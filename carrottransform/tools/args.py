@@ -1,7 +1,9 @@
 """
 functions to handle args
 """
+
 from pathlib import Path
+
 
 class OnlyOnePersonInputAllowed(Exception):
     """Raised when they try to use more than one person file in the mapping"""
@@ -19,6 +21,7 @@ class NoPersonMappings(Exception):
         self._rules_file = rules_file
         self._person_file = person_file
 
+
 class WrongInputException(Exception):
     """Raised when they try to read fromt he wrong table - and only the wrong table"""
 
@@ -27,6 +30,7 @@ class WrongInputException(Exception):
         self._person_file = person_file
         self._source_table = source_table
 
+
 class ObjectQueryError(Exception):
     """Raised when the object path format is invalid."""
 
@@ -34,8 +38,23 @@ class ObjectQueryError(Exception):
 class ObjectStructureError(Exception):
     """Raised when the object path format points to inaccessible elements."""
 
+
 def person_rules_check(person_file: Path, rules_file: Path) -> None:
-    """check that the person rules file is correct"""
+    """check that the person rules file is correct.
+
+    we need all person/patient records to come from one file - the person file. this includes the gender mapping. this should/must also be the person_file parameter.
+
+    ... this does reopen the possibility of auto-detecting the person file from the rules file
+
+    does resolve:
+    - https://github.com/Health-Informatics-UoN/carrot-transform/issues/72
+        - the initial problem
+    - https://github.com/Health-Informatics-UoN/carrot-transform/issues/76
+        - thhis ticket focussed on catchign this error, but, it proposed a solution to the symptom not the cause
+    - https://github.com/Health-Informatics-UoN/carrot-transform/issues/78
+        - this error will (probably) be caught by this. the issue might be too specific anyway.
+
+    """
 
     # check the args are real files
     if not person_file.is_file():
@@ -46,17 +65,16 @@ def person_rules_check(person_file: Path, rules_file: Path) -> None:
     # load the rules file
     with open(rules_file) as file:
         import json
+
         rules_json = json.load(file)
 
     # loop through the rules for person rules with wrong_inputs
-    seen_inputs: set[str] = set() # TODO; should we just collect all inputs and then raise/continue based on that?
+    seen_inputs: set[str] = set()
     try:
         for rule_name, person in object_query(rules_json, "cdm/person").items():
-
             found_a_rule = True
             for col in person:
-                source_table: str  = person[col]["source_table"]
-
+                source_table: str = person[col]["source_table"]
                 seen_inputs.add(source_table)
     except ObjectStructureError as e:
         if "Key 'person' not found in object" == str(e):
@@ -71,12 +89,13 @@ def person_rules_check(person_file: Path, rules_file: Path) -> None:
     # detect too many input files
     if 1 < len(seen_inputs):
         raise OnlyOnePersonInputAllowed(rules_file, person_file, seen_inputs)
-    
+
     # check if the seen file is correct
     seen_table: str = list(seen_inputs)[0]
 
     if person_file.name != seen_table:
         raise WrongInputException(rules_file, person_file, seen_table)
+
 
 def object_query(data: dict[str, dict | str], path: str):
     """
