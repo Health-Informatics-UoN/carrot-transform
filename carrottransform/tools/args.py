@@ -1,45 +1,24 @@
 """
 functions to handle args
 """
-
-import json
-
 from pathlib import Path
 
+class OnlyOnePersonInputAllowed(Exception):
+    """Raised when they try to use more than one person file in the mapping"""
 
-class SourceFieldError(Exception):
-    """Raised when the rules.json does't set person_id/source_field to PersonID."""
+    def __init__(self, rules_file: Path, person_file: Path, inputs: set[str]):
+        self._rules_file = rules_file
+        self._person_file = person_file
+        self._inputs = inputs
 
 
-class MultipleTablesError(Exception):
-    """Raised when there are multiple .csv files in the the person_id/source_table values."""
+class NoPersonMappings(Exception):
+    """Raised when they try to use more than one person file in the mapping"""
 
+    def __init__(self, rules_file: Path, person_file: Path):
+        self._rules_file = rules_file
+        self._person_file = person_file
 
-def auto_person_in_rules(rules: Path) -> Path:
-    """scan a rules file to see where it's getting its `PersonID` from"""
-
-    # for better error reporting, record all the sourcetables
-    source_tables = set()
-
-    # grab the data
-    data = json.load(rules.open())
-
-    # query the objects for the items
-    for _, person in object_query(data, "cdm/person").items():
-        # check if the source field is correct
-        if "PersonID" != object_query(person, "person_id/source_field"):
-            raise SourceFieldError()
-
-        source_tables.add(object_query(person, "person_id/source_table"))
-
-    # check result
-    if len(source_tables) == 1:
-        return rules.parent / next(iter(source_tables))
-
-    # raise an error
-    multipleTablesError = MultipleTablesError()
-    multipleTablesError.source_tables = sorted(source_tables)
-    raise multipleTablesError
 
 
 class ObjectQueryError(Exception):
@@ -49,8 +28,19 @@ class ObjectQueryError(Exception):
 class ObjectStructureError(Exception):
     """Raised when the object path format points to inaccessible elements."""
 
+def person_rules_check(person_file: Path, rules_file: Path) -> None:
+    """check that the person rules file is correct"""
 
-def object_query(data: dict, path: str) -> any:
+    # load the rules file
+    with open(rules_file) as file:
+        import json
+        rules_json = json.load(file)
+
+    raise Exception("??? loop through the rules for person rules")
+    raise Exception("??? - mark we found a person rule")
+    raise Exception("??? - loop through the person rules and only allow one person file")
+
+def object_query(data: dict[str, dict | str], path: str) -> dict | str:
     """
     Navigate a nested dictionary using a `/`-delimited path string.
 
