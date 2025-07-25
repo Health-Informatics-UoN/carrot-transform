@@ -677,7 +677,6 @@ def test_condition(tmp_path: Path):
 def test_mireda_key_error(tmp_path: Path, caplog):
     """this is the oprignal buggy version that should trigger the key error"""
 
-
     # capture all
     caplog.set_level(logging.DEBUG)
 
@@ -696,10 +695,10 @@ def test_mireda_key_error(tmp_path: Path, caplog):
     message = caplog.text.splitlines(keepends=False)[-1]
 
     assert message.strip().endswith(
-        "Person properties were mapped from ({'infant_data_gold.csv', 'demographics_child_gold.csv'}) but can only come from the person file person_file.name='demographics_mother_gold.csv'"
+        "Person properties were mapped from (['demographics_child_gold.csv', 'infant_data_gold.csv']) but can only come from the person file person_file.name='demographics_mother_gold.csv'"
     )
 
-    assert '-1' == str(result.exception)
+    assert "-1" == str(result.exception)
 
 
 def assert_datetimes(onlydate: str, datetime: str, expected: str):
