@@ -11,7 +11,7 @@ import csvrow
 def click_generic(
     tmp_path: Path,
     person_file: Path | str,
-    rules: Path | None = None,
+    rules: Path | str | None = None,
     failure: bool = False,
 ):
     if isinstance(person_file, str):
@@ -28,6 +28,10 @@ def click_generic(
     ]
     csv_files = list(csv_files)
     csv_files.insert(0, person_file.name)
+
+    # if the rules file is just a string
+    if isinstance(rules, str):
+        rules = person_file.parent / rules
 
     # find the only rules file in that folder ... if we need to fine that
     if rules is None:
