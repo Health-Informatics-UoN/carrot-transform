@@ -266,7 +266,7 @@ def test_duplications(tmp_path: Path):
     """
     checks if duplications are handled correctly. it duplicates a person and observations to see if each ios handled correctly
 
-    TODO; switch to the "expectation" stype (from the newer tests)
+    TODO; switch to the "expectation" stype (from the newer tests) but give it our-own validator with `(result, output, person_id_source2target, person_id_target2source)`
     """
 
     # this test needs to read the person file as part of verification
@@ -516,114 +516,101 @@ def test_mapping_person(tmp_path: Path):
 
 
 @pytest.mark.integration
-def test_observe_smoking(tmp_path: Path):
-    """
-    this test checks to see if the smoking observations map correctly
-
-    TODO; use KV constants (above) for the smkoing keys/concept ids
-    """
-
-    # declare the expectations
-    # ... it's a lot nicer to declare it like this
-    observations = {
-        123: {
-            "2018-01-01": {"3959110": "active"},
-            "2018-02-01": {"3959110": "active"},
-            "2018-03-01": {"3957361": "quit"},
-            "2018-04-01": {"3959110": "active"},
-            "2018-05-01": {"35821355": "never"},
-        },
-        456: {
-            "2009-01-01": {"35821355": "never"},
-            "2009-02-01": {"35821355": "never"},
-            "2009-03-01": {"3957361": "quit"},
-        },
-    }
-    persons = 4
-
-    ##
-    # perform the test & check the results
+@pytest.mark.parametrize(
+    "patient_csv, persons, observations, measurements, conditions",
+    [
+        pytest.param(
+            # patient_csv
+            "observe_smoking/demos.csv",
+            # persons
+            4,
+            # observations
+            {
+                123: {
+                    "2018-01-01": {"3959110": "active"},
+                    "2018-02-01": {"3959110": "active"},
+                    "2018-03-01": {"3957361": "quit"},
+                    "2018-04-01": {"3959110": "active"},
+                    "2018-05-01": {"35821355": "never"},
+                },
+                456: {
+                    "2009-01-01": {"35821355": "never"},
+                    "2009-02-01": {"35821355": "never"},
+                    "2009-03-01": {"3957361": "quit"},
+                },
+            },
+            # measurements
+            None,
+            # conditions
+            None,
+            id="check if observatiosn work as expected",
+        ),
+        pytest.param(
+            # patient_csv
+            "measure_weight_height/persons.csv",
+            # persons
+            4,
+            # observations
+            None,
+            # measurements
+            {
+                21: {
+                    "2021-12-02": {concept__height: 123, concept__weight: 31},
+                    "2021-12-01": {concept__height: 122},
+                    "2021-12-03": {concept__height: 12, concept__weight: 12},
+                    "2022-12-01": {concept__weight: 28},
+                },
+                81: {
+                    "2022-12-02": {concept__height: 23, concept__weight: 27},
+                    "2021-03-01": {concept__height: 92},
+                    "2020-03-01": {concept__weight: 92},
+                },
+                91: {
+                    "2021-02-03": {concept__height: 72, concept__weight: 12},
+                    "2021-02-01": {concept__weight: 1},
+                },
+            },
+            # conditions
+            None,
+            id="measurements of weight and height",
+        ),
+        pytest.param(
+            # patient_csv
+            "condition/persons.csv",
+            # persons
+            4,
+            # observations
+            None,
+            # measurements
+            None,
+            # conditions
+            {
+                81: {
+                    "1998-02-01": {concept__pitting: 1},
+                    "1998-02-03": {concept__pitting: 13},
+                },
+                91: {
+                    "2001-01-03": {concept__pitting: 1},
+                    "2001-01-05": {concept__pitting: 7},
+                },
+            },
+            id="checks conditions are sent to the condition tsv as expected",
+        ),
+    ],
+)
+def test_fixture(
+    tmp_path: Path, patient_csv, persons, observations, measurements, conditions
+):
+    # TODO; inter these functions
     (result, output, person_id_source2target, person_id_target2source) = (
         clicktools.click_generic(
             tmp_path,
-            "observe_smoking/demos.csv",
+            patient_csv,
             #
             persons=persons,
             observations=observations,
-        )
-    )
-
-
-@pytest.mark.integration
-def test_measure_weight_height(tmp_path: Path):
-    """
-    this test checks to be sure that two measurements (width and height) don't "collide" or interfere with eachother
-    """
-
-    ##
-    #
-    persons = 4
-    measurements = {
-        21: {
-            "2021-12-02": {concept__height: 123, concept__weight: 31},
-            "2021-12-01": {concept__height: 122},
-            "2021-12-03": {concept__height: 12, concept__weight: 12},
-            "2022-12-01": {concept__weight: 28},
-        },
-        81: {
-            "2022-12-02": {concept__height: 23, concept__weight: 27},
-            "2021-03-01": {concept__height: 92},
-            "2020-03-01": {concept__weight: 92},
-        },
-        91: {
-            "2021-02-03": {concept__height: 72, concept__weight: 12},
-            "2021-02-01": {concept__weight: 1},
-        },
-    }
-
-    ##
-    # run the test & verify the results
-    (result, output, person_id_source2target, person_id_target2source) = (
-        clicktools.click_generic(
-            tmp_path,
-            "measure_weight_height/persons.csv",
-            #
-            persons=persons,
             measurements=measurements,
-        )
-    )
-
-
-@pytest.mark.integration
-def test_condition(tmp_path: Path):
-    """
-    this checks that values are sent to the condition tsv as expected
-    """
-
-    ##
-    # arrange
-    persons = 4
-    expect = {
-        81: {
-            "1998-02-01": {concept__pitting: 1},
-            "1998-02-03": {concept__pitting: 13},
-        },
-        91: {
-            "2001-01-03": {concept__pitting: 1},
-            "2001-01-05": {concept__pitting: 7},
-        },
-    }
-
-    ##
-    # act & assert
-
-    (result, output, person_id_source2target, person_id_target2source) = (
-        clicktools.click_generic(
-            tmp_path,
-            "condition/persons.csv",
-            # expectations
-            persons=persons,
-            conditions=expect,
+            conditions=conditions,
         )
     )
 
