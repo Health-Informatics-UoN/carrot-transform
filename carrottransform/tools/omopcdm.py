@@ -1,12 +1,12 @@
 import carrottransform.tools as tools
 import json
-import logging
+from carrottransform.tools.logger import logger_setup
 import re
 import sys
 
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+logger = logger_setup()
 
 
 class OmopCDM:
