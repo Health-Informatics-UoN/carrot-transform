@@ -1,11 +1,17 @@
 import json
 from pathlib import Path
 import carrottransform.tools as tools
+from typing import Dict, Any, List, Optional
+from carrottransform.tools.mapping_types import (
+    PersonIdMapping,
+    DateMapping,
+    ConceptMapping,
+    V2TableMapping,
+)
+from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.omopcdm import OmopCDM
 
-import logging
-
-logger = logging.getLogger(__name__)
+logger = logger_setup()
 
 
 class MappingRules:
@@ -16,13 +22,98 @@ class MappingRules:
 
     def __init__(self, rulesfilepath: Path, omopcdm: OmopCDM):
         ## just loads the json directly
-        self.rules_data = tools.load_json(rulesfilepath)
+        self.rules_data = tools.load_json(Path(rulesfilepath))
         self.omopcdm = omopcdm
 
-        self.parsed_rules: dict[str, dict[str, list[dict[str, list[str]]]]] = {}
-        self.outfile_names: dict[str, list[str]] = {}
+        # Detect format version and parse accordingly
+        self.is_v2_format = self._is_v2_format()
+        if self.is_v2_format:
+            logger.info("Detected v2.json format, using direct v2 parser...")
+            self.v2_mappings = self._parse_v2_format()
+        else:
+            logger.info("Detected v1.json format, using legacy parser...")
+
+        self.parsed_rules: Dict[str, Dict[str, Any]] = {}
+        self.outfile_names: Dict[str, List[str]] = {}
 
         self.dataset_name = self.get_dsname_from_rules()
+
+    def _is_v2_format(self) -> bool:
+        """
+        Detect if the rules file is in v2 format by checking for characteristic v2 structures
+        """
+        # Check if any table has the v2 structure (source_table -> mapping_types)
+        for table_name, table_data in self.rules_data["cdm"].items():
+            if isinstance(table_data, dict):
+                for key, value in table_data.items():
+                    # v2 format has CSV filenames as keys, with mapping types as values
+                    if isinstance(value, dict) and all(
+                        mapping_type in value
+                        for mapping_type in [
+                            "person_id_mapping",
+                            "date_mapping",
+                            "concept_mappings",
+                        ]
+                    ):
+                        return True
+        return False
+
+    def _parse_v2_format(self) -> Dict[str, Dict[str, V2TableMapping]]:
+        """
+        Parse v2 format into clean data structures
+        Returns: Dict[table_name, Dict[source_table, V2TableMapping]]
+        """
+        v2_mappings: Dict[str, Dict[str, V2TableMapping]] = {}
+
+        for table_name, table_data in self.rules_data["cdm"].items():
+            v2_mappings[table_name] = {}
+
+            for source_table, mappings in table_data.items():
+                # Parse person_id_mapping
+                person_id_mapping = None
+                if "person_id_mapping" in mappings:
+                    pid_data = mappings["person_id_mapping"]
+                    person_id_mapping = PersonIdMapping(
+                        source_field=pid_data["source_field"],
+                        dest_field=pid_data["dest_field"],
+                    )
+
+                # Parse date_mapping
+                date_mapping = None
+                if "date_mapping" in mappings:
+                    date_data = mappings["date_mapping"]
+                    date_mapping = DateMapping(
+                        source_field=date_data["source_field"],
+                        dest_fields=date_data["dest_field"],
+                    )
+
+                # Parse concept_mappings
+                concept_mappings = {}
+                if "concept_mappings" in mappings:
+                    for source_field, field_mappings in mappings[
+                        "concept_mappings"
+                    ].items():
+                        original_value_fields = field_mappings.get("original_value", [])
+                        value_mappings = {}
+
+                        for source_value, dest_mappings in field_mappings.items():
+                            if source_value != "original_value":
+                                value_mappings[source_value] = dest_mappings
+
+                        concept_mappings[source_field] = ConceptMapping(
+                            source_field=source_field,
+                            value_mappings=value_mappings,
+                            original_value_fields=original_value_fields,
+                        )
+
+                v2_mappings[table_name][source_table] = V2TableMapping(
+                    source_table=source_table,
+                    person_id_mapping=person_id_mapping,
+                    date_mapping=date_mapping,
+                    concept_mappings=concept_mappings,
+                )
+
+        return v2_mappings
 
     def dump_parsed_rules(self):
         return json.dumps(self.parsed_rules, indent=2)
@@ -40,23 +131,62 @@ class MappingRules:
         return self.dataset_name
 
     def get_all_outfile_names(self):
-        return list(self.rules_data["cdm"])
+        if self.is_v2_format:
+            return list(self.v2_mappings.keys())
+        else:
+            return list(self.rules_data["cdm"])
 
     def get_all_infile_names(self):
-        file_list = []
+        if self.is_v2_format:
+            return self._get_all_infile_names_v2()
+        else:
+            return self._get_all_infile_names_v1()
 
+    def _get_all_infile_names_v2(self) -> List[str]:
+        """Get all input file names from v2 format"""
+        file_list = []
+        for table_mappings in self.v2_mappings.values():
+            for source_table in table_mappings.keys():
+                if source_table not in file_list:
+                    file_list.append(source_table)
+        return file_list
+
+    def _get_all_infile_names_v1(self) -> List[str]:
+        """Get all input file names from v1 format (legacy method)"""
+        file_list = []
         for outfilename, conditions in self.rules_data["cdm"].items():
             for outfield, source_field in conditions.items():
                 for source_field_name, source_data in source_field.items():
                     if "source_table" in source_data:
                         if source_data["source_table"] not in file_list:
                             file_list.append(source_data["source_table"])
-
         return file_list
 
-    def get_infile_data_fields(self, infilename):
-        data_fields_lists = {}
+    def get_infile_data_fields(self, infilename: str):
+        if self.is_v2_format:
+            return self._get_infile_data_fields_v2(infilename)
+        else:
+            return self._get_infile_data_fields_v1(infilename)
 
+    def _get_infile_data_fields_v2(self, infilename: str) -> Dict[str, List[str]]:
+        """Get data fields for a specific input file from v2 format"""
+        data_fields_lists: Dict[str, List[str]] = {}
+
+        for table_name, table_mappings in self.v2_mappings.items():
+            if infilename in table_mappings:
+                mapping = table_mappings[infilename]
+                data_fields_lists[table_name] = []
+
+                # Add fields from concept mappings
+                for source_field in mapping.concept_mappings.keys():
+                    if source_field not in data_fields_lists[table_name]:
+                        data_fields_lists[table_name].append(source_field)
+
+        return data_fields_lists
+
+    def _get_infile_data_fields_v1(self, infilename: str) -> Dict[str, List[str]]:
+        """Get data fields for a specific input file from v1 format (legacy method)"""
+        data_fields_lists: Dict[str, List[str]] = {}
         outfilenames, outdata = self.parse_rules_src_to_tgt(infilename)
 
         for outfilename in outfilenames:
@@ -75,7 +205,36 @@ class MappingRules:
 
         return data_fields_lists
 
-    def get_infile_date_person_id(self, infilename):
+    def get_infile_date_person_id(self, infilename: str):
+        if self.is_v2_format:
+            return self._get_infile_date_person_id_v2(infilename)
+        else:
+            return self._get_infile_date_person_id_v1(infilename)
+
+    # TODO: combine this with _get_person_source_field_info_v2
+    def _get_infile_date_person_id_v2(self, infilename: str) -> tuple[str, str]:
+        """Get datetime and person_id source fields for v2 format"""
+        datetime_source = ""
+        person_id_source = ""
+
+        for table_mappings in self.v2_mappings.values():
+            if infilename in table_mappings:
+                mapping = table_mappings[infilename]
+
+                if mapping.date_mapping:
+                    datetime_source = mapping.date_mapping.source_field
+
+                if mapping.person_id_mapping:
+                    person_id_source = mapping.person_id_mapping.source_field
+
+                # If we found both, we can break
+                if datetime_source and person_id_source:
+                    break
+
+        return datetime_source, person_id_source
+
+    def _get_infile_date_person_id_v1(self, infilename: str) -> tuple[str, str]:
+        """Get datetime and person_id source fields for v1 format (legacy method)"""
         outfilenames, outdata = self.parse_rules_src_to_tgt(infilename)
         datetime_source = ""
         person_id_source = ""
@@ -100,10 +259,40 @@ class MappingRules:
 
         return datetime_source, person_id_source
 
-    def get_person_source_field_info(self, tgtfilename):
+    def get_person_source_field_info(self, tgtfilename: str):
+        if self.is_v2_format:
+            return self._get_person_source_field_info_v2(tgtfilename)
+        else:
+            return self._get_person_source_field_info_v1(tgtfilename)
+
+    def _get_person_source_field_info_v2(
+        self, tgtfilename: str
+    ) -> tuple[Optional[str], Optional[str]]:
         """
-        Specific discovery of input data field names for 'person' in these rules
+        Get person source field info for v2 format,
+        from the dest. table "Person" in the rules file.
         """
+        birth_datetime_source = None
+        person_id_source = None
+
+        if tgtfilename in self.v2_mappings:
+            for mapping in self.v2_mappings[tgtfilename].values():
+                if mapping.date_mapping:
+                    birth_datetime_source = mapping.date_mapping.source_field
+
+                if mapping.person_id_mapping:
+                    person_id_source = mapping.person_id_mapping.source_field
+
+                # If we found both, we can break
+                if birth_datetime_source and person_id_source:
+                    break
+
+        return birth_datetime_source, person_id_source
+
+    def _get_person_source_field_info_v1(
+        self, tgtfilename: str
+    ) -> tuple[Optional[str], Optional[str]]:
+        """Get person source field info for v1 format (legacy method)"""
         birth_datetime_source = None
         person_id_source = None
         if tgtfilename in self.rules_data["cdm"]:
@@ -187,7 +376,6 @@ class MappingRules:
                                     except TypeError:
                                         ### need to convert data[source_field] to a dict
                                         ### like this: {'F': ['gender_concept_id~8532', 'gender_source_concept_id~8532', 'gender_source_value']}
-
                                         temp_data_list = data[source_field].copy()
                                         data[source_field] = {}
                                         data[source_field][str(inputvalue)] = (
