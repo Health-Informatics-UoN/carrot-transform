@@ -8,7 +8,12 @@ from carrottransform.cli.subcommands.run import mapstream
 import csvrow
 
 
-def click_generic(tmp_path: Path, person_file: Path | str):
+def click_generic(
+    tmp_path: Path,
+    person_file: Path | str,
+    rules: Path | str | None = None,
+    failure: bool = False,
+):
     if isinstance(person_file, str):
         person_file = Path(__file__).parent / "test_data" / person_file
 
@@ -24,13 +29,19 @@ def click_generic(tmp_path: Path, person_file: Path | str):
     csv_files = list(csv_files)
     csv_files.insert(0, person_file.name)
 
-    # find the only rules file in that folder
-    rules = [f for f in person_file.parent.glob("*.json") if f.is_file()]
-    rules = list(rules)
-    if len(rules) != 1:
-        raise ValueError(
-            f"expected exactly one json file, found {rules=} in {person_file.parent}"
-        )
+    # if the rules file is just a string
+    if isinstance(rules, str):
+        rules = person_file.parent / rules
+
+    # find the only rules file in that folder ... if we need to fine that
+    if rules is None:
+        r = [f for f in person_file.parent.glob("*.json") if f.is_file()]
+        r = list(r)
+        if len(r) != 1:
+            raise ValueError(
+                f"expected exactly one json file, found {r=} in {person_file.parent}"
+            )
+        rules = r[0]
 
     ##
     #
@@ -38,11 +49,18 @@ def click_generic(tmp_path: Path, person_file: Path | str):
         tmp_path,
         csv_files,
         person_file.parent,
-        rules[0],
+        rules,
     )
 
-    assert 0 == result.exit_code
-
+    ##
+    # if there was an error, return somethign different
+    if result.exit_code != 0:
+        if failure:
+            return (result, output)
+        else:
+            raise ValueError(f"expected no error, found {result=}")
+    elif failure:
+        raise ValueError(f"expected an error, found {result=}")
     ##
     #
 
