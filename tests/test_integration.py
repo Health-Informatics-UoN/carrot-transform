@@ -46,8 +46,9 @@ concept__never = 35821355
 ##
 
 
-@pytest.mark.integration
-def test_integration_test1(tmp_path: Path):
+def check__integration_test1(
+    result, output, person_id_source2target, person_id_target2source
+):
     """
     this is one of the bigger tests - it checks a lot of details that may be redundant
 
@@ -56,15 +57,6 @@ def test_integration_test1(tmp_path: Path):
 
     # this test (is one of the ones that) needs to read the person file as part of verification
     person_file = Path(__file__).parent / "test_data/integration_test1/src_PERSON.csv"
-
-    (result, output, person_id_source2target, person_id_target2source) = (
-        clicktools.click_generic(
-            tmp_path,
-            person_file,
-            #
-            persons=4,
-        )
-    )
 
     ##
     # load the src_PERSON.csv
@@ -221,23 +213,10 @@ def test_integration_test1(tmp_path: Path):
             )
 
 
-@pytest.mark.integration
-def test_floats(tmp_path: Path):
+def check__floats(result, output, person_id_source2target, person_id_target2source):
     """
     checks if floats are mapped correctly
-
-    TODO; switch to the "expectation" stype (from the newer tests)
     """
-
-    (result, output, person_id_source2target, person_id_target2source) = (
-        clicktools.click_generic(
-            tmp_path,
-            "floats/src_PERSON.csv",
-        )
-    )
-
-    assert 4 == len(person_id_source2target)
-    assert 4 == len(person_id_target2source)
 
     for measurement in csvrow.csv_rows(output / "measurement.tsv", "\t"):
         assert "35811769" == measurement.measurement_concept_id
@@ -261,26 +240,17 @@ def test_floats(tmp_path: Path):
             raise Exception(f"bad value, {source_id=}, {source_day=}, {measurement=}")
 
 
-@pytest.mark.integration
-def test_duplications(tmp_path: Path):
+def check__duplications(
+    result, output, person_id_source2target, person_id_target2source
+):
     """
     checks if duplications are handled correctly. it duplicates a person and observations to see if each ios handled correctly
 
-    TODO; switch to the "expectation" stype (from the newer tests) but give it our-own validator with `(result, output, person_id_source2target, person_id_target2source)`
+
     """
 
     # this test needs to read the person file as part of verification
     person_file = Path(__file__).parent / "test_data/duplications/src_PERSON.csv"
-
-    (result, output, person_id_source2target, person_id_target2source) = (
-        clicktools.click_generic(
-            tmp_path,
-            person_file,
-        )
-    )
-
-    assert 3 == len(person_id_source2target)
-    assert 3 == len(person_id_target2source)
 
     # load and chcekc the output person(s)
     person_counts = {}
@@ -464,22 +434,9 @@ def test_duplications(tmp_path: Path):
     assert 5 == observation_count["321"]
 
 
-@pytest.mark.integration
-def test_mapping_person(tmp_path: Path):
-    """test to see if basic person records map as expected
-
-    TODO; switch to the "expectation" stype (from the newer tests)"""
-
-    (result, output, person_id_source2target, person_id_target2source) = (
-        clicktools.click_generic(
-            tmp_path,
-            "mapping_person/demos.csv",
-        )
-    )
-
-    assert 2 == len(person_id_source2target)
-    assert 2 == len(person_id_target2source)
-
+def check__mapping_person(
+    result, output, person_id_source2target, person_id_target2source
+):
     # check the birthdateime and gender
     seen_ids: list[int] = []
     for person in csvrow.csv_rows(output / "person.tsv", "\t"):
@@ -517,8 +474,64 @@ def test_mapping_person(tmp_path: Path):
 
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    "patient_csv, persons, observations, measurements, conditions",
+    "patient_csv, persons, observations, measurements, conditions, post_check",
     [
+        pytest.param(
+            # patient_csv
+            "integration_test1/src_PERSON.csv",
+            # persons
+            4,
+            # observations
+            None,
+            # measurements
+            None,
+            # conditions
+            None,
+            check__integration_test1,
+            id="the original integration check",
+        ),
+        pytest.param(
+            # patient_csv
+            "floats/src_PERSON.csv",
+            # persons
+            4,
+            # observations
+            None,
+            # measurements
+            None,
+            # conditions
+            None,
+            check__floats,
+            id="checks if floats are mapped correctly",
+        ),
+        pytest.param(
+            # patient_csv
+            "duplications/src_PERSON.csv",
+            # persons
+            3,
+            # observations
+            None,
+            # measurements
+            None,
+            # conditions
+            None,
+            check__duplications,
+            id="checks if duplications are handled correctly. it duplicates a person and observations to see if each is handled correctly",
+        ),
+        pytest.param(
+            # patient_csv
+            "mapping_person/demos.csv",
+            # persons
+            2,
+            # observations
+            None,
+            # measurements
+            None,
+            # conditions
+            None,
+            check__mapping_person,
+            id="test to see if basic person records map as expected",
+        ),
         pytest.param(
             # patient_csv
             "observe_smoking/demos.csv",
@@ -543,6 +556,7 @@ def test_mapping_person(tmp_path: Path):
             None,
             # conditions
             None,
+            None,  # no extra post-test checks
             id="check if observatiosn work as expected",
         ),
         pytest.param(
@@ -572,6 +586,7 @@ def test_mapping_person(tmp_path: Path):
             },
             # conditions
             None,
+            None,  # no extra post-test checks
             id="measurements of weight and height",
         ),
         pytest.param(
@@ -594,12 +609,19 @@ def test_mapping_person(tmp_path: Path):
                     "2001-01-05": {concept__pitting: 7},
                 },
             },
+            None,  # no post-check
             id="checks conditions are sent to the condition tsv as expected",
         ),
     ],
 )
 def test_fixture(
-    tmp_path: Path, patient_csv, persons, observations, measurements, conditions
+    tmp_path: Path,
+    patient_csv,
+    persons,
+    observations,
+    measurements,
+    conditions,
+    post_check,
 ):
     # TODO; inter these functions
     (result, output, person_id_source2target, person_id_target2source) = (
@@ -613,6 +635,9 @@ def test_fixture(
             conditions=conditions,
         )
     )
+
+    if post_check is not None:
+        post_check(result, output, person_id_source2target, person_id_target2source)
 
 
 def assert_datetimes(onlydate: str, datetime: str, expected: str):
