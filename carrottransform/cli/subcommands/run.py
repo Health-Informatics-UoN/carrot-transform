@@ -271,7 +271,7 @@ def mapstream(
         fhcsvr = open_file(input_dir / srcfilename)
         if fhcsvr is None:  # check if it's none before unpacking
             raise Exception(f"Couldn't find file {srcfilename} in {input_dir}")
-        fh, csvr = fhcsvr  # unpack now because we can't unpack none
+        csvr = fhcsvr  # unpack now because we can't unpack none
 
         ## create dict for input file, giving the data and output file
         tgtfiles, src_to_tgt = mappingrules.parse_rules_src_to_tgt(srcfilename)
@@ -385,8 +385,6 @@ def mapstream(
 
                     if tgtfile == "person":
                         break
-
-        fh.close()
 
         logger.info(
             f"INPUT file data : {srcfilename}: input count {str(rcount)}, time since start {time.time() - start_time:.5} secs"

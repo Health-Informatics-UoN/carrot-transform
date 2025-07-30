@@ -41,6 +41,11 @@ def click_generic(tmp_path: Path, person_file: Path | str):
         rules[0],
     )
 
+    # throw the exception
+    if 0 != result.exit_code and None is not result.exception:
+        raise result.exception
+
+    # check the return code anyway
     assert 0 == result.exit_code
 
     ##

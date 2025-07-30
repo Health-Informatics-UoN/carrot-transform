@@ -141,17 +141,14 @@ def test_successful_file_open(tmp_path: Path):
     with file_path.open("w", encoding="utf-8") as f:
         f.write(file_content)
 
-    file_handle, csv_reader = run.open_file(file_path)
+    csv_reader = run.open_file(file_path)
 
-    try:
-        assert file_handle is not None
-        # Verify we can read the content
-        rows = list(csv_reader)
-        assert rows[0] == ["header1", "header2"]
-        assert rows[1] == ["value1", "value2"]
-    finally:
-        if file_handle:
-            file_handle.close()
+    assert csv_reader is not None
+    
+    # Verify we can read the content
+    rows = list(csv_reader)
+    assert rows[0] == ["header1", "header2"]
+    assert rows[1] == ["value1", "value2"]
 
 
 @pytest.mark.unit
@@ -192,16 +189,13 @@ def test_utf8_with_bom(tmp_path: Path):
         f.write(b"\xef\xbb\xbf")  # UTF-8 BOM
         f.write(content.encode("utf-8"))
 
-    file_handle, csv_reader = run.open_file(file_path)
+    csv_reader = run.open_file(file_path)
 
-    try:
-        assert file_handle is not None
-        rows = list(csv_reader)
-        assert rows[0] == ["header1", "header2"]  # Should not have BOM in content
-        assert rows[1] == ["value1", "value2"]
-    finally:
-        if file_handle:
-            file_handle.close()
+    assert csv_reader is not None
+
+    rows = list(csv_reader)
+    assert rows[0] == ["header1", "header2"]  # Should not have BOM in content
+    assert rows[1] == ["value1", "value2"]
 
 
 ### test_set_omop_filenames(omop_ddl_file, omop_config_file, omop_version):

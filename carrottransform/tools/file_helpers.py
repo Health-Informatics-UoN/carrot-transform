@@ -86,12 +86,12 @@ def check_files_in_rules_exist(
             logger.warning(msg)
 
 
-def open_file(file_path: Path) -> tuple[IO[str], Iterator[list[str]]] | None:
+def open_file(file_path: Path) -> Iterator[list[str]] | None:
     """opens a file and does something related to CSVs"""
     try:
         fh = file_path.open(mode="r", encoding="utf-8-sig")
         csvr = csv.reader(fh)
-        return fh, csvr
+        return csvr
     except IOError as e:
         logger.exception("Unable to open: {0}".format(file_path))
         logger.exception("I/O error({0}): {1}".format(e.errno, e.strerror))
