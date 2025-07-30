@@ -8,6 +8,7 @@ from carrottransform.tools.person_helpers import (
 import carrottransform.cli.subcommands.run as run
 from pathlib import Path
 from unittest.mock import patch
+import carrottransform.tools.sources as sources
 
 
 logger = logging.getLogger(__name__)
@@ -141,7 +142,7 @@ def test_successful_file_open(tmp_path: Path):
     with file_path.open("w", encoding="utf-8") as f:
         f.write(file_content)
 
-    csv_reader = run.open_file(file_path)
+    csv_reader = sources.open_csv(file_path)
 
     assert csv_reader is not None
     
@@ -156,7 +157,7 @@ def test_nonexistent_file(tmp_path, caplog):
     """Test attempting to open a non-existent file"""
 
     with caplog.at_level(logging.ERROR):
-        result = run.open_file(tmp_path / "nonexistent.csv")
+        result = sources.open_csv(tmp_path / "nonexistent.csv")
 
         assert result is None
     assert "Unable to open:" in caplog.text
@@ -168,7 +169,7 @@ def test_directory_not_found(caplog):
     """Test attempting to open a file in a non-existent directory"""
 
     with caplog.at_level(logging.ERROR):
-        result = run.open_file(Path("/nonexistent/directory") / "test.csv")
+        result = sources.open_csv(Path("/nonexistent/directory") / "test.csv")
 
         assert result is None
 
@@ -189,7 +190,7 @@ def test_utf8_with_bom(tmp_path: Path):
         f.write(b"\xef\xbb\xbf")  # UTF-8 BOM
         f.write(content.encode("utf-8"))
 
-    csv_reader = run.open_file(file_path)
+    csv_reader = sources.open_csv(file_path)
 
     assert csv_reader is not None
 

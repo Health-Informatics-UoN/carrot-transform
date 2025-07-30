@@ -3,12 +3,12 @@ import time
 from pathlib import Path
 import click
 
+import carrottransform.tools.sources as sources
 import carrottransform.tools as tools
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
     check_files_in_rules_exist,
-    open_file,
     resolve_paths,
     set_omop_filenames,
 )
@@ -268,10 +268,21 @@ def mapstream(
     for srcfilename in rules_input_files:
         rcount = 0
 
-        fhcsvr = open_file(input_dir / srcfilename)
-        if fhcsvr is None:  # check if it's none before unpacking
-            raise Exception(f"Couldn't find file {srcfilename} in {input_dir}")
-        csvr = fhcsvr  # unpack now because we can't unpack none
+
+        if 'heights.csv' == srcfilename:
+            # before we open srcfilename, check if it's an sql connection
+            "uv run pytest tests/test_integration.py::test_measure_weight_height"
+
+            opener = sources.SourceOpener(input_dir, 'sqlite:///:memory:')
+
+            opener.load(input_dir / srcfilename)
+            
+            csvr = opener.open(srcfilename, Path('test_heights.sql'))
+        else:
+            fhcsvr = sources.open_csv(input_dir / srcfilename)
+            if fhcsvr is None:  # check if it's none before unpacking
+                raise Exception(f"Couldn't find file {srcfilename} in {input_dir}")
+            csvr = fhcsvr  # unpack now because we can't unpack none
 
         ## create dict for input file, giving the data and output file
         tgtfiles, src_to_tgt = mappingrules.parse_rules_src_to_tgt(srcfilename)
