@@ -2,6 +2,17 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Debug Current File (uv Pytest)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}"],
+      // "console": "integratedTerminal",
+      "justMyCode": false
+    },
+
+
+    {
       "name": "V1 -Debug Carrot Transform Rules",
       "type": "debugpy",
       "request": "launch",

@@ -299,10 +299,16 @@ def test_with_one_csv_missing(tmp_path: Path, caplog):
     if result.exception is None:
         raise Exception("this test should have failed")
 
-    for l in caplog.text.splitlines():
-        print ("> " + l)
-    assert f"failed to open source Symptoms.csv because " in caplog.text
-    assert f"Source file 'Symptoms.csv' not found by" in str(result.exception)
+    import carrottransform.tools.sources as sources
+
+    if not isinstance(result.exception, sources.SourceFileNotFoundException):
+        # i can't get the catch of "csvr = source.open(srcfilename)" to work
+        raise Exception(
+            f"{result.exception=}"
+        )
+
+    exception: sources.SourceFileNotFoundException = result.exception
+    assert exception._name == 'Symptoms.csv'
 
 
 @pytest.mark.unit

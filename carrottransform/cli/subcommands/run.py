@@ -294,13 +294,7 @@ def mapstream(
     for srcfilename in rules_input_files:
         rcount = 0
 
-        logger.error(f"shoestick {srcfilename=}")
-        from carrottransform.tools.sources import SourceException
-        try:
-            csvr = source.open(srcfilename)
-        except SourceException as notFound:
-            logger.error(f"failed to open source {srcfilename} because {notFound=}")
-            sys.exit(-1)
+        csvr = source.open(srcfilename)
 
         ## create dict for input file, giving the data and output file
         tgtfiles, src_to_tgt = mappingrules.parse_rules_src_to_tgt(srcfilename)
