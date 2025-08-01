@@ -225,6 +225,10 @@ def test_with_one_csv_missing(tmp_path: Path, caplog):
     ##
     # setup test environment(ish) in the folder
 
+    ###
+    # arrange
+    ###
+
     # capture all
     caplog.set_level(logging.DEBUG)
 
@@ -261,6 +265,10 @@ def test_with_one_csv_missing(tmp_path: Path, caplog):
     shutil.copy2(package_root / "config/omop.json", omop)
     shutil.copy2(package_root / "config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
 
+    ###
+    # act
+    ###
+
     ##
     # run click
     runner = CliRunner()
@@ -282,11 +290,19 @@ def test_with_one_csv_missing(tmp_path: Path, caplog):
         ],
     )
 
+    ###
+    # assert
+    ###
+
     ##
     # check click results
     if result.exception is None:
         raise Exception("this test should have failed")
-    assert f"Couldn't find file Symptoms.csv in {tmp_path}" == str(result.exception)
+
+    for l in caplog.text.splitlines():
+        print ("> " + l)
+    assert f"failed to open source Symptoms.csv because " in caplog.text
+    assert f"Source file 'Symptoms.csv' not found by" in str(result.exception)
 
 
 @pytest.mark.unit
@@ -313,7 +329,6 @@ def test_with_auto_person(tmp_path: Path, caplog):
     shutil.copy2(rules_src, rules)
 
     # the source files
-    # ... i'm not renaming these since i'm not sure what would happen if i did
     for src in [
         "covid19_antibody.csv",
         "Covid19_test.csv",
