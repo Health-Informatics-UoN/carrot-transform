@@ -1,4 +1,3 @@
-
 import pytest
 
 from pathlib import Path
@@ -6,45 +5,6 @@ from pathlib import Path
 
 import click_tools as clicktools
 import csvrow
-
-
-import re
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import carrottransform.tools.sources as sources
-
-
-
-
 
 
 @pytest.mark.integration
@@ -57,13 +17,8 @@ def test_measure_weight_height(tmp_path: Path):
         clicktools.click_test(
             tmp_path,
             "measure_weight_height/persons.csv",
-
-            engine = True,
+            engine=True,
         )
-    )
-
-    raise Exception(
-        f"sit thing {str(output).replace('\\', '/')=}"
     )
 
     assert 4 == len(person_id_source2target)
@@ -111,5 +66,3 @@ def test_measure_weight_height(tmp_path: Path):
         )
 
     assert 13 == measurements
-
-

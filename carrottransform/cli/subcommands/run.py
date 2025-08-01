@@ -5,7 +5,6 @@ import time
 from pathlib import Path
 import click
 from sqlalchemy.engine import Engine
-import carrottransform.tools.sources as sources
 import carrottransform.tools as tools
 from carrottransform.tools.click import PathArgs, AlchemyEngine
 from carrottransform.tools.file_helpers import (
@@ -98,7 +97,12 @@ logger = logger_setup()
     help="Lower outcount limit for logfile output",
 )
 @click.option("--input-dir", type=PathArgs, required=False, help="Input directories")
-@click.option("--alchemy-engine", type=AlchemyEngine, required=False, help="Connection string for database")
+@click.option(
+    "--alchemy-engine",
+    type=AlchemyEngine,
+    required=False,
+    help="Connection string for database",
+)
 def mapstream(
     rules_file: Path,
     output_dir: Path,
@@ -117,9 +121,6 @@ def mapstream(
     """
     Map to output using input streams
     """
-
-
-    
 
     # Resolve any @package paths in the arguments
     [
@@ -143,9 +144,6 @@ def mapstream(
             input_dir,
         ]
     )
-
-
-    
 
     # Initialisation
     # - check for values in optional arguments
@@ -176,8 +174,6 @@ def mapstream(
         )
     )
 
-
-
     # check on the rules file
     if (rules_file is None) or (not rules_file.is_file()):
         logger.exception(f"rules file was set to `{rules_file=}` and is missing")
@@ -187,23 +183,21 @@ def mapstream(
     omop_config_file, omop_ddl_file = set_omop_filenames(
         omop_ddl_file, omop_config_file, omop_version
     )
-    
+
     ## check directories are valid
-   
+
     if input_dir is None and alchemy_engine is None:
-        raise Exception(
-            "need alchemy engine or input dir"
-        )
+        raise Exception("need alchemy engine or input dir")
     elif input_dir is not None and alchemy_engine is not None:
-        raise Exception(
-            "can't have both alchemy engine and input dir"
-        )
+        raise Exception("can't have both alchemy engine and input dir")
 
     if input_dir is not None:
-        check_dir_isvalid(input_dir)  # Input directory must exist - we need the files in it
-        source = sources.SourceOpener(folder = input_dir)
+        check_dir_isvalid(
+            input_dir
+        )  # Input directory must exist - we need the files in it
+        source = sources.SourceOpener(folder=input_dir)
     else:
-        source = sources.SourceOpener(engine = alchemy_engine)
+        source = sources.SourceOpener(engine=alchemy_engine)
 
     check_dir_isvalid(
         output_dir, create_if_missing=True
@@ -242,7 +236,10 @@ def mapstream(
     try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
         person_lookup, rejected_person_count = load_person_ids(
-            saved_person_id_file, person_file, mappingrules, use_input_person_ids
+            saved_person_id_file,
+            source.open(person_file.name),
+            mappingrules,
+            use_input_person_ids,
         )
         ## open person_ids output file
         with saved_person_id_file.open(mode="w") as fhpout:
@@ -275,11 +272,8 @@ def mapstream(
 
     rules_input_files = mappingrules.get_all_infile_names()
     if input_dir is None:
-        logger.info(
-            f"skipping exisitng input jects"
-        )
+        logger.info("skipping exisitng input jects")
     else:
-
         ## Compare files found in the input_dir with those expected based on mapping rules
         existing_input_files = [f.name for f in input_dir.glob("*.csv")]
 
