@@ -1,11 +1,13 @@
+import carrottransform.tools.sources as sources
+
 import sys
 import time
 from pathlib import Path
 import click
-
+from sqlalchemy.engine import Engine
 import carrottransform.tools.sources as sources
 import carrottransform.tools as tools
-from carrottransform.tools.click import PathArgs
+from carrottransform.tools.click import PathArgs, AlchemyEngine
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
     check_files_in_rules_exist,
@@ -95,7 +97,8 @@ logger = logger_setup()
     default=0,
     help="Lower outcount limit for logfile output",
 )
-@click.option("--input-dir", type=PathArgs, required=True, help="Input directories")
+@click.option("--input-dir", type=PathArgs, required=False, help="Input directories")
+@click.option("--alchemy-engine", type=AlchemyEngine, required=False, help="Connection string for database")
 def mapstream(
     rules_file: Path,
     output_dir: Path,
@@ -109,13 +112,26 @@ def mapstream(
     last_used_ids_file: Path,
     log_file_threshold,
     input_dir: Path,
+    alchemy_engine: Engine,
 ):
     """
     Map to output using input streams
     """
 
+
+    
+
     # Resolve any @package paths in the arguments
-    resolved_paths = resolve_paths(
+    [
+        rules_file,
+        output_dir,
+        person_file,
+        omop_ddl_file,
+        omop_config_file,
+        saved_person_id_file,
+        last_used_ids_file,
+        input_dir,
+    ] = resolve_paths(
         [
             rules_file,
             output_dir,
@@ -128,17 +144,8 @@ def mapstream(
         ]
     )
 
-    # Assign back resolved paths
-    [
-        rules_file,
-        output_dir,
-        person_file,
-        omop_ddl_file,
-        omop_config_file,
-        saved_person_id_file,
-        last_used_ids_file,
-        input_dir,
-    ] = resolved_paths  # type: ignore
+
+    
 
     # Initialisation
     # - check for values in optional arguments
@@ -163,10 +170,13 @@ def mapstream(
                     last_used_ids_file,
                     log_file_threshold,
                     input_dir,
+                    alchemy_engine,
                 ],
             )
         )
     )
+
+
 
     # check on the rules file
     if (rules_file is None) or (not rules_file.is_file()):
@@ -177,8 +187,24 @@ def mapstream(
     omop_config_file, omop_ddl_file = set_omop_filenames(
         omop_ddl_file, omop_config_file, omop_version
     )
+    
     ## check directories are valid
-    check_dir_isvalid(input_dir)  # Input directory must exist - we need the files in it
+   
+    if input_dir is None and alchemy_engine is None:
+        raise Exception(
+            "need alchemy engine or input dir"
+        )
+    elif input_dir is not None and alchemy_engine is not None:
+        raise Exception(
+            "can't have both alchemy engine and input dir"
+        )
+
+    if input_dir is not None:
+        check_dir_isvalid(input_dir)  # Input directory must exist - we need the files in it
+        source = sources.SourceOpener(folder = input_dir)
+    else:
+        source = sources.SourceOpener(engine = alchemy_engine)
+
     check_dir_isvalid(
         output_dir, create_if_missing=True
     )  # Create output directory if needed
@@ -247,12 +273,18 @@ def mapstream(
         f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
     )
 
-    ## Compare files found in the input_dir with those expected based on mapping rules
-    existing_input_files = [f.name for f in input_dir.glob("*.csv")]
     rules_input_files = mappingrules.get_all_infile_names()
+    if input_dir is None:
+        logger.info(
+            f"skipping exisitng input jects"
+        )
+    else:
 
-    ## Log mismatches but continue
-    check_files_in_rules_exist(rules_input_files, existing_input_files)
+        ## Compare files found in the input_dir with those expected based on mapping rules
+        existing_input_files = [f.name for f in input_dir.glob("*.csv")]
+
+        ## Log mismatches but continue
+        check_files_in_rules_exist(rules_input_files, existing_input_files)
 
     ## set up overall counts
     rejidcounts = {}
@@ -268,21 +300,7 @@ def mapstream(
     for srcfilename in rules_input_files:
         rcount = 0
 
-
-        if 'heights.csv' == srcfilename:
-            # before we open srcfilename, check if it's an sql connection
-            "uv run pytest tests/test_integration.py::test_measure_weight_height"
-
-            opener = sources.SourceOpener(input_dir, 'sqlite:///:memory:')
-
-            opener.load(input_dir / srcfilename)
-            
-            csvr = opener.open(srcfilename, Path('test_heights.sql'))
-        else:
-            fhcsvr = sources.open_csv(input_dir / srcfilename)
-            if fhcsvr is None:  # check if it's none before unpacking
-                raise Exception(f"Couldn't find file {srcfilename} in {input_dir}")
-            csvr = fhcsvr  # unpack now because we can't unpack none
+        csvr = source.open(srcfilename)
 
         ## create dict for input file, giving the data and output file
         tgtfiles, src_to_tgt = mappingrules.parse_rules_src_to_tgt(srcfilename)

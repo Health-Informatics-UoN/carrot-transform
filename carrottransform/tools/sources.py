@@ -8,12 +8,19 @@ from sqlalchemy import Table, Column, String, MetaData, insert, select
 
 logger = logging.getLogger(__name__)
 
-def open_sql(query: str) -> Iterator[list[str]] | None:
-    """opens an sql query. yields column names tehn all rows"""
-
-    raise Exception("Not implemented")
-
 import sqlalchemy
+def open_csv(file_path: Path) -> Iterator[list[str]] | None: 
+    """opens a file and does something related to CSVs""" 
+    try: 
+        fh = file_path.open(mode="r", encoding="utf-8-sig") 
+        csvr = csv.reader(fh) 
+        return csvr 
+    except IOError as e: 
+        logger.exception("Unable to open: {0}".format(file_path)) 
+        logger.exception("I/O error({0}): {1}".format(e.errno, e.strerror)) 
+        return None 
+ 
+ 
 
 class SourceOpener():
     def __init__(self, folder: Path| None = None, engine: sqlalchemy.engine.Engine | str | None = None) -> None:
