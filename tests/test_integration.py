@@ -14,6 +14,30 @@ import csvrow
 
 import re
 
+
+##
+# concept constants
+# these are concept values that happen to be used in these tests. they're not a universal thing - they're just what is being used here.
+
+#
+concept__height = 903133
+concept__weight = 903121
+
+#
+concept__mammogram_01 = 4031867
+concept__mammogram_10 = 4031244
+concept__mitoses = 4240068
+concept__pitting = 4227224
+
+# smoking constants
+concept__active = 3959110
+concept__quit = 3957361
+concept__never = 35821355
+
+# end of concept constants
+##
+
+
 ###
 # tests for https://github.com/Health-Informatics-UoN/carrot-transform/issues/83
 
@@ -22,20 +46,17 @@ import re
 ##
 
 
-@pytest.mark.integration
-def test_integration_test1(tmp_path: Path):
+def check__integration_test1(
+    result, output, person_id_source2target, person_id_target2source
+):
+    """
+    this is one of the bigger tests - it checks a lot of details that may be redundant
+
+    TODO; convert this to the expectation-style (as below) possibly not for persons though
+    """
+
     # this test (is one of the ones that) needs to read the person file as part of verification
     person_file = Path(__file__).parent / "test_data/integration_test1/src_PERSON.csv"
-
-    (result, output, person_id_source2target, person_id_target2source) = (
-        clicktools.click_generic(
-            tmp_path,
-            person_file,
-        )
-    )
-
-    assert 4 == len(person_id_target2source)
-    assert 4 == len(person_id_source2target)
 
     ##
     # load the src_PERSON.csv
@@ -192,23 +213,10 @@ def test_integration_test1(tmp_path: Path):
             )
 
 
-@pytest.mark.integration
-def test_floats(tmp_path: Path):
+def check__floats(result, output, person_id_source2target, person_id_target2source):
     """
     checks if floats are mapped correctly
-
-    looks like they're left as-is when they're a whole number
     """
-
-    (result, output, person_id_source2target, person_id_target2source) = (
-        clicktools.click_generic(
-            tmp_path,
-            "floats/src_PERSON.csv",
-        )
-    )
-
-    assert 4 == len(person_id_source2target)
-    assert 4 == len(person_id_target2source)
 
     for measurement in csvrow.csv_rows(output / "measurement.tsv", "\t"):
         assert "35811769" == measurement.measurement_concept_id
@@ -232,24 +240,17 @@ def test_floats(tmp_path: Path):
             raise Exception(f"bad value, {source_id=}, {source_day=}, {measurement=}")
 
 
-@pytest.mark.integration
-def test_duplications(tmp_path: Path):
+def check__duplications(
+    result, output, person_id_source2target, person_id_target2source
+):
     """
     checks if duplications are handled correctly. it duplicates a person and observations to see if each ios handled correctly
+
+
     """
 
     # this test needs to read the person file as part of verification
     person_file = Path(__file__).parent / "test_data/duplications/src_PERSON.csv"
-
-    (result, output, person_id_source2target, person_id_target2source) = (
-        clicktools.click_generic(
-            tmp_path,
-            person_file,
-        )
-    )
-
-    assert 3 == len(person_id_source2target)
-    assert 3 == len(person_id_target2source)
 
     # load and chcekc the output person(s)
     person_counts = {}
@@ -433,19 +434,9 @@ def test_duplications(tmp_path: Path):
     assert 5 == observation_count["321"]
 
 
-@pytest.mark.integration
-def test_mapping_person(tmp_path: Path):
-    """test to see if basic person records map as expected"""
-    (result, output, person_id_source2target, person_id_target2source) = (
-        clicktools.click_generic(
-            tmp_path,
-            "mapping_person/demos.csv",
-        )
-    )
-
-    assert 2 == len(person_id_source2target)
-    assert 2 == len(person_id_target2source)
-
+def check__mapping_person(
+    result, output, person_id_source2target, person_id_target2source
+):
     # check the birthdateime and gender
     seen_ids: list[int] = []
     for person in csvrow.csv_rows(output / "person.tsv", "\t"):
@@ -482,199 +473,178 @@ def test_mapping_person(tmp_path: Path):
 
 
 @pytest.mark.integration
-def test_observe_smoking(tmp_path: Path):
-    """
-    this test checks to see if the smoking observations map correctly
-    """
-    (result, output, person_id_source2target, person_id_target2source) = (
-        clicktools.click_generic(
-            tmp_path,
+@pytest.mark.parametrize(
+    "patient_csv, persons, observations, measurements, conditions, post_check",
+    [
+        pytest.param(
+            # patient_csv
+            "integration_test1/src_PERSON.csv",
+            # persons
+            4,
+            # observations
+            None,
+            # measurements
+            None,
+            # conditions
+            None,
+            check__integration_test1,
+            id="the original integration check",
+        ),
+        pytest.param(
+            # patient_csv
+            "floats/src_PERSON.csv",
+            # persons
+            4,
+            # observations
+            None,
+            # measurements
+            None,
+            # conditions
+            None,
+            check__floats,
+            id="checks if floats are mapped correctly",
+        ),
+        pytest.param(
+            # patient_csv
+            "duplications/src_PERSON.csv",
+            # persons
+            3,
+            # observations
+            None,
+            # measurements
+            None,
+            # conditions
+            None,
+            check__duplications,
+            id="checks if duplications are handled correctly. it duplicates a person and observations to see if each is handled correctly",
+        ),
+        pytest.param(
+            # patient_csv
+            "mapping_person/demos.csv",
+            # persons
+            2,
+            # observations
+            None,
+            # measurements
+            None,
+            # conditions
+            None,
+            check__mapping_person,
+            id="test to see if basic person records map as expected",
+        ),
+        pytest.param(
+            # patient_csv
             "observe_smoking/demos.csv",
-        )
-    )
-
-    assert 4 == len(person_id_source2target)
-    assert 4 == len(person_id_target2source)
-
-    # declare the expectations
-    # ... it's a lot nicer to declare it like this
-    expect = {
-        123: {
-            "2018-01-01": {"3959110": "active"},
-            "2018-02-01": {"3959110": "active"},
-            "2018-03-01": {"3957361": "quit"},
-            "2018-04-01": {"3959110": "active"},
-            "2018-05-01": {"35821355": "never"},
-        },
-        456: {
-            "2009-01-01": {"35821355": "never"},
-            "2009-02-01": {"35821355": "never"},
-            "2009-03-01": {"3957361": "quit"},
-        },
-    }
-
-    # check the smoking state in observations
-    observations_seen: int = 0
-    for observation in csvrow.csv_rows(output / "observation.tsv", "\t"):
-        observations_seen += 1
-
-        assert "0" == observation.observation_type_concept_id
-        assert "" == observation.value_as_number
-        assert observation.observation_date == observation.observation_datetime[:10]
-        assert "" == observation.value_as_concept_id
-        assert "" == observation.qualifier_concept_id
-        assert "" == observation.unit_concept_id
-        assert "" == observation.provider_id
-        assert "" == observation.visit_occurrence_id
-        assert "" == observation.visit_detail_id
-        assert "" == observation.unit_source_value
-        assert "" == observation.qualifier_source_value
-        assert (
-            observation.observation_concept_id
-            == observation.observation_source_concept_id
-        )
-        assert observation.value_as_string == observation.observation_source_value
-
-        assert observation.person_id in person_id_target2source
-        src_person_id = int(person_id_target2source[observation.person_id])
-
-        observation_date = observation.observation_date
-        observation_concept_id = observation.observation_concept_id
-        observation_source_value = observation.observation_source_value
-
-        assert src_person_id in expect, observation
-        assert observation_date in expect[src_person_id], observation
-        assert observation_concept_id in expect[src_person_id][observation_date], (
-            observation
-        )
-
-        assert (
-            observation_source_value
-            == expect[src_person_id][observation_date][observation_concept_id]
-        ), observation
-
-    # check to be sure we saw all the observations
-    assert 8 == observations_seen, "expected 8 observations, got %d" % observations_seen
-
-
-@pytest.mark.integration
-def test_measure_weight_height(tmp_path: Path):
-    """
-    this test checks to be sure that two measurements (width and height) don't "collide" or interfere with eachother
-    """
-
-    (result, output, person_id_source2target, person_id_target2source) = (
-        clicktools.click_generic(
-            tmp_path,
+            # persons
+            4,
+            # observations
+            {
+                123: {
+                    "2018-01-01": {"3959110": "active"},
+                    "2018-02-01": {"3959110": "active"},
+                    "2018-03-01": {"3957361": "quit"},
+                    "2018-04-01": {"3959110": "active"},
+                    "2018-05-01": {"35821355": "never"},
+                },
+                456: {
+                    "2009-01-01": {"35821355": "never"},
+                    "2009-02-01": {"35821355": "never"},
+                    "2009-03-01": {"3957361": "quit"},
+                },
+            },
+            # measurements
+            None,
+            # conditions
+            None,
+            None,  # no extra post-test checks
+            id="check if observatiosn work as expected",
+        ),
+        pytest.param(
+            # patient_csv
             "measure_weight_height/persons.csv",
-        )
-    )
-
-    assert 4 == len(person_id_source2target)
-    assert 4 == len(person_id_target2source)
-
-    # this is the data we're expecting to see
-    height = 903133
-    weight = 903121
-    expect = {
-        21: {
-            "2021-12-02": {height: 123, weight: 31},
-            "2021-12-01": {height: 122},
-            "2021-12-03": {height: 12, weight: 12},
-            "2022-12-01": {weight: 28},
-        },
-        81: {
-            "2022-12-02": {height: 23, weight: 27},
-            "2021-03-01": {height: 92},
-            "2020-03-01": {weight: 92},
-        },
-        91: {
-            "2021-02-03": {height: 72, weight: 12},
-            "2021-02-01": {weight: 1},
-        },
-    }
-
-    # validate the results
-    measurements: int = 0
-    for measurement in csvrow.csv_rows(output / "measurement.tsv", "\t"):
-        measurements += 1
-
-        src_person_id = int(person_id_target2source[measurement.person_id])
-        date = measurement.measurement_date
-        concept = int(measurement.measurement_concept_id)
-        value = int(measurement.value_as_number)
-
-        assert src_person_id in expect, f"{src_person_id=} {measurement=} "
-        assert date in expect[src_person_id], f"{src_person_id=} {date=} {measurement=}"
-        assert concept in expect[src_person_id][date], (
-            f"{src_person_id=} {date=} {concept=} {measurement=}"
-        )
-
-        assert value == expect[src_person_id][date][concept], (
-            f"{date=} {concept=} {measurement=}"
-        )
-
-    assert 13 == measurements
-
-
-@pytest.mark.integration
-def test_condition(tmp_path: Path):
-    """
-    this checks that values are sent to the condition tsv as expected
-    """
+            # persons
+            4,
+            # observations
+            None,
+            # measurements
+            {
+                21: {
+                    "2021-12-02": {concept__height: 123, concept__weight: 31},
+                    "2021-12-01": {concept__height: 122},
+                    "2021-12-03": {concept__height: 12, concept__weight: 12},
+                    "2022-12-01": {concept__weight: 28},
+                },
+                81: {
+                    "2022-12-02": {concept__height: 23, concept__weight: 27},
+                    "2021-03-01": {concept__height: 92},
+                    "2020-03-01": {concept__weight: 92},
+                },
+                91: {
+                    "2021-02-03": {concept__height: 72, concept__weight: 12},
+                    "2021-02-01": {concept__weight: 1},
+                },
+            },
+            # conditions
+            None,
+            None,  # no extra post-test checks
+            id="measurements of weight and height",
+        ),
+        pytest.param(
+            # patient_csv
+            "condition/persons.csv",
+            # persons
+            4,
+            # observations
+            None,
+            # measurements
+            None,
+            # conditions
+            {
+                81: {
+                    "1998-02-01": {concept__pitting: 1},
+                    "1998-02-03": {concept__pitting: 13},
+                },
+                91: {
+                    "2001-01-03": {concept__pitting: 1},
+                    "2001-01-05": {concept__pitting: 7},
+                },
+            },
+            None,  # no post-check
+            id="checks conditions are sent to the condition tsv as expected",
+        ),
+    ],
+)
+def test_fixture(
+    tmp_path: Path,
+    patient_csv,
+    persons,
+    observations,
+    measurements,
+    conditions,
+    post_check,
+):
+    # TODO; inter these functions
     (result, output, person_id_source2target, person_id_target2source) = (
         clicktools.click_generic(
             tmp_path,
-            "condition/persons.csv",
+            patient_csv,
+            #
+            persons=persons,
+            observations=observations,
+            measurements=measurements,
+            conditions=conditions,
         )
     )
 
-    assert 4 == len(person_id_source2target)
-    assert 4 == len(person_id_target2source)
-
-    expect = {
-        person_id_source2target["81"]: {
-            "1998-02-01": {4227224: 1},
-            "1998-02-03": {4227224: 13},
-        },
-        person_id_source2target["91"]: {
-            "2001-01-03": {4227224: 1},
-            "2001-01-05": {4227224: 7},
-        },
-    }
-
-    # validate the results
-    occurrences: int = 0
-    for occurrence in csvrow.csv_rows(output / "condition_occurrence.tsv", "\t"):
-        occurrences += 1
-
-        person_id = occurrence.person_id
-        date = occurrence.condition_start_datetime
-        concept = int(occurrence.condition_concept_id)
-        assert str(concept) == occurrence.condition_concept_id
-        value = int(occurrence.condition_source_value)
-        assert str(value) == occurrence.condition_source_value
-
-        assert "" == occurrence.condition_start_date
-
-        # there's a known shortcoming of the conditions that make them act like observations
-        # https://github.com/Health-Informatics-UoN/carrot-transform/issues/88
-        assert date == occurrence.condition_end_datetime
-        date = date[:10]
-
-        assert occurrence.condition_end_date == date
-
-        assert person_id in expect
-        assert date in expect[occurrence.person_id]
-        assert concept in expect[occurrence.person_id][date]
-        assert value == expect[occurrence.person_id][date][concept]
-
-    assert 4 == occurrences
+    if post_check is not None:
+        post_check(result, output, person_id_source2target, person_id_target2source)
 
 
 def assert_datetimes(onlydate: str, datetime: str, expected: str):
     """
     this function performs date/time checking accounting for missing time info
+
+    ... it would become redundant if we/i moved to the expectations style ...
     """
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", onlydate), (
         f"onlydate {onlydate=} is the wrong format"
