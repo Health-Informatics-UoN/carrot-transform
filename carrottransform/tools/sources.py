@@ -25,6 +25,13 @@ class SourceException(Exception):
         super().__init__(message)
 
 
+class SourceFolderMissingException(SourceException):
+    def __init__(self, source):
+        super().__init__(
+            source, f"Source folder '{str(source._folder)}' does not exist"
+        )
+
+
 class SourceNotFoundException(SourceException):
     def __init__(self, source, name: str, message: str):
         super().__init__(source, message)
@@ -39,6 +46,25 @@ class SourceFileNotFoundException(SourceNotFoundException):
         self._path = path
 
 
+def eager_generator(func):
+    """forces a generator to evaluate the code leading up to the first yield. this is needed to detect missing files or broken connections"""
+    import itertools
+
+    def wrapper(*args, **kwargs):
+        gen = func(*args, **kwargs)
+        # Force the generator to run until first yield
+        try:
+            first = next(gen)
+        except StopIteration:
+            return gen  # empty generator
+        except Exception as e:
+            raise e
+        # Return a new generator that yields first, then the rest
+        return itertools.chain([first], gen)
+
+    return wrapper
+
+
 class SourceOpener:
     def __init__(
         self,
@@ -46,6 +72,10 @@ class SourceOpener:
         engine: sqlalchemy.engine.Engine | str | None = None,
     ) -> None:
         self._folder = folder
+
+        if self._folder is not None:
+            if not self._folder.is_dir():
+                raise SourceFolderMissingException(self)
 
         if engine is None:
             self._engine = None
@@ -75,17 +105,17 @@ class SourceOpener:
         with self._engine.begin() as conn:
             conn.execute(insert(table), records)
 
+    @eager_generator
     def open(self, name: str):
         assert name.endswith(".csv")
 
-        assert (
-            (self._folder is not None)
-            and (self._engine is None)
-            or (self._folder is None)
-            and (self._engine is not None)
-        )
+        assert (self._folder is None) or (self._engine is None)
+        assert (self._folder is not None) or (self._engine is not None)
 
-        src = self.open_csv(name) if (self._folder is not None) else self.open_sql(name)
+        if self._folder is not None:
+            src = self.open_csv(name)
+        else:
+            src = self.open_sql(name)
 
         for i in src:
             yield i

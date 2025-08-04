@@ -142,10 +142,11 @@ def test_successful_file_open(tmp_path: Path):
     with file_path.open("w", encoding="utf-8") as f:
         f.write(file_content)
 
-    csv_reader = sources.open_csv(file_path)
+    source = sources.SourceOpener(folder=file_path.parent)
+    csv_reader = source.open_csv(file_path)
 
     assert csv_reader is not None
-    
+
     # Verify we can read the content
     rows = list(csv_reader)
     assert rows[0] == ["header1", "header2"]
@@ -153,15 +154,20 @@ def test_successful_file_open(tmp_path: Path):
 
 
 @pytest.mark.unit
-def test_nonexistent_file(tmp_path, caplog):
+def test_nonexistent_file(tmp_path: Path):
     """Test attempting to open a non-existent file"""
 
-    with caplog.at_level(logging.ERROR):
-        result = sources.open_csv(tmp_path / "nonexistent.csv")
+    src = tmp_path / "nonexistent.csv"
+    print(src.is_file())
 
-        assert result is None
-    assert "Unable to open:" in caplog.text
-    assert "nonexistent.csv" in caplog.text
+    source = sources.SourceOpener(folder=tmp_path)
+    try:
+        result = source.open("nonexistent.csv")
+
+        raise Exception(f"the test shouldn't get this far {result=}")
+    except sources.SourceFileNotFoundException as sourceException:
+        assert sourceException._name == "nonexistent.csv"
+        assert sourceException._path == (tmp_path / "nonexistent.csv")
 
 
 @pytest.mark.unit
@@ -169,12 +175,14 @@ def test_directory_not_found(caplog):
     """Test attempting to open a file in a non-existent directory"""
 
     with caplog.at_level(logging.ERROR):
-        result = sources.open_csv(Path("/nonexistent/directory") / "test.csv")
-
-        assert result is None
-
-    assert "Unable to open:" in caplog.text
-    assert "No such file or directory" in caplog.text
+        folder = Path("/nonexistent/directory")
+        try:
+            source = sources.SourceOpener(folder=folder)
+            raise Exception("the test shouldn't get this far")
+            result = source.open("test.csv")
+            assert result is None, "the result should be None"
+        except sources.SourceFolderMissingException as sourceFolderMissingException:
+            assert sourceFolderMissingException._source._folder == folder
 
 
 @pytest.mark.unit
@@ -190,7 +198,8 @@ def test_utf8_with_bom(tmp_path: Path):
         f.write(b"\xef\xbb\xbf")  # UTF-8 BOM
         f.write(content.encode("utf-8"))
 
-    csv_reader = sources.open_csv(file_path)
+    source = sources.SourceOpener(folder=file_path.parent)
+    csv_reader = source.open_csv(file_path)
 
     assert csv_reader is not None
 

@@ -210,14 +210,12 @@ def test_with_two_dirs(tmp_path: Path, caplog):
     if result.exception is None:
         raise Exception("that test should have failed")
 
-    ##
-    # check some details of the exception
-    assert isinstance(result.exception, Exception), (
-        f"expected Exception was {type(result.exception)} @ {result.exception}"
-    )
-    assert f"Couldn't find file covid19_antibody.csv in {input2}" == str(
-        result.exception
-    )
+    # check the exception type and parameter
+    import carrottransform.tools.sources as sources
+
+    assert isinstance(result.exception, sources.SourceFileNotFoundException)
+    exception: sources.SourceFileNotFoundException = result.exception
+    assert exception._name == "covid19_antibody.csv"
 
 
 @pytest.mark.unit
@@ -303,12 +301,10 @@ def test_with_one_csv_missing(tmp_path: Path, caplog):
 
     if not isinstance(result.exception, sources.SourceFileNotFoundException):
         # i can't get the catch of "csvr = source.open(srcfilename)" to work
-        raise Exception(
-            f"{result.exception=}"
-        )
+        raise Exception(f"{result.exception=}")
 
     exception: sources.SourceFileNotFoundException = result.exception
-    assert exception._name == 'Symptoms.csv'
+    assert exception._name == "Symptoms.csv"
 
 
 @pytest.mark.unit
