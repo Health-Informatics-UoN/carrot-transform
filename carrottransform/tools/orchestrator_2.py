@@ -1,0 +1,527 @@
+import csv
+from pathlib import Path
+from typing import Dict, Tuple, Any, Optional, TextIO, List, Set, cast
+from collections import defaultdict
+
+import carrottransform.tools as tools
+from carrottransform.tools.mappingrules import MappingRules
+from carrottransform.tools.omopcdm import OmopCDM
+from carrottransform.tools.logger import logger_setup
+from carrottransform.tools.person_helpers import (
+    load_person_ids,
+    set_saved_person_id_file,
+)
+from carrottransform.tools.date_helpers import normalise_to8601
+from carrottransform.tools.types import (
+    ProcessingResult,
+    ProcessingContext,
+    RecordContext,
+)
+from carrottransform.tools.record_builder import RecordBuilderFactory
+
+logger = logger_setup()
+
+
+class StreamingLookupCache:
+    """Pre-computed lookup tables for efficient streaming processing"""
+
+    def __init__(self, mappingrules: MappingRules, omopcdm: OmopCDM):
+        self.mappingrules = mappingrules
+        self.omopcdm = omopcdm
+
+        # Pre-compute lookups
+        self.input_to_outputs = self._build_input_to_output_lookup()
+        self.file_metadata_cache = self._build_file_metadata_cache()
+        self.target_metadata_cache = self._build_target_metadata_cache()
+
+    def _build_input_to_output_lookup(self) -> Dict[str, Set[str]]:
+        """Build lookup: input_file -> set of output tables it can map to"""
+        lookup = defaultdict(set)
+
+        for target_file, source_mappings in self.mappingrules.v2_mappings.items():
+            for source_file in source_mappings.keys():
+                lookup[source_file].add(target_file)
+
+        return dict(lookup)
+
+    def _build_file_metadata_cache(self) -> Dict[str, Dict[str, Any]]:
+        """Pre-compute metadata for each input file"""
+        cache = {}
+
+        for input_file in self.mappingrules.get_all_infile_names():
+            datetime_source, person_id_source = (
+                self.mappingrules.get_infile_date_person_id(input_file)
+            )
+
+            data_fields = self.mappingrules.get_infile_data_fields(input_file)
+
+            cache[input_file] = {
+                "datetime_source": datetime_source,
+                "person_id_source": person_id_source,
+                "data_fields": data_fields,
+            }
+
+        return cache
+
+    def _build_target_metadata_cache(self) -> Dict[str, Dict[str, Any]]:
+        """Pre-compute metadata for each target table"""
+        cache = {}
+
+        for target_file in self.mappingrules.get_all_outfile_names():
+            auto_num_col = self.omopcdm.get_omop_auto_number_field(target_file)
+            person_id_col = self.omopcdm.get_omop_person_id_field(target_file)
+
+            cache[target_file] = {
+                "auto_num_col": auto_num_col,
+                "person_id_col": person_id_col,
+            }
+
+        return cache
+
+
+class EfficientStreamProcessor:
+    """Efficient single-pass streaming processor"""
+
+    def __init__(self, context: ProcessingContext, lookup_cache: StreamingLookupCache):
+        self.context = context
+        self.cache = lookup_cache
+
+    def process_all_data(self) -> ProcessingResult:
+        """Process all data with single-pass streaming approach"""
+        logger.info("Processing data using efficient streaming approach...")
+
+        total_output_counts = {outfile: 0 for outfile in self.context.output_files}
+        total_rejected_counts = {infile: 0 for infile in self.context.input_files}
+
+        # Process each input file
+        for source_filename in self.context.input_files:
+            try:
+                output_counts, rejected_count = self._process_input_file_stream(
+                    source_filename
+                )
+
+                # Update totals
+                for target_file, count in output_counts.items():
+                    total_output_counts[target_file] += count
+                total_rejected_counts[source_filename] = rejected_count
+
+            except Exception as e:
+                logger.error(f"Error processing file {source_filename}: {str(e)}")
+                return ProcessingResult(
+                    total_output_counts,
+                    total_rejected_counts,
+                    success=False,
+                    error_message=str(e),
+                )
+
+        return ProcessingResult(total_output_counts, total_rejected_counts)
+
+    def _process_input_file_stream(
+        self, source_filename: str
+    ) -> Tuple[Dict[str, int], int]:
+        """Stream process a single input file with direct output writing"""
+        logger.info(f"Streaming input file: {source_filename}")
+
+        file_path = self.context.input_dir / source_filename
+        if not file_path.exists():
+            logger.warning(f"Input file not found: {source_filename}")
+            return {}, 0
+
+        # Get which output tables this input file can map to
+        applicable_targets = self.cache.input_to_outputs.get(source_filename, set())
+        if not applicable_targets:
+            logger.info(f"No mappings found for {source_filename}")
+            return {}, 0
+
+        output_counts = {target: 0 for target in applicable_targets}
+        rejected_count = 0
+
+        # Get file metadata from cache
+        file_meta = self.cache.file_metadata_cache[source_filename]
+        if not file_meta["datetime_source"] or not file_meta["person_id_source"]:
+            logger.warning(f"Missing date or person ID mapping for {source_filename}")
+            return output_counts, rejected_count
+
+        try:
+            with file_path.open(mode="r", encoding="utf-8-sig") as fh:
+                csv_reader = csv.reader(fh)
+                csv_column_headers = next(csv_reader)
+                input_column_map = self.context.omopcdm.get_column_map(
+                    csv_column_headers
+                )
+
+                # Validate required columns exist
+                datetime_col_idx = input_column_map.get(file_meta["datetime_source"])
+                if datetime_col_idx is None:
+                    logger.warning(
+                        f"Date field {file_meta['datetime_source']} not found in {source_filename}"
+                    )
+                    return output_counts, rejected_count
+
+                # Stream process each row
+                for input_data in csv_reader:
+                    row_counts, row_rejected = self._process_single_row_stream(
+                        source_filename,
+                        input_data,
+                        input_column_map,
+                        applicable_targets,
+                        datetime_col_idx,
+                        file_meta,
+                    )
+
+                    for target, count in row_counts.items():
+                        output_counts[target] += count
+                    rejected_count += row_rejected
+
+        except Exception as e:
+            logger.error(f"Error streaming file {source_filename}: {str(e)}")
+
+        return output_counts, rejected_count
+
+    def _process_single_row_stream(
+        self,
+        source_filename: str,
+        input_data: List[str],
+        input_column_map: Dict[str, int],
+        applicable_targets: Set[str],
+        datetime_col_idx: int,
+        file_meta: Dict[str, Any],
+    ) -> Tuple[Dict[str, int], int]:
+        """Process single row and write directly to all applicable output files"""
+
+        # Increment input count
+        self.context.metrics.increment_key_count(
+            source=source_filename,
+            fieldname="all",
+            tablename="all",
+            concept_id="all",
+            additional="",
+            count_type="input_count",
+        )
+
+        # Normalize date once
+        fulldate = normalise_to8601(input_data[datetime_col_idx])
+        if fulldate is None:
+            self.context.metrics.increment_key_count(
+                source=source_filename,
+                fieldname="all",
+                tablename="all",
+                concept_id="all",
+                additional="",
+                count_type="input_date_fields",
+            )
+            return {}, 1
+
+        input_data[datetime_col_idx] = fulldate
+
+        row_output_counts = {}
+        total_rejected = 0
+
+        # Process this row for each applicable target table
+        for target_file in applicable_targets:
+            target_counts, target_rejected = self._process_row_for_target_stream(
+                source_filename, input_data, input_column_map, target_file, file_meta
+            )
+
+            row_output_counts[target_file] = target_counts
+            total_rejected += target_rejected
+
+        return row_output_counts, total_rejected
+
+    def _process_row_for_target_stream(
+        self,
+        source_filename: str,
+        input_data: List[str],
+        input_column_map: Dict[str, int],
+        target_file: str,
+        file_meta: Dict[str, Any],
+    ) -> Tuple[int, int]:
+        """Process row for specific target and write records directly"""
+
+        v2_mapping = self.context.mappingrules.v2_mappings[target_file][source_filename]
+        target_column_map = self.context.target_column_maps[target_file]
+
+        # Get target metadata from cache
+        target_meta = self.cache.target_metadata_cache[target_file]
+        auto_num_col = target_meta["auto_num_col"]
+        person_id_col = target_meta["person_id_col"]
+
+        data_columns = file_meta["data_fields"].get(target_file, [])
+
+        output_count = 0
+        rejected_count = 0
+
+        # Process each data column for this target
+        for data_column in data_columns:
+            if data_column not in input_column_map:
+                continue
+
+            column_output, column_rejected = self._process_data_column_stream(
+                source_filename,
+                input_data,
+                input_column_map,
+                target_file,
+                v2_mapping,
+                target_column_map,
+                data_column,
+                auto_num_col,
+                person_id_col,
+            )
+
+            output_count += column_output
+            rejected_count += column_rejected
+
+        return output_count, rejected_count
+
+    def _process_data_column_stream(
+        self,
+        source_filename: str,
+        input_data: List[str],
+        input_column_map: Dict[str, int],
+        target_file: str,
+        v2_mapping,
+        target_column_map: Dict[str, int],
+        data_column: str,
+        auto_num_col: Optional[str],
+        person_id_col: str,
+    ) -> Tuple[int, int]:
+        """Process data column and write records directly to output"""
+
+        # Create context for record building
+        context = RecordContext(
+            tgtfilename=target_file,
+            tgtcolmap=target_column_map,
+            v2_mapping=v2_mapping,
+            srcfield=data_column,
+            srcdata=input_data,
+            srccolmap=input_column_map,
+            srcfilename=source_filename,
+            omopcdm=self.context.omopcdm,
+            metrics=self.context.metrics,
+        )
+
+        # Build records
+        builder = RecordBuilderFactory.create_builder(context)
+        result = builder.build_records()
+
+        # Update metrics
+        self.context.metrics = result.metrics
+
+        if not result.build_records:
+            return 0, 0
+
+        output_count = 0
+        rejected_count = 0
+
+        # Write each record directly to output file
+        for output_record in result.records:
+            success = self._write_record_directly(
+                output_record,
+                target_file,
+                target_column_map,
+                auto_num_col,
+                person_id_col,
+                source_filename,
+                data_column,
+            )
+
+            if success:
+                output_count += 1
+            else:
+                rejected_count += 1
+
+        return output_count, rejected_count
+
+    def _write_record_directly(
+        self,
+        output_record: List[str],
+        target_file: str,
+        target_column_map: Dict[str, int],
+        auto_num_col: Optional[str],
+        person_id_col: str,
+        source_filename: str,
+        data_column: str,
+    ) -> bool:
+        """Write single record directly to output file"""
+
+        # Set auto-increment ID
+        if auto_num_col is not None:
+            output_record[target_column_map[auto_num_col]] = str(
+                self.context.record_numbers[target_file]
+            )
+            self.context.record_numbers[target_file] += 1
+
+        # Map person ID
+        person_id = output_record[target_column_map[person_id_col]]
+        if person_id in self.context.person_lookup:
+            output_record[target_column_map[person_id_col]] = (
+                self.context.person_lookup[person_id]
+            )
+
+            # Update metrics
+            self.context.metrics.increment_with_datacol(
+                source_path=source_filename,
+                target_file=target_file,
+                datacol=data_column,
+                out_record=output_record,
+            )
+
+            # Write directly to output file (files are kept open)
+            self.context.file_handles[target_file].write(
+                "\t".join(output_record) + "\n"
+            )
+
+            return True
+        else:
+            # Invalid person ID
+            self.context.metrics.increment_key_count(
+                source=source_filename,
+                fieldname="all",
+                tablename=target_file,
+                concept_id="all",
+                additional="",
+                count_type="invalid_person_ids",
+            )
+            return False
+
+
+class OutputFileManager:
+    """Manages output file creation and cleanup"""
+
+    def __init__(self, output_dir: Path, omopcdm: OmopCDM):
+        self.output_dir = output_dir
+        self.omopcdm = omopcdm
+        self.file_handles: Dict[str, TextIO] = {}
+
+    def setup_output_files(
+        self, output_files: List[str], write_mode: str
+    ) -> Tuple[Dict[str, TextIO], Dict[str, Dict[str, int]]]:
+        """Setup output files and return file handles and column maps"""
+        target_column_maps = {}
+
+        for target_file in output_files:
+            file_path = (self.output_dir / target_file).with_suffix(".tsv")
+            self.file_handles[target_file] = cast(
+                TextIO, file_path.open(mode=write_mode, encoding="utf-8")
+            )
+            if write_mode == "w":
+                output_header = self.omopcdm.get_omop_column_list(target_file)
+                self.file_handles[target_file].write("\t".join(output_header) + "\n")
+
+            target_column_maps[target_file] = self.omopcdm.get_omop_column_map(
+                target_file
+            )
+
+        return self.file_handles, target_column_maps
+
+    def close_all_files(self):
+        """Close all open file handles"""
+        for fh in self.file_handles.values():
+            fh.close()
+        self.file_handles.clear()
+
+
+class V2ProcessingOrchestrator:
+    """Main orchestrator for the entire V2 processing pipeline - Optimized Version"""
+
+    def __init__(
+        self,
+        rules_file: Path,
+        output_dir: Path,
+        input_dir: Path,
+        person_file: Path,
+        omop_ddl_file: Optional[Path],
+        omop_config_file: Optional[Path],
+        write_mode: str = "w",
+    ):
+        self.rules_file = rules_file
+        self.output_dir = output_dir
+        self.input_dir = input_dir
+        self.person_file = person_file
+        self.omop_ddl_file = omop_ddl_file
+        self.omop_config_file = omop_config_file
+        self.write_mode = write_mode
+
+        # Initialize components immediately
+        self.initialize_components()
+
+    def initialize_components(self):
+        """Initialize all processing components"""
+        self.omopcdm = OmopCDM(self.omop_ddl_file, self.omop_config_file)
+        self.mappingrules = MappingRules(self.rules_file, self.omopcdm)
+
+        if not self.mappingrules.is_v2_format:
+            raise ValueError("Rules file is not in v2 format!")
+
+        self.metrics = tools.metrics.Metrics(self.mappingrules.get_dataset_name())
+        self.output_manager = OutputFileManager(self.output_dir, self.omopcdm)
+
+        # Pre-compute lookup cache for efficient streaming
+        self.lookup_cache = StreamingLookupCache(self.mappingrules, self.omopcdm)
+
+    def setup_person_lookup(self) -> Tuple[Dict[str, str], int]:
+        """Setup person ID lookup and save mapping"""
+        saved_person_id_file = set_saved_person_id_file(None, self.output_dir)
+
+        person_lookup, rejected_person_count = load_person_ids(
+            saved_person_id_file,
+            self.person_file,
+            self.mappingrules,
+            use_input_person_ids="N",
+        )
+
+        # Save person IDs
+        with saved_person_id_file.open(mode="w") as fhpout:
+            fhpout.write("SOURCE_SUBJECT\tTARGET_SUBJECT\n")
+            for person_id, person_assigned_id in person_lookup.items():
+                fhpout.write(f"{str(person_id)}\t{str(person_assigned_id)}\n")
+
+        return person_lookup, rejected_person_count
+
+    def execute_processing(self) -> ProcessingResult:
+        """Execute the complete processing pipeline with efficient streaming"""
+
+        try:
+            # Setup person lookup
+            person_lookup, rejected_person_count = self.setup_person_lookup()
+
+            # Setup output files - keep all open for streaming
+            output_files = self.mappingrules.get_all_outfile_names()
+            file_handles, target_column_maps = self.output_manager.setup_output_files(
+                output_files, self.write_mode
+            )
+
+            # Create processing context
+            context = ProcessingContext(
+                mappingrules=self.mappingrules,
+                omopcdm=self.omopcdm,
+                input_dir=self.input_dir,
+                person_lookup=person_lookup,
+                record_numbers={output_file: 1 for output_file in output_files},
+                file_handles=file_handles,
+                target_column_maps=target_column_maps,
+                metrics=self.metrics,
+            )
+
+            # Process data using efficient streaming approach
+            processor = EfficientStreamProcessor(context, self.lookup_cache)
+            result = processor.process_all_data()
+
+            # Log results
+            logger.info(
+                f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
+            )
+            for target_file, count in result.output_counts.items():
+                logger.info(f"TARGET: {target_file}: output count {count}")
+
+            # Write summary
+            data_summary = self.metrics.get_mapstream_summary()
+            with (self.output_dir / "summary_mapstream.tsv").open(mode="w") as dsfh:
+                dsfh.write(data_summary)
+
+            return result
+
+        finally:
+            # Always close files
+            if self.output_manager:
+                self.output_manager.close_all_files()
