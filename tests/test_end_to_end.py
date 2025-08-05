@@ -308,16 +308,13 @@ def test_with_one_csv_missing(tmp_path: Path, caplog):
 
 
 @pytest.mark.unit
-def test_with_auto_person(tmp_path: Path, caplog):
+def test_with_auto_person(tmp_path: Path):
     """
-    do a full test without explicitly noting a person file
+    do a full test without explicitly noting a person file - should detect and error
     """
 
     ##
     # setup test environment(ish) in the folder
-
-    # capture all
-    caplog.set_level(logging.DEBUG)
 
     # Get the package root directory
     package_root = importlib.resources.files("carrottransform")

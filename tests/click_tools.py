@@ -9,18 +9,29 @@ import csvrow
 import carrottransform.tools.sources as sources
 
 
+# Get the package root directory
+package_root: Path = Path(importlib.resources.files("carrottransform"))
+
+
 def click_test(
     tmp_path: Path,
-    person_file: Path | str | None,
+    person_file: Path | str,
     engine: bool = False,
     persons: int | None = None,
     measurements: dict | None = None,
     observations: dict | None = None,
     conditions: dict | None = None,
+    rules_file: str | None = None,
 ):
-
+    ##
+    # check the person file
     if isinstance(person_file, str):
-        person_file = Path(__file__).parent / "test_data" / person_file
+        if not person_file.startswith("/"):
+            person_file = Path(__file__).parent / "test_data" / person_file
+        else:
+            person_file = person_file[1:]
+
+            person_file = package_root / person_file
 
     if not person_file.is_file():
         raise ValueError(f"person_file {person_file} does not exist")
@@ -35,46 +46,41 @@ def click_test(
     csv_files.insert(0, person_file.name)
 
     # find the only rules file in that folder
-    rules = [f for f in person_file.parent.glob("*.json") if f.is_file()]
-    rules = list(rules)
-    if len(rules) != 1:
-        raise ValueError(
-            f"expected exactly one json file, found {rules=} in {person_file.parent}"
-        )
-    rules_json_file = rules[0]
+    rules_json_file: Path
+    if rules_file is not None:
+        rules_json_file = package_root / rules_file[1:]
+    else:
+        rules = [f for f in person_file.parent.glob("*.json") if f.is_file()]
+        rules = list(rules)
+        if len(rules) != 1:
+            raise ValueError(
+                f"expected exactly one json file, found {rules=} in {person_file.parent}"
+            )
+        rules_json_file = rules[0]
 
     ##
     #
 
-    # Get the package root directory
-    package_root = importlib.resources.files("carrottransform")
-    package_root = (
-        package_root if isinstance(package_root, Path) else Path(str(package_root))
-    )
-
     # output dir needs to be pre-created
     output = tmp_path / "out"
-    output.mkdir()
+    output.mkdir(exist_ok=True)
 
     ##
     # create the sqlite database
     # ... also change enough parameters we know we're not cheating and looking at the .csv files
     if engine:
-        connectio_string =f"sqlite:///{ (tmp_path / 'testing.db').absolute()}"
-        source = sources.SourceOpener(
-            engine=connectio_string
-        )
+        connectio_string = f"sqlite:///{(tmp_path / 'testing.db').absolute()}"
+        source = sources.SourceOpener(engine=connectio_string)
         for csv_file in csv_files:
-            csv_file = person_file.parent / csv_file
-            table = csv_file.name[:-4]
+            csv_path: Path = person_file.parent / csv_file
+            table = csv_path.name[:-4]
 
-            source.load(table, csv_file)
-        
+            source.load(table, csv_path)
+
         copied = tmp_path / "rules.json"
         shutil.copy(rules_json_file, copied)
         rules_json_file = copied
         person_file = tmp_path / person_file.name
-
 
     ##
     # run click
@@ -98,8 +104,7 @@ def click_test(
     )
 
     if result.exception is not None:
-        raise(result.exception)
-
+        raise (result.exception)
 
     assert 0 == result.exit_code
 
@@ -137,9 +142,7 @@ def click_test(
             assert len(person_id_source2target) == persons
             assert len(person_id_target2source) == persons
         else:
-            raise Exception(
-                f"persons check is {type(persons)=}"
-            )
+            raise Exception(f"persons check is {type(persons)=}")
 
         # the state in observations
         if observations is not None:
@@ -149,7 +152,10 @@ def click_test(
 
                 assert assert_to_int(observation.observation_type_concept_id) == 0
                 assert observation.value_as_number == ""
-                assert observation.observation_date == observation.observation_datetime[:10]
+                assert (
+                    observation.observation_date
+                    == observation.observation_datetime[:10]
+                )
                 assert observation.value_as_concept_id == ""
                 assert observation.qualifier_concept_id == ""
                 assert observation.unit_concept_id == ""
@@ -162,7 +168,9 @@ def click_test(
                     observation.observation_concept_id
                     == observation.observation_source_concept_id
                 )
-                assert observation.value_as_string == observation.observation_source_value
+                assert (
+                    observation.value_as_string == observation.observation_source_value
+                )
 
                 assert observation.person_id in person_id_target2source
                 src_person_id = assert_to_int(
@@ -176,11 +184,14 @@ def click_test(
                 assert src_person_id in observations, observation
                 assert observation_date in observations[src_person_id], observation
                 assert (
-                    observation_concept_id in observations[src_person_id][observation_date]
+                    observation_concept_id
+                    in observations[src_person_id][observation_date]
                 ), observation
 
                 assert (
-                    observations[src_person_id][observation_date][observation_concept_id]
+                    observations[src_person_id][observation_date][
+                        observation_concept_id
+                    ]
                     == observation_source_value
                 ), observation
 
@@ -205,7 +216,9 @@ def click_test(
                 concept = assert_to_int(measurement.measurement_concept_id)
                 value = assert_to_int(measurement.value_as_number)
 
-                assert src_person_id in measurements, f"{src_person_id=} {measurement=} "
+                assert src_person_id in measurements, (
+                    f"{src_person_id=} {measurement=} "
+                )
                 assert date in measurements[src_person_id], (
                     f"{src_person_id=} {date=} {measurement=}"
                 )
@@ -225,7 +238,9 @@ def click_test(
             for condition in csvrow.csv_rows(output / "condition_occurrence.tsv", "\t"):
                 conditions_seen += 1
 
-                src_person_id = assert_to_int(person_id_target2source[condition.person_id])
+                src_person_id = assert_to_int(
+                    person_id_target2source[condition.person_id]
+                )
                 src_date = condition.condition_start_datetime
                 concept_id = assert_to_int(condition.condition_concept_id)
                 src_value = assert_to_int(condition.condition_source_value)
@@ -247,4 +262,3 @@ def click_test(
             assert record_count(conditions) == conditions_seen
 
     return (result, output, person_id_source2target, person_id_target2source)
-

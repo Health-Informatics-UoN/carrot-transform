@@ -176,8 +176,8 @@ def mapstream(
 
     # check on the rules file
     if (rules_file is None) or (not rules_file.is_file()):
-        logger.exception(f"rules file was set to `{rules_file=}` and is missing")
-        sys.exit(-1)
+        logger.error(f"rules file was set to `{rules_file=}` and is missing")
+        sys.exit()
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(
@@ -187,9 +187,11 @@ def mapstream(
     ## check directories are valid
 
     if input_dir is None and alchemy_engine is None:
-        raise Exception("need alchemy engine or input dir")
+        logger.error("need alchemy engine or input dir")
+        sys.exit()
     elif input_dir is not None and alchemy_engine is not None:
-        raise Exception("can't have both alchemy engine and input dir")
+        logger.error("can't have both alchemy engine and input dir")
+        sys.exit()
 
     if input_dir is not None:
         check_dir_isvalid(
@@ -264,7 +266,7 @@ def mapstream(
 
     except IOError as e:
         logger.exception(f"I/O - error({e.errno}): {e.strerror} -> {str(e)}")
-        exit()
+        sys.exit()
 
     logger.info(
         f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
@@ -422,9 +424,8 @@ def mapstream(
 
     data_summary = metrics.get_mapstream_summary()
     try:
-        dsfh = (output_dir / "summary_mapstream.tsv").open(mode="w")
-        dsfh.write(data_summary)
-        dsfh.close()
+        with (output_dir / "summary_mapstream.tsv").open(mode="w") as dsfh:
+            dsfh.write(data_summary)
     except IOError as e:
         logger.exception(f"I/O error({e.errno}): {e.strerror}")
         logger.exception("Unable to write file")

@@ -6,9 +6,9 @@ these are various integration tests for carroti using pytest and the inbuild cli
 import pytest
 
 from pathlib import Path
+import tests.click_tools as click_tools
 
 
-import clicktools
 import csvrow
 
 
@@ -614,8 +614,16 @@ def check__mapping_person(
         ),
     ],
 )
+@pytest.mark.parametrize(
+    "engine",
+    [
+        pytest.param(False, id="use CSV source"),
+        pytest.param(True, id="use SQL source"),
+    ],
+)
 def test_fixture(
     tmp_path: Path,
+    engine: bool,
     patient_csv,
     persons,
     observations,
@@ -623,16 +631,16 @@ def test_fixture(
     conditions,
     post_check,
 ):
-    # TODO; inter these functions
+    # TODO; should the `click_tools.click_test` be itnernalised here? Some tests from test_datetime would ahve to come as well.
     (result, output, person_id_source2target, person_id_target2source) = (
-        clicktools.click_generic(
-            tmp_path,
-            patient_csv,
-            #
+        click_tools.click_test(
+            tmp_path=tmp_path,
+            person_file=patient_csv,
             persons=persons,
             observations=observations,
             measurements=measurements,
             conditions=conditions,
+            engine=engine,
         )
     )
 

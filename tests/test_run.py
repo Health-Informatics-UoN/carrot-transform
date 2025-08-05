@@ -143,7 +143,7 @@ def test_successful_file_open(tmp_path: Path):
         f.write(file_content)
 
     source = sources.SourceOpener(folder=file_path.parent)
-    csv_reader = source.open_csv(file_path)
+    csv_reader = source.open(file_path.name)
 
     assert csv_reader is not None
 
@@ -199,7 +199,7 @@ def test_utf8_with_bom(tmp_path: Path):
         f.write(content.encode("utf-8"))
 
     source = sources.SourceOpener(folder=file_path.parent)
-    csv_reader = source.open_csv(file_path)
+    csv_reader = source.open(file_path.name)
 
     assert csv_reader is not None
 

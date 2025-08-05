@@ -1,9 +1,8 @@
-import csv
 import json
 import logging
 import sys
 import importlib.resources as resources
-from typing import IO, Iterator, List, Optional
+from typing import List, Optional
 from pathlib import Path
 
 logger = logging.getLogger(__name__)

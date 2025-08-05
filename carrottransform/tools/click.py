@@ -3,6 +3,8 @@ from pathlib import Path
 
 
 from sqlalchemy import create_engine
+
+
 def PathArgs():
     """used by the click library for CLI args that are files"""
 
@@ -23,7 +25,6 @@ PathArgs = PathArgs()
 
 
 def AlchemyEngine():
-
     """should enforce an sql alchemy thing"""
 
     class AlchemyEngine(click.ParamType):
@@ -33,8 +34,11 @@ def AlchemyEngine():
             try:
                 return create_engine(value)
             except Exception as e:
-                self.fail(f"Invalid sqlalchemy connection string: {value} ({e})", param, ctx)
+                self.fail(
+                    f"Invalid sqlalchemy connection string: {value} ({e})", param, ctx
+                )
 
     return AlchemyEngine()
+
 
 AlchemyEngine = AlchemyEngine()

@@ -7,17 +7,6 @@ import sqlalchemy
 
 logger = logging.getLogger(__name__)
 
-# def open_csv(file_path: Path) -> Iterator[list[str]] | None:
-#     """opens a file and does something related to CSVs"""
-#     try:
-#         fh = file_path.open(mode="r", encoding="utf-8-sig")
-#         csvr = csv.reader(fh)
-#         return csvr
-#     except IOError as e:
-#         logger.exception("Unable to open: {0}".format(file_path))
-#         logger.exception("I/O error({0}): {1}".format(e.errno, e.strerror))
-#         return None
-
 
 class SourceException(Exception):
     def __init__(self, source, message: str):
@@ -46,25 +35,6 @@ class SourceFileNotFoundException(SourceNotFoundException):
         self._path = path
 
 
-def eager_generator(func):
-    """forces a generator to evaluate the code leading up to the first yield. this is needed to detect missing files or broken connections"""
-    import itertools
-
-    def wrapper(*args, **kwargs):
-        gen = func(*args, **kwargs)
-        # Force the generator to run until first yield
-        try:
-            first = next(gen)
-        except StopIteration:
-            return gen  # empty generator
-        except Exception as e:
-            raise e
-        # Return a new generator that yields first, then the rest
-        return itertools.chain([first], gen)
-
-    return wrapper
-
-
 class SourceOpener:
     def __init__(
         self,
@@ -72,25 +42,41 @@ class SourceOpener:
         engine: sqlalchemy.engine.Engine | str | None = None,
     ) -> None:
         self._folder = folder
-
         if self._folder is not None:
+            assert engine is None
             if not self._folder.is_dir():
                 raise SourceFolderMissingException(self)
 
         if engine is None:
+            assert self._folder is not None
             self._engine = None
         elif isinstance(engine, str):
+            assert self._folder is None
             self._engine = sqlalchemy.create_engine(engine)
         else:
             self._engine = engine
 
+        assert (self._folder is None) or (self._engine is None)
+        assert (self._folder is not None) or (self._engine is not None)
+
     def load(self, tablename: str, csv: Path):
-        """load a csv file into a database"""
+        """load a csv file into a database. does some adjustments to make sure the column names work"""
 
         assert self._engine is not None
 
-        csvr = self.open_csv(csv)
+        csvr = self._open_csv(csv)
         column_names = next(csvr)
+
+        # if the column names have a blank at the end we need to stripit
+        if "" == column_names[-1]:
+            column_names = column_names[:-1]
+
+        # make sure there's no other blankes
+        for name in column_names:
+            if "" == name:
+                raise Exception("can't have a blank column name in the CSVs")
+            if " " in name:
+                raise Exception("can't have spaces in the CSV column names")
 
         # Create the table in the database
         metadata = MetaData()
@@ -99,28 +85,32 @@ class SourceOpener:
         )
         metadata.create_all(self._engine, tables=[table])
 
-        records = [dict(zip(column_names, row)) for row in csvr]
-
-        # Insert rows
+        # # Insert rows
         with self._engine.begin() as conn:
-            conn.execute(insert(table), records)
+            for row in csvr:
+                record = dict(zip(column_names, row))
+                conn.execute(insert(table), record)
 
-    @eager_generator
     def open(self, name: str):
         assert name.endswith(".csv")
 
-        assert (self._folder is None) or (self._engine is None)
-        assert (self._folder is not None) or (self._engine is not None)
-
         if self._folder is not None:
-            src = self.open_csv(name)
+            src = self._open_csv(name)
         else:
-            src = self.open_sql(name)
+            src = self._open_sql(name)
 
-        for i in src:
-            yield i
+        # Force the generator to run until first yield
+        import itertools
 
-    def open_csv(self, name: str | Path):
+        try:
+            first = next(src)
+        except StopIteration:
+            return src  # empty generator
+        except Exception as e:
+            raise e
+        return itertools.chain([first], src)
+
+    def _open_csv(self, name: str | Path):
         """opens a file and returns the headers and rows"""
 
         assert isinstance(name, Path) or (
@@ -136,7 +126,7 @@ class SourceOpener:
             for row in csv.reader(file):
                 yield row
 
-    def open_sql(self, name: str):
+    def _open_sql(self, name: str):
         assert name.endswith(".csv")
         name = name[:-4]
 
