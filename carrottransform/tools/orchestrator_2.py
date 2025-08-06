@@ -1,8 +1,6 @@
 import csv
 from pathlib import Path
-from typing import Dict, Tuple, Any, Optional, TextIO, List, Set, cast
-from collections import defaultdict
-
+from typing import Dict, Tuple, Any, Optional, List, Set
 import carrottransform.tools as tools
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
@@ -18,68 +16,13 @@ from carrottransform.tools.types import (
     RecordContext,
 )
 from carrottransform.tools.record_builder import RecordBuilderFactory
+from carrottransform.tools.file_helpers import OutputFileManager
+from carrottransform.tools.stream_helpers import StreamingLookupCache
 
 logger = logger_setup()
 
 
-class StreamingLookupCache:
-    """Pre-computed lookup tables for efficient streaming processing"""
-
-    def __init__(self, mappingrules: MappingRules, omopcdm: OmopCDM):
-        self.mappingrules = mappingrules
-        self.omopcdm = omopcdm
-
-        # Pre-compute lookups
-        self.input_to_outputs = self._build_input_to_output_lookup()
-        self.file_metadata_cache = self._build_file_metadata_cache()
-        self.target_metadata_cache = self._build_target_metadata_cache()
-
-    def _build_input_to_output_lookup(self) -> Dict[str, Set[str]]:
-        """Build lookup: input_file -> set of output tables it can map to"""
-        lookup = defaultdict(set)
-
-        for target_file, source_mappings in self.mappingrules.v2_mappings.items():
-            for source_file in source_mappings.keys():
-                lookup[source_file].add(target_file)
-
-        return dict(lookup)
-
-    def _build_file_metadata_cache(self) -> Dict[str, Dict[str, Any]]:
-        """Pre-compute metadata for each input file"""
-        cache = {}
-
-        for input_file in self.mappingrules.get_all_infile_names():
-            datetime_source, person_id_source = (
-                self.mappingrules.get_infile_date_person_id(input_file)
-            )
-
-            data_fields = self.mappingrules.get_infile_data_fields(input_file)
-
-            cache[input_file] = {
-                "datetime_source": datetime_source,
-                "person_id_source": person_id_source,
-                "data_fields": data_fields,
-            }
-
-        return cache
-
-    def _build_target_metadata_cache(self) -> Dict[str, Dict[str, Any]]:
-        """Pre-compute metadata for each target table"""
-        cache = {}
-
-        for target_file in self.mappingrules.get_all_outfile_names():
-            auto_num_col = self.omopcdm.get_omop_auto_number_field(target_file)
-            person_id_col = self.omopcdm.get_omop_person_id_field(target_file)
-
-            cache[target_file] = {
-                "auto_num_col": auto_num_col,
-                "person_id_col": person_id_col,
-            }
-
-        return cache
-
-
-class EfficientStreamProcessor:
+class StreamProcessor:
     """Efficient single-pass streaming processor"""
 
     def __init__(self, context: ProcessingContext, lookup_cache: StreamingLookupCache):
@@ -88,7 +31,7 @@ class EfficientStreamProcessor:
 
     def process_all_data(self) -> ProcessingResult:
         """Process all data with single-pass streaming approach"""
-        logger.info("Processing data using efficient streaming approach...")
+        logger.info("Processing data...")
 
         total_output_counts = {outfile: 0 for outfile in self.context.output_files}
         total_rejected_counts = {infile: 0 for infile in self.context.input_files}
@@ -385,44 +328,8 @@ class EfficientStreamProcessor:
             return False
 
 
-class OutputFileManager:
-    """Manages output file creation and cleanup"""
-
-    def __init__(self, output_dir: Path, omopcdm: OmopCDM):
-        self.output_dir = output_dir
-        self.omopcdm = omopcdm
-        self.file_handles: Dict[str, TextIO] = {}
-
-    def setup_output_files(
-        self, output_files: List[str], write_mode: str
-    ) -> Tuple[Dict[str, TextIO], Dict[str, Dict[str, int]]]:
-        """Setup output files and return file handles and column maps"""
-        target_column_maps = {}
-
-        for target_file in output_files:
-            file_path = (self.output_dir / target_file).with_suffix(".tsv")
-            self.file_handles[target_file] = cast(
-                TextIO, file_path.open(mode=write_mode, encoding="utf-8")
-            )
-            if write_mode == "w":
-                output_header = self.omopcdm.get_omop_column_list(target_file)
-                self.file_handles[target_file].write("\t".join(output_header) + "\n")
-
-            target_column_maps[target_file] = self.omopcdm.get_omop_column_map(
-                target_file
-            )
-
-        return self.file_handles, target_column_maps
-
-    def close_all_files(self):
-        """Close all open file handles"""
-        for fh in self.file_handles.values():
-            fh.close()
-        self.file_handles.clear()
-
-
 class V2ProcessingOrchestrator:
-    """Main orchestrator for the entire V2 processing pipeline - Optimized Version"""
+    """Main orchestrator for the entire V2 processing pipeline"""
 
     def __init__(
         self,
@@ -504,7 +411,7 @@ class V2ProcessingOrchestrator:
             )
 
             # Process data using efficient streaming approach
-            processor = EfficientStreamProcessor(context, self.lookup_cache)
+            processor = StreamProcessor(context, self.lookup_cache)
             result = processor.process_all_data()
 
             # Log results
