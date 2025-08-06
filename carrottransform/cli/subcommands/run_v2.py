@@ -13,7 +13,7 @@ from carrottransform.tools.file_helpers import (
     set_omop_filenames,
 )
 from carrottransform.tools.logger import logger_setup
-from carrottransform.tools.orchestrator_2 import V2ProcessingOrchestrator
+from carrottransform.tools.orchestrator import V2ProcessingOrchestrator
 
 logger = logger_setup()
 
