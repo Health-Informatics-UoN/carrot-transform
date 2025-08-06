@@ -21,15 +21,13 @@ def load_last_used_ids(last_used_ids_file: Path, last_used_ids):
 
 def load_person_ids(
     saved_person_id_file,
-    person_file,
+    csvr,  #: Iterable[list[str]],
     mappingrules: MappingRules,
     use_input_person_ids,
     delim=",",
 ):
     person_ids, person_number = _get_person_lookup(saved_person_id_file)
 
-    fh = person_file.open(mode="r", encoding="utf-8-sig")
-    csvr = csv.reader(fh, delimiter=delim)
     person_columns = {}
     person_col_in_hdr_number = 0
     reject_count = 0
@@ -72,7 +70,6 @@ def load_person_ids(
                 person_ids[persondata[person_col]] = str(
                     persondata[person_col]
                 )  # use existing person_id
-    fh.close()
 
     return person_ids, reject_count
 

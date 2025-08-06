@@ -1,14 +1,14 @@
+import carrottransform.tools.sources as sources
+
 import sys
 import time
 from pathlib import Path
 import click
-
+from sqlalchemy.engine import Engine
 import carrottransform.tools as tools
-from carrottransform.tools.click import PathArgs
+from carrottransform.tools.click import PathArgs, AlchemyEngine
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
-    check_files_in_rules_exist,
-    open_file,
     resolve_paths,
     set_omop_filenames,
 )
@@ -95,7 +95,13 @@ logger = logger_setup()
     default=0,
     help="Lower outcount limit for logfile output",
 )
-@click.option("--input-dir", type=PathArgs, required=True, help="Input directories")
+@click.option("--input-dir", type=PathArgs, required=False, help="Input directories")
+@click.option(
+    "--alchemy-input",
+    type=AlchemyEngine,
+    required=False,
+    help="Connection string for input from a database",
+)
 def mapstream(
     rules_file: Path,
     output_dir: Path,
@@ -109,13 +115,23 @@ def mapstream(
     last_used_ids_file: Path,
     log_file_threshold,
     input_dir: Path,
+    alchemy_input: Engine,
 ):
     """
     Map to output using input streams
     """
 
     # Resolve any @package paths in the arguments
-    resolved_paths = resolve_paths(
+    [
+        rules_file,
+        output_dir,
+        person_file,
+        omop_ddl_file,
+        omop_config_file,
+        saved_person_id_file,
+        last_used_ids_file,
+        input_dir,
+    ] = resolve_paths(
         [
             rules_file,
             output_dir,
@@ -127,18 +143,6 @@ def mapstream(
             input_dir,
         ]
     )
-
-    # Assign back resolved paths
-    [
-        rules_file,
-        output_dir,
-        person_file,
-        omop_ddl_file,
-        omop_config_file,
-        saved_person_id_file,
-        last_used_ids_file,
-        input_dir,
-    ] = resolved_paths  # type: ignore
 
     # Initialisation
     # - check for values in optional arguments
@@ -163,6 +167,7 @@ def mapstream(
                     last_used_ids_file,
                     log_file_threshold,
                     input_dir,
+                    alchemy_input,
                 ],
             )
         )
@@ -170,15 +175,33 @@ def mapstream(
 
     # check on the rules file
     if (rules_file is None) or (not rules_file.is_file()):
-        logger.exception(f"rules file was set to `{rules_file=}` and is missing")
-        sys.exit(-1)
+        logger.error(f"rules file was set to `{rules_file=}` and is missing")
+        sys.exit()
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(
         omop_ddl_file, omop_config_file, omop_version
     )
-    ## check directories are valid
-    check_dir_isvalid(input_dir)  # Input directory must exist - we need the files in it
+
+    ## create the SourceOpener object we'll use
+    if alchemy_input is not None:
+        source = sources.SourceOpener(engine=alchemy_input)
+        logger.info("input data will be take from the SQLAlchemy connection")
+    else:
+        if not person_file.is_file():
+            raise click.BadArgumentUsage(
+                f"the supplied person file does not exist {person_file}"
+            )
+        if (input_dir is not None) and person_file.parent != input_dir:
+            raise click.BadArgumentUsage(
+                "the supplied person file must be in the input_dir"
+            )
+
+        source = sources.SourceOpener(folder=person_file.parent)
+    # input_dir is now redudnat?
+    input_dir = person_file.parent
+
+    # ## check directories are valid
     check_dir_isvalid(
         output_dir, create_if_missing=True
     )  # Create output directory if needed
@@ -216,7 +239,10 @@ def mapstream(
     try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
         person_lookup, rejected_person_count = load_person_ids(
-            saved_person_id_file, person_file, mappingrules, use_input_person_ids
+            saved_person_id_file,
+            source.open(person_file.name),
+            mappingrules,
+            use_input_person_ids,
         )
         ## open person_ids output file
         with saved_person_id_file.open(mode="w") as fhpout:
@@ -241,18 +267,13 @@ def mapstream(
 
     except IOError as e:
         logger.exception(f"I/O - error({e.errno}): {e.strerror} -> {str(e)}")
-        exit()
+        sys.exit()
 
     logger.info(
         f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
     )
 
-    ## Compare files found in the input_dir with those expected based on mapping rules
-    existing_input_files = [f.name for f in input_dir.glob("*.csv")]
     rules_input_files = mappingrules.get_all_infile_names()
-
-    ## Log mismatches but continue
-    check_files_in_rules_exist(rules_input_files, existing_input_files)
 
     ## set up overall counts
     rejidcounts = {}
@@ -268,10 +289,7 @@ def mapstream(
     for srcfilename in rules_input_files:
         rcount = 0
 
-        fhcsvr = open_file(input_dir / srcfilename)
-        if fhcsvr is None:  # check if it's none before unpacking
-            raise Exception(f"Couldn't find file {srcfilename} in {input_dir}")
-        fh, csvr = fhcsvr  # unpack now because we can't unpack none
+        csvr = source.open(srcfilename)
 
         ## create dict for input file, giving the data and output file
         tgtfiles, src_to_tgt = mappingrules.parse_rules_src_to_tgt(srcfilename)
@@ -386,8 +404,6 @@ def mapstream(
                     if tgtfile == "person":
                         break
 
-        fh.close()
-
         logger.info(
             f"INPUT file data : {srcfilename}: input count {str(rcount)}, time since start {time.time() - start_time:.5} secs"
         )
@@ -401,9 +417,8 @@ def mapstream(
 
     data_summary = metrics.get_mapstream_summary()
     try:
-        dsfh = (output_dir / "summary_mapstream.tsv").open(mode="w")
-        dsfh.write(data_summary)
-        dsfh.close()
+        with (output_dir / "summary_mapstream.tsv").open(mode="w") as dsfh:
+            dsfh.write(data_summary)
     except IOError as e:
         logger.exception(f"I/O error({e.errno}): {e.strerror}")
         logger.exception("Unable to write file")
