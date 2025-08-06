@@ -3,8 +3,9 @@ import json
 import logging
 import sys
 import importlib.resources as resources
-from typing import IO, Iterator, List, Optional
+from typing import IO, Iterator, List, Optional, Dict, TextIO, Tuple, cast
 from pathlib import Path
+from carrottransform.tools.omopcdm import OmopCDM
 
 logger = logging.getLogger(__name__)
 
@@ -146,3 +147,39 @@ def set_omop_filenames(
             logger.warning(f"Default DDL file not found: {omop_ddl_file}")
 
     return omop_config_file, omop_ddl_file
+
+
+class OutputFileManager:
+    """Manages output file creation and cleanup"""
+
+    def __init__(self, output_dir: Path, omopcdm: OmopCDM):
+        self.output_dir = output_dir
+        self.omopcdm = omopcdm
+        self.file_handles: Dict[str, TextIO] = {}
+
+    def setup_output_files(
+        self, output_files: List[str], write_mode: str
+    ) -> Tuple[Dict[str, TextIO], Dict[str, Dict[str, int]]]:
+        """Setup output files and return file handles and column maps"""
+        target_column_maps = {}
+
+        for target_file in output_files:
+            file_path = (self.output_dir / target_file).with_suffix(".tsv")
+            self.file_handles[target_file] = cast(
+                TextIO, file_path.open(mode=write_mode, encoding="utf-8")
+            )
+            if write_mode == "w":
+                output_header = self.omopcdm.get_omop_column_list(target_file)
+                self.file_handles[target_file].write("\t".join(output_header) + "\n")
+
+            target_column_maps[target_file] = self.omopcdm.get_omop_column_map(
+                target_file
+            )
+
+        return self.file_handles, target_column_maps
+
+    def close_all_files(self):
+        """Close all open file handles"""
+        for fh in self.file_handles.values():
+            fh.close()
+        self.file_handles.clear()

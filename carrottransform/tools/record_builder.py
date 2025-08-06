@@ -21,15 +21,6 @@ class TargetRecordBuilder(ABC):
 
     def __init__(self, context: RecordContext):
         self.context = context
-        self.date_col_data = context.omopcdm.get_omop_datetime_linked_fields(
-            context.tgtfilename
-        )
-        self.date_component_data = context.omopcdm.get_omop_date_field_components(
-            context.tgtfilename
-        )
-        self.notnull_numeric_fields = context.omopcdm.get_omop_notnull_numeric_fields(
-            context.tgtfilename
-        )
 
     @abstractmethod
     def build_records(self) -> RecordResult:
@@ -41,7 +32,7 @@ class TargetRecordBuilder(ABC):
         tgtarray = [""] * len(self.context.tgtcolmap)
 
         # Initialize numeric fields to 0
-        for req_integer in self.notnull_numeric_fields:
+        for req_integer in self.context.notnull_numeric_fields:
             if req_integer in self.context.tgtcolmap:
                 tgtarray[self.context.tgtcolmap[req_integer]] = "0"
 
@@ -105,7 +96,7 @@ class TargetRecordBuilder(ABC):
     ) -> bool:
         """Apply a single date field mapping"""
         # Handle date component fields (birth dates with year/month/day)
-        if dest_field in self.date_component_data:
+        if dest_field in self.context.date_component_data:
             dt = get_datetime_value(source_date.split(" ")[0])
             if dt is None:
                 self.context.metrics.increment_key_count(
@@ -120,7 +111,7 @@ class TargetRecordBuilder(ABC):
                 return False
 
             # Set individual date components
-            component_info = self.date_component_data[dest_field]
+            component_info = self.context.date_component_data[dest_field]
             if (
                 "year" in component_info
                 and component_info["year"] in self.context.tgtcolmap
@@ -143,19 +134,61 @@ class TargetRecordBuilder(ABC):
             tgtarray[self.context.tgtcolmap[dest_field]] = source_date
 
         # Handle regular date fields with linked date-only fields
-        elif dest_field in self.date_col_data:
+        elif dest_field in self.context.date_col_data:
             tgtarray[self.context.tgtcolmap[dest_field]] = source_date
             # Set the linked date-only field
-            if self.date_col_data[dest_field] in self.context.tgtcolmap:
-                tgtarray[self.context.tgtcolmap[self.date_col_data[dest_field]]] = (
-                    source_date[:10]
-                )
+            if self.context.date_col_data[dest_field] in self.context.tgtcolmap:
+                tgtarray[
+                    self.context.tgtcolmap[self.context.date_col_data[dest_field]]
+                ] = source_date[:10]
 
         # Handle simple date fields
         else:
             tgtarray[self.context.tgtcolmap[dest_field]] = source_date
 
         return True
+
+    def write_record_directly(self, output_record: List[str]) -> bool:
+        """Write single record directly to output file with all necessary processing"""
+        # Set auto-increment ID
+        if self.context.auto_num_col is not None:
+            output_record[self.context.tgtcolmap[self.context.auto_num_col]] = str(
+                self.context.record_numbers[self.context.tgtfilename]
+            )
+            self.context.record_numbers[self.context.tgtfilename] += 1
+
+        # Map person ID
+        person_id = output_record[self.context.tgtcolmap[self.context.person_id_col]]
+        if person_id in self.context.person_lookup:
+            output_record[self.context.tgtcolmap[self.context.person_id_col]] = (
+                self.context.person_lookup[person_id]
+            )
+
+            # Update metrics
+            self.context.metrics.increment_with_datacol(
+                source_path=self.context.srcfilename,
+                target_file=self.context.tgtfilename,
+                datacol=self.context.srcfield,
+                out_record=output_record,
+            )
+
+            # Write directly to output file (files are kept open)
+            self.context.file_handles[self.context.tgtfilename].write(
+                "\t".join(output_record) + "\n"
+            )
+
+            return True
+        else:
+            # Invalid person ID
+            self.context.metrics.increment_key_count(
+                source=self.context.srcfilename,
+                fieldname="all",
+                tablename=self.context.tgtfilename,
+                concept_id="all",
+                additional="",
+                count_type="invalid_person_ids",
+            )
+            return False
 
 
 class PersonRecordBuilder(TargetRecordBuilder):
@@ -169,14 +202,14 @@ class PersonRecordBuilder(TargetRecordBuilder):
         """Build person table records with special merging logic"""
         # Check if person ID mapping exists
         if not self.context.v2_mapping.person_id_mapping:
-            return RecordResult(False, [], self.context.metrics)
+            return RecordResult(False, 0, self.context.metrics)
 
         # Create a unique key for this source row
         person_key = f"{self.context.srcfilename}:{self.context.srcdata[self.context.srccolmap[self.context.v2_mapping.person_id_mapping.source_field]]}"
 
         # Only process if we haven't already processed this person record
         if person_key in self.processed_cache:
-            return RecordResult(False, [], self.context.metrics)
+            return RecordResult(False, 0, self.context.metrics)
 
         # Mark this person as processed
         self.processed_cache.add(person_key)
@@ -186,7 +219,7 @@ class PersonRecordBuilder(TargetRecordBuilder):
 
         # If no valid mappings found, return empty
         if not all_concept_mappings and not all_original_values:
-            return RecordResult(False, [], self.context.metrics)
+            return RecordResult(False, 0, self.context.metrics)
 
         # Generate combined concept combinations
         concept_combinations = (
@@ -196,15 +229,17 @@ class PersonRecordBuilder(TargetRecordBuilder):
         )
 
         # Create person records for each combination
-        records = []
+        record_count = 0
         for concept_combo in concept_combinations:
             record = self._build_single_person_record(
                 concept_combo, all_original_values
             )
             if record:
-                records.append(record)
+                # Write record directly using the built-in method
+                if self.write_record_directly(record):
+                    record_count += 1
 
-        return RecordResult(bool(records), records, self.context.metrics)
+        return RecordResult(record_count > 0, record_count, self.context.metrics)
 
     def _collect_all_mappings(self) -> Tuple[Dict[str, List[int]], Dict[str, str]]:
         """Collect all concept mappings and original values from all fields"""
@@ -280,11 +315,11 @@ class StandardRecordBuilder(TargetRecordBuilder):
                 additional="",
                 count_type="invalid_source_fields",
             )
-            return RecordResult(False, [], self.context.metrics)
+            return RecordResult(False, 0, self.context.metrics)
 
         # Check if we have a concept mapping for this field
         if self.context.srcfield not in self.context.v2_mapping.concept_mappings:
-            return RecordResult(False, [], self.context.metrics)
+            return RecordResult(False, 0, self.context.metrics)
 
         concept_mapping = self.context.v2_mapping.concept_mappings[
             self.context.srcfield
@@ -298,28 +333,33 @@ class StandardRecordBuilder(TargetRecordBuilder):
 
         # Only proceed if we have concept mappings OR original value fields
         if not value_mapping and not concept_mapping.original_value_fields:
-            return RecordResult(False, [], self.context.metrics)
+            return RecordResult(False, 0, self.context.metrics)
 
         # Generate all concept combinations
         concept_combinations = generate_combinations(value_mapping)
 
         # If no concept combinations, don't build records
         if not concept_combinations:
-            return RecordResult(False, [], self.context.metrics)
+            return RecordResult(False, 0, self.context.metrics)
 
         # Create records for each concept combination
-        records = []
+        record_count = 0
         for concept_combo in concept_combinations:
             record = self._build_single_standard_record(
                 concept_combo, concept_mapping, source_value
             )
             if record:
-                records.append(record)
+                # Write record directly using the built-in method
+                if self.write_record_directly(record):
+                    record_count += 1
+                else:
+                    # If write fails, return failure
+                    return RecordResult(False, 0, self.context.metrics)
             else:
                 # If any record fails, return failure
-                return RecordResult(False, [], self.context.metrics)
+                return RecordResult(False, 0, self.context.metrics)
 
-        return RecordResult(bool(records), records, self.context.metrics)
+        return RecordResult(record_count > 0, record_count, self.context.metrics)
 
     def _build_single_standard_record(
         self,
