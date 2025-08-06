@@ -77,7 +77,6 @@ logger = logger_setup()
     help="Full path to person id file used to save person_id state and share person_ids between data sets",
 )
 @click.option(
-    # this parameter is redundant isn't it? if the above or below ones are set we assume this is true
     "--use-input-person-ids",
     required=False,
     default="N",
