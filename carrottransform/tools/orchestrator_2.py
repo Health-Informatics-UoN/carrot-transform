@@ -239,6 +239,7 @@ class StreamProcessor:
     ) -> Tuple[int, int]:
         """Process data column and write records directly to output"""
 
+        rejected_count = 0
         # Create context for record building with direct write capability
         context = RecordContext(
             tgtfilename=target_file,
@@ -268,11 +269,10 @@ class StreamProcessor:
         # Update metrics
         self.context.metrics = result.metrics
 
-        if not result.build_record:
-            return 0, 0
+        if not result.success:
+            rejected_count += 1
 
-        # Records were written directly by RecordBuilder, just return the count
-        return result.record_count, 0
+        return result.record_count, rejected_count
 
 
 class V2ProcessingOrchestrator:

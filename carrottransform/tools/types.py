@@ -33,7 +33,7 @@ class ProcessingContext:
 class RecordResult:
     """Result of record building operation"""
 
-    build_record: bool
+    success: bool
     record_count: int
     metrics: tools.metrics.Metrics
 
