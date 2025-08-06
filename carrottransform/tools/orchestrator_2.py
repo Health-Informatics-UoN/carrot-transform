@@ -16,7 +16,7 @@ from carrottransform.tools.types import (
     RecordContext,
 )
 from carrottransform.tools.record_builder import RecordBuilderFactory
-from carrottransform.tools.file_helpers import OutputFileManager
+from carrottransform.tools.orchestrator import OutputFileManager
 from carrottransform.tools.stream_helpers import StreamingLookupCache
 
 logger = logger_setup()
@@ -230,7 +230,7 @@ class StreamProcessor:
     ) -> Tuple[int, int]:
         """Process data column and write records directly to output"""
 
-        # Create context for record building
+        # Create context for record building with direct write capability
         context = RecordContext(
             tgtfilename=target_file,
             tgtcolmap=target_column_map,
@@ -241,6 +241,12 @@ class StreamProcessor:
             srcfilename=source_filename,
             omopcdm=self.context.omopcdm,
             metrics=self.context.metrics,
+            # Additional context for direct writing
+            person_lookup=self.context.person_lookup,
+            record_numbers=self.context.record_numbers,
+            file_handles=self.context.file_handles,
+            auto_num_col=auto_num_col,
+            person_id_col=person_id_col,
         )
 
         # Build records
@@ -250,82 +256,11 @@ class StreamProcessor:
         # Update metrics
         self.context.metrics = result.metrics
 
-        if not result.build_records:
+        if not result.build_record:
             return 0, 0
 
-        output_count = 0
-        rejected_count = 0
-
-        # Write each record directly to output file
-        for output_record in result.records:
-            success = self._write_record_directly(
-                output_record,
-                target_file,
-                target_column_map,
-                auto_num_col,
-                person_id_col,
-                source_filename,
-                data_column,
-            )
-
-            if success:
-                output_count += 1
-            else:
-                rejected_count += 1
-
-        return output_count, rejected_count
-
-    def _write_record_directly(
-        self,
-        output_record: List[str],
-        target_file: str,
-        target_column_map: Dict[str, int],
-        auto_num_col: Optional[str],
-        person_id_col: str,
-        source_filename: str,
-        data_column: str,
-    ) -> bool:
-        """Write single record directly to output file"""
-
-        # Set auto-increment ID
-        if auto_num_col is not None:
-            output_record[target_column_map[auto_num_col]] = str(
-                self.context.record_numbers[target_file]
-            )
-            self.context.record_numbers[target_file] += 1
-
-        # Map person ID
-        person_id = output_record[target_column_map[person_id_col]]
-        if person_id in self.context.person_lookup:
-            output_record[target_column_map[person_id_col]] = (
-                self.context.person_lookup[person_id]
-            )
-
-            # Update metrics
-            self.context.metrics.increment_with_datacol(
-                source_path=source_filename,
-                target_file=target_file,
-                datacol=data_column,
-                out_record=output_record,
-            )
-
-            # Write directly to output file (files are kept open)
-            self.context.file_handles[target_file].write(
-                "\t".join(output_record) + "\n"
-            )
-
-            return True
-        else:
-            # Invalid person ID
-            self.context.metrics.increment_key_count(
-                source=source_filename,
-                fieldname="all",
-                tablename=target_file,
-                concept_id="all",
-                additional="",
-                count_type="invalid_person_ids",
-            )
-            return False
+        # Records were written directly by RecordBuilder, just return the count
+        return result.record_count, 0
 
 
 class V2ProcessingOrchestrator:

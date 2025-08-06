@@ -128,7 +128,7 @@ class RowProcessor:
         # Update metrics
         self.context.metrics = result.metrics
 
-        if not result.build_records:
+        if not result.build_record:
             return ProcessingResult({}, {})
 
         output_count = 0
