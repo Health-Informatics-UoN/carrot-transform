@@ -188,6 +188,9 @@ class StreamProcessor:
         target_meta = self.cache.target_metadata_cache[target_file]
         auto_num_col = target_meta["auto_num_col"]
         person_id_col = target_meta["person_id_col"]
+        date_col_data = target_meta["date_col_data"]
+        date_component_data = target_meta["date_component_data"]
+        notnull_numeric_fields = target_meta["notnull_numeric_fields"]
 
         data_columns = file_meta["data_fields"].get(target_file, [])
 
@@ -209,6 +212,9 @@ class StreamProcessor:
                 data_column,
                 auto_num_col,
                 person_id_col,
+                date_col_data,
+                date_component_data,
+                notnull_numeric_fields,
             )
 
             output_count += column_output
@@ -227,6 +233,9 @@ class StreamProcessor:
         data_column: str,
         auto_num_col: Optional[str],
         person_id_col: str,
+        date_col_data: Dict[str, str],
+        date_component_data: Dict[str, Dict[str, str]],
+        notnull_numeric_fields: List[str],
     ) -> Tuple[int, int]:
         """Process data column and write records directly to output"""
 
@@ -247,6 +256,9 @@ class StreamProcessor:
             file_handles=self.context.file_handles,
             auto_num_col=auto_num_col,
             person_id_col=person_id_col,
+            date_col_data=date_col_data,
+            date_component_data=date_component_data,
+            notnull_numeric_fields=notnull_numeric_fields,
         )
 
         # Build records

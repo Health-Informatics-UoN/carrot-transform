@@ -21,15 +21,6 @@ class TargetRecordBuilder(ABC):
 
     def __init__(self, context: RecordContext):
         self.context = context
-        self.date_col_data = context.omopcdm.get_omop_datetime_linked_fields(
-            context.tgtfilename
-        )
-        self.date_component_data = context.omopcdm.get_omop_date_field_components(
-            context.tgtfilename
-        )
-        self.notnull_numeric_fields = context.omopcdm.get_omop_notnull_numeric_fields(
-            context.tgtfilename
-        )
 
     @abstractmethod
     def build_records(self) -> RecordResult:
@@ -41,7 +32,7 @@ class TargetRecordBuilder(ABC):
         tgtarray = [""] * len(self.context.tgtcolmap)
 
         # Initialize numeric fields to 0
-        for req_integer in self.notnull_numeric_fields:
+        for req_integer in self.context.notnull_numeric_fields:
             if req_integer in self.context.tgtcolmap:
                 tgtarray[self.context.tgtcolmap[req_integer]] = "0"
 
@@ -105,7 +96,7 @@ class TargetRecordBuilder(ABC):
     ) -> bool:
         """Apply a single date field mapping"""
         # Handle date component fields (birth dates with year/month/day)
-        if dest_field in self.date_component_data:
+        if dest_field in self.context.date_component_data:
             dt = get_datetime_value(source_date.split(" ")[0])
             if dt is None:
                 self.context.metrics.increment_key_count(
@@ -120,7 +111,7 @@ class TargetRecordBuilder(ABC):
                 return False
 
             # Set individual date components
-            component_info = self.date_component_data[dest_field]
+            component_info = self.context.date_component_data[dest_field]
             if (
                 "year" in component_info
                 and component_info["year"] in self.context.tgtcolmap
@@ -143,13 +134,13 @@ class TargetRecordBuilder(ABC):
             tgtarray[self.context.tgtcolmap[dest_field]] = source_date
 
         # Handle regular date fields with linked date-only fields
-        elif dest_field in self.date_col_data:
+        elif dest_field in self.context.date_col_data:
             tgtarray[self.context.tgtcolmap[dest_field]] = source_date
             # Set the linked date-only field
-            if self.date_col_data[dest_field] in self.context.tgtcolmap:
-                tgtarray[self.context.tgtcolmap[self.date_col_data[dest_field]]] = (
-                    source_date[:10]
-                )
+            if self.context.date_col_data[dest_field] in self.context.tgtcolmap:
+                tgtarray[
+                    self.context.tgtcolmap[self.context.date_col_data[dest_field]]
+                ] = source_date[:10]
 
         # Handle simple date fields
         else:
@@ -159,16 +150,6 @@ class TargetRecordBuilder(ABC):
 
     def write_record_directly(self, output_record: List[str]) -> bool:
         """Write single record directly to output file with all necessary processing"""
-
-        # Check if we have the required context for direct writing
-        if (
-            self.context.person_lookup is None
-            or self.context.record_numbers is None
-            or self.context.file_handles is None
-        ):
-            # Fallback: can't write directly, just return True for counting
-            return True
-
         # Set auto-increment ID
         if self.context.auto_num_col is not None:
             output_record[self.context.tgtcolmap[self.context.auto_num_col]] = str(

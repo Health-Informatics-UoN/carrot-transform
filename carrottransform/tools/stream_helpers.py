@@ -52,10 +52,20 @@ class StreamingLookupCache:
         for target_file in self.mappingrules.get_all_outfile_names():
             auto_num_col = self.omopcdm.get_omop_auto_number_field(target_file)
             person_id_col = self.omopcdm.get_omop_person_id_field(target_file)
+            date_col_data = self.omopcdm.get_omop_datetime_linked_fields(target_file)
+            date_component_data = self.omopcdm.get_omop_date_field_components(
+                target_file
+            )
+            notnull_numeric_fields = self.omopcdm.get_omop_notnull_numeric_fields(
+                target_file
+            )
 
             cache[target_file] = {
                 "auto_num_col": auto_num_col,
                 "person_id_col": person_id_col,
+                "date_col_data": date_col_data,
+                "date_component_data": date_component_data,
+                "notnull_numeric_fields": notnull_numeric_fields,
             }
 
         return cache

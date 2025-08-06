@@ -56,6 +56,9 @@ class RecordContext:
     file_handles: Dict[str, TextIO]
     auto_num_col: Optional[str]
     person_id_col: str
+    date_col_data: Dict[str, str]
+    date_component_data: Dict[str, Dict[str, str]]
+    notnull_numeric_fields: List[str]
 
 
 @dataclass
