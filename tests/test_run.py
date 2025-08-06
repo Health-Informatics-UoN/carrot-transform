@@ -84,54 +84,6 @@ def test_matching_files(caplog):
 
 
 @pytest.mark.unit
-def test_extra_existing_file(caplog):
-    """Test when there's an existing file not in rules"""
-    with caplog.at_level(logging.WARNING):
-        rules_files = ["file1.txt"]
-        existing_files = ["file1.txt", "extra.txt"]
-
-        run.check_files_in_rules_exist(rules_files, existing_files)
-
-    assert (
-        "WARNING: no mapping rules found for existing input file - extra.txt"
-        in caplog.text
-    )
-
-
-@pytest.mark.unit
-def test_extra_rules_file(caplog):
-    """Test when there's a rules file with no existing data"""
-    with caplog.at_level(logging.WARNING):
-        rules_files = ["file1.txt", "missing.txt"]
-        existing_files = ["file1.txt"]
-
-        run.check_files_in_rules_exist(rules_files, existing_files)
-
-    assert "WARNING: no data for mapped input file - missing.txt" in caplog.text
-
-
-@pytest.mark.unit
-def test_multiple_mismatches(caplog):
-    """Test when there are multiple mismatches in both directions"""
-    with caplog.at_level(logging.WARNING):
-        rules_files = ["file1.txt", "missing1.txt", "missing2.txt"]
-        existing_files = ["file1.txt", "extra1.txt", "extra2.txt"]
-
-        run.check_files_in_rules_exist(rules_files, existing_files)
-
-    assert (
-        "WARNING: no mapping rules found for existing input file - extra1.txt"
-        in caplog.text
-    )
-    assert (
-        "WARNING: no mapping rules found for existing input file - extra2.txt"
-        in caplog.text
-    )
-    assert "WARNING: no data for mapped input file - missing1.txt" in caplog.text
-    assert "WARNING: no data for mapped input file - missing2.txt" in caplog.text
-
-
-@pytest.mark.unit
 def test_successful_file_open(tmp_path: Path):
     """Test successful opening of a valid file"""
     # Create a test file

@@ -9,7 +9,6 @@ import carrottransform.tools as tools
 from carrottransform.tools.click import PathArgs, AlchemyEngine
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
-    check_files_in_rules_exist,
     resolve_paths,
     set_omop_filenames,
 )
@@ -78,6 +77,7 @@ logger = logger_setup()
     help="Full path to person id file used to save person_id state and share person_ids between data sets",
 )
 @click.option(
+    # this parameter is redundant isn't it? if the above or below ones are set we assume this is true
     "--use-input-person-ids",
     required=False,
     default="N",
@@ -98,10 +98,10 @@ logger = logger_setup()
 )
 @click.option("--input-dir", type=PathArgs, required=False, help="Input directories")
 @click.option(
-    "--alchemy-engine",
+    "--alchemy-input",
     type=AlchemyEngine,
     required=False,
-    help="Connection string for database",
+    help="Connection string for input from a database",
 )
 def mapstream(
     rules_file: Path,
@@ -116,7 +116,7 @@ def mapstream(
     last_used_ids_file: Path,
     log_file_threshold,
     input_dir: Path,
-    alchemy_engine: Engine,
+    alchemy_input: Engine,
 ):
     """
     Map to output using input streams
@@ -168,7 +168,7 @@ def mapstream(
                     last_used_ids_file,
                     log_file_threshold,
                     input_dir,
-                    alchemy_engine,
+                    alchemy_input,
                 ],
             )
         )
@@ -184,23 +184,25 @@ def mapstream(
         omop_ddl_file, omop_config_file, omop_version
     )
 
-    ## check directories are valid
-
-    if input_dir is None and alchemy_engine is None:
-        logger.error("need alchemy engine or input dir")
-        sys.exit()
-    elif input_dir is not None and alchemy_engine is not None:
-        logger.error("can't have both alchemy engine and input dir")
-        sys.exit()
-
-    if input_dir is not None:
-        check_dir_isvalid(
-            input_dir
-        )  # Input directory must exist - we need the files in it
-        source = sources.SourceOpener(folder=input_dir)
+    ## create the SourceOpener object we'll use
+    if alchemy_input is not None:
+        source = sources.SourceOpener(engine=alchemy_input)
+        logger.info("input data will be take from the SQLAlchemy connection")
     else:
-        source = sources.SourceOpener(engine=alchemy_engine)
+        if not person_file.is_file():
+            raise click.BadArgumentUsage(
+                f"the supplied person file does not exist {person_file}"
+            )
+        if (input_dir is not None) and person_file.parent != input_dir:
+            raise click.BadArgumentUsage(
+                "the supplied person file must be in the input_dir"
+            )
 
+        source = sources.SourceOpener(folder=person_file.parent)
+    # input_dir is now redudnat?
+    input_dir = person_file.parent
+
+    # ## check directories are valid
     check_dir_isvalid(
         output_dir, create_if_missing=True
     )  # Create output directory if needed
@@ -273,14 +275,6 @@ def mapstream(
     )
 
     rules_input_files = mappingrules.get_all_infile_names()
-    if input_dir is None:
-        logger.info("skipping exisitng input jects")
-    else:
-        ## Compare files found in the input_dir with those expected based on mapping rules
-        existing_input_files = [f.name for f in input_dir.glob("*.csv")]
-
-        ## Log mismatches but continue
-        check_files_in_rules_exist(rules_input_files, existing_input_files)
 
     ## set up overall counts
     rejidcounts = {}

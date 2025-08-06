@@ -88,7 +88,7 @@ def click_test(
     result = runner.invoke(
         mapstream,
         [
-            "--input-dir" if not engine else "--alchemy-engine",
+            "--input-dir" if not engine else "--alchemy-input",
             f"{person_file.parent}" if not engine else connectio_string,
             "--rules-file",
             f"{rules_json_file}",
