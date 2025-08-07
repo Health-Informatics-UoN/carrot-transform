@@ -45,15 +45,6 @@ def person_rules_check(person_file: Path, rules_file: Path) -> None:
     we need all person/patient records to come from one file - the person file. this includes the gender mapping. this should/must also be the person_file parameter.
 
     ... this does reopen the possibility of auto-detecting the person file from the rules file
-
-    does resolve:
-    - https://github.com/Health-Informatics-UoN/carrot-transform/issues/72
-        - the initial problem
-    - https://github.com/Health-Informatics-UoN/carrot-transform/issues/76
-        - thhis ticket focussed on catchign this error, but, it proposed a solution to the symptom not the cause
-    - https://github.com/Health-Informatics-UoN/carrot-transform/issues/78
-        - this error will (probably) be caught by this. the issue might be too specific anyway.
-
     """
 
     # check the args are real files
@@ -82,7 +73,8 @@ def person_rules_check(person_file: Path, rules_file: Path) -> None:
         else:
             raise e
 
-    # for imaginary cases when there is a `"people":{}` entry that's empty
+    # for theoretical cases when there is a `"people":{}` entry that's empty
+    # ... i don't think that carrot-mapper would emit it, but, i think that it would be valid JSON
     if not found_a_rule:
         raise NoPersonMappings(rules_file, person_file)
 
