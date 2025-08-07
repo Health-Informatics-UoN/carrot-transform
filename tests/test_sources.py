@@ -5,6 +5,7 @@ runs some tests on the source reader thing
 import pytest
 from pathlib import Path
 import carrottransform.tools.sources as sources
+import click_tools
 
 
 @pytest.mark.unit
@@ -43,10 +44,10 @@ def test_basic_sqlite():
     source = sources.SourceOpener(engine=engine)
 
     # load a table with data
-    source.load("height_data", folder / "heights.csv")
+    click_tools.load_test_database_table(source, folder / "heights.csv")
 
     # read that table back
-    iterator = source.open("height_data.csv")
+    iterator = source.open("heights.csv")
 
     # first entry should be the header
     assert next(iterator) == ["pid", "date", "value"]

@@ -7,6 +7,41 @@ import json
 from pathlib import Path
 
 
+import click
+
+
+from sqlalchemy import create_engine
+
+
+class PathArgumentType(click.ParamType):
+    """implements a "Path" type that click can pass to our program ... rather than checking the value ourselves"""
+
+    name = "pathlib.Path"
+
+    def convert(self, value, param, ctx):
+        try:
+            return Path(value)
+        except Exception as e:
+            self.fail(f"Invalid path: {value} ({e})", param, ctx)
+
+
+class AlchemyConnectionArgumentType(click.ParamType):
+    """implements an SQLAlchemy connection type that can be checkd and passed to our function by click"""
+
+    name = "sqlalchemy.engine.Engine"
+
+    def convert(self, value, param, ctx):
+        try:
+            return create_engine(value)
+        except Exception as e:
+            self.fail(f"invalid connection string: {value} ({e})", param, ctx)
+
+
+# create singletons for these argument types
+PathArg = PathArgumentType()
+AlchemyConnectionArg = AlchemyConnectionArgumentType()
+
+
 class SourceFieldError(Exception):
     """Raised when the rules.json does't set person_id/source_field to PersonID."""
 

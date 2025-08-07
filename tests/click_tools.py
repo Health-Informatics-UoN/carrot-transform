@@ -7,6 +7,11 @@ from click.testing import CliRunner
 from carrottransform.cli.subcommands.run import mapstream
 import csvrow
 import carrottransform.tools.sources as sources
+import logging
+from sqlalchemy import Table, Column, String, MetaData, insert
+
+
+logger = logging.getLogger(__name__)
 
 
 # Get the package root directory
@@ -69,13 +74,10 @@ def click_test(
     # create the sqlite database
     # ... also change enough parameters we know we're not cheating and looking at the .csv files
     if engine:
-        connectio_string = f"sqlite:///{(tmp_path / 'testing.db').absolute()}"
-        source = sources.SourceOpener(engine=connectio_string)
+        connection_string = f"sqlite:///{(tmp_path / 'testing.db').absolute()}"
+        source = sources.SourceOpener(engine=connection_string)
         for csv_file in csv_files:
-            csv_path: Path = person_file.parent / csv_file
-            table = csv_path.name[:-4]
-
-            source.load(table, csv_path)
+            load_test_database_table(source, person_file.parent / csv_file)
 
         copied = tmp_path / "rules.json"
         shutil.copy(rules_json_file, copied)
@@ -83,24 +85,37 @@ def click_test(
         person_file = tmp_path / person_file.name
 
     ##
+    # build click args
+    click_args: list[str] = []
+    if not engine:
+        click_args.append("--input-dir")
+
+        click_args.append(str(person_file.parent))
+    else:
+        click_args.append("--input-db-url")
+        click_args.append(connection_string)
+
+    click_args.append("--rules-file")
+    click_args.append(f"{rules_json_file}")
+
+    click_args.append("--person-file")
+    click_args.append(f"{person_file}")
+
+    click_args.append("--output-dir")
+    click_args.append(f"{output}")
+
+    click_args.append("--omop-ddl-file")
+    click_args.append(f"{package_root / 'config/OMOPCDM_postgresql_5.3_ddl.sql'}")
+
+    click_args.append("--omop-config-file")
+    click_args.append(f"{package_root / 'config/omop.json'}")
+
+    ##
     # run click
     runner = CliRunner()
     result = runner.invoke(
         mapstream,
-        [
-            "--input-dir" if not engine else "--alchemy-input",
-            f"{person_file.parent}" if not engine else connectio_string,
-            "--rules-file",
-            f"{rules_json_file}",
-            "--person-file",
-            f"{person_file}",
-            "--output-dir",
-            f"{output}",
-            "--omop-ddl-file",
-            f"{package_root / 'config/OMOPCDM_postgresql_5.3_ddl.sql'}",
-            "--omop-config-file",
-            f"{package_root / 'config/omop.json'}",
-        ],
+        click_args,
     )
 
     if result.exception is not None:
@@ -262,3 +277,39 @@ def click_test(
             assert record_count(conditions) == conditions_seen
 
     return (result, output, person_id_source2target, person_id_target2source)
+
+
+def load_test_database_table(sourceOpener: sources.SourceOpener, csv: Path):
+    """load a csv file into a database. does some adjustments to make sure the column names work"""
+
+    assert sourceOpener._engine is not None
+
+    assert csv.name.endswith(".csv")
+    tablename: str = csv.name[:-4]
+
+    csvr = sources.open_csv_rows(sourceOpener, csv)
+    column_names = next(csvr)
+
+    # if the column names have a blank at the end we need to stripit
+    if "" == column_names[-1]:
+        column_names = column_names[:-1]
+
+    # make sure there's no other blankes
+    for name in column_names:
+        if "" == name:
+            raise Exception("can't have a blank column name in the CSVs")
+        if " " in name:
+            raise Exception("can't have spaces in the CSV column names")
+
+    # Create the table in the database
+    metadata = MetaData()
+    table = Table(
+        tablename, metadata, *([Column(name, String(255)) for name in column_names])
+    )
+    metadata.create_all(sourceOpener._engine, tables=[table])
+
+    # # Insert rows
+    with sourceOpener._engine.begin() as conn:
+        for row in csvr:
+            record = dict(zip(column_names, row))
+            conn.execute(insert(table), record)

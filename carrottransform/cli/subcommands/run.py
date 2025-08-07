@@ -6,7 +6,7 @@ from pathlib import Path
 import click
 from sqlalchemy.engine import Engine
 import carrottransform.tools as tools
-from carrottransform.tools.click import PathArgs, AlchemyEngine
+from carrottransform.tools.args import PathArg, AlchemyConnectionArg
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
     resolve_paths,
@@ -23,19 +23,20 @@ from carrottransform.tools.person_helpers import (
     set_saved_person_id_file,
 )
 
+
 logger = logger_setup()
 
 
 @click.command()
 @click.option(
     "--rules-file",
-    type=PathArgs,
+    type=PathArg,
     required=True,
     help="json file containing mapping rules",
 )
 @click.option(
     "--output-dir",
-    type=PathArgs,
+    type=PathArg,
     default=None,
     required=True,
     help="define the output directory for OMOP-format tsv files",
@@ -48,19 +49,19 @@ logger = logger_setup()
 )
 @click.option(
     "--person-file",
-    type=PathArgs,
+    type=PathArg,
     required=True,
     help="File containing person_ids in the first column",
 )
 @click.option(
     "--omop-ddl-file",
-    type=PathArgs,
+    type=PathArg,
     required=False,
     help="File containing OHDSI ddl statements for OMOP tables",
 )
 @click.option(
     "--omop-config-file",
-    type=PathArgs,
+    type=PathArg,
     required=False,
     help="File containing additional / override json config for omop outputs",
 )
@@ -71,7 +72,7 @@ logger = logger_setup()
 )
 @click.option(
     "--saved-person-id-file",
-    type=PathArgs,
+    type=PathArg,
     default=None,
     required=False,
     help="Full path to person id file used to save person_id state and share person_ids between data sets",
@@ -84,7 +85,7 @@ logger = logger_setup()
 )
 @click.option(
     "--last-used-ids-file",
-    type=PathArgs,
+    type=PathArg,
     default=None,
     required=False,
     help="Full path to last used ids file for OMOP tables - format: tablename\tlast_used_id, \nwhere last_used_id must be an integer",
@@ -95,12 +96,12 @@ logger = logger_setup()
     default=0,
     help="Lower outcount limit for logfile output",
 )
-@click.option("--input-dir", type=PathArgs, required=False, help="Input directories")
+@click.option("--input-dir", type=PathArg, required=False, help="Input directories")
 @click.option(
-    "--alchemy-input",
-    type=AlchemyEngine,
+    "--input-db-url",
+    type=AlchemyConnectionArg,
     required=False,
-    help="Connection string for input from a database",
+    help="connection string to read data from a database",
 )
 def mapstream(
     rules_file: Path,
@@ -115,7 +116,7 @@ def mapstream(
     last_used_ids_file: Path,
     log_file_threshold,
     input_dir: Path,
-    alchemy_input: Engine,
+    input_db_url: Engine,
 ):
     """
     Map to output using input streams
@@ -167,7 +168,7 @@ def mapstream(
                     last_used_ids_file,
                     log_file_threshold,
                     input_dir,
-                    alchemy_input,
+                    input_db_url,
                 ],
             )
         )
@@ -184,9 +185,9 @@ def mapstream(
     )
 
     ## create the SourceOpener object we'll use
-    if alchemy_input is not None:
-        source = sources.SourceOpener(engine=alchemy_input)
-        logger.info("input data will be take from the SQLAlchemy connection")
+    if input_db_url is not None:
+        source = sources.SourceOpener(engine=input_db_url)
+        logger.info(f"input data will be take from `{input_db_url=}`")
     else:
         if not person_file.is_file():
             raise click.BadArgumentUsage(
