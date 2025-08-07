@@ -1,0 +1,27 @@
+name: Check Code Quality
+
+on:
+  workflow_run:
+    workflows: ["Run Tests"]
+    types:
+      - completed
+
+jobs:
+  ruff:
+    name: Run Ruff
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+      
+      - name: ruff checks
+        run: |
+          ruff check . --no-fix --output-format=concise
+          ruff format --check . --quiet
+          
+      - name: Run Ruff
+        uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1
