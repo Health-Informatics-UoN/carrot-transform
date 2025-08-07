@@ -2,44 +2,33 @@
 functions to handle args
 """
 
-import json
-
 from pathlib import Path
 
 
-class SourceFieldError(Exception):
-    """Raised when the rules.json does't set person_id/source_field to PersonID."""
+class OnlyOnePersonInputAllowed(Exception):
+    """Raised when they try to use more than one person file in the mapping"""
+
+    def __init__(self, rules_file: Path, person_file: Path, inputs: set[str]):
+        self._rules_file = rules_file
+        self._person_file = person_file
+        self._inputs = inputs
 
 
-class MultipleTablesError(Exception):
-    """Raised when there are multiple .csv files in the the person_id/source_table values."""
+class NoPersonMappings(Exception):
+    """Raised when they try to use more than one person file in the mapping"""
+
+    def __init__(self, rules_file: Path, person_file: Path):
+        self._rules_file = rules_file
+        self._person_file = person_file
 
 
-def auto_person_in_rules(rules: Path) -> Path:
-    """scan a rules file to see where it's getting its `PersonID` from"""
+class WrongInputException(Exception):
+    """Raised when they try to read fromt he wrong table - and only the wrong table"""
 
-    # for better error reporting, record all the sourcetables
-    source_tables = set()
-
-    # grab the data
-    data = json.load(rules.open())
-
-    # query the objects for the items
-    for _, person in object_query(data, "cdm/person").items():
-        # check if the source field is correct
-        if "PersonID" != object_query(person, "person_id/source_field"):
-            raise SourceFieldError()
-
-        source_tables.add(object_query(person, "person_id/source_table"))
-
-    # check result
-    if len(source_tables) == 1:
-        return rules.parent / next(iter(source_tables))
-
-    # raise an error
-    multipleTablesError = MultipleTablesError()
-    multipleTablesError.source_tables = sorted(source_tables)
-    raise multipleTablesError
+    def __init__(self, rules_file: Path, person_file: Path, source_table: str):
+        self._rules_file = rules_file
+        self._person_file = person_file
+        self._source_table = source_table
 
 
 class ObjectQueryError(Exception):
@@ -50,7 +39,57 @@ class ObjectStructureError(Exception):
     """Raised when the object path format points to inaccessible elements."""
 
 
-def object_query(data: dict, path: str) -> any:
+def person_rules_check(person_file: Path, rules_file: Path) -> None:
+    """check that the person rules file is correct.
+
+    we need all person/patient records to come from one file - the person file. this includes the gender mapping. this should/must also be the person_file parameter.
+
+    ... this does reopen the possibility of auto-detecting the person file from the rules file
+    """
+
+    # check the args are real files
+    if not person_file.is_file():
+        raise Exception(f"person file not found: {person_file=}")
+    if not rules_file.is_file():
+        raise Exception(f"person file not found: {rules_file=}")
+
+    # load the rules file
+    with open(rules_file) as file:
+        import json
+
+        rules_json = json.load(file)
+
+    # loop through the rules for person rules with wrong_inputs
+    seen_inputs: set[str] = set()
+    try:
+        for rule_name, person in object_query(rules_json, "cdm/person").items():
+            found_a_rule = True
+            for col in person:
+                source_table: str = person[col]["source_table"]
+                seen_inputs.add(source_table)
+    except ObjectStructureError as e:
+        if "Key 'person' not found in object" == str(e):
+            raise NoPersonMappings(rules_file, person_file)
+        else:
+            raise e
+
+    # for theoretical cases when there is a `"people":{}` entry that's empty
+    # ... i don't think that carrot-mapper would emit it, but, i think that it would be valid JSON
+    if not found_a_rule:
+        raise NoPersonMappings(rules_file, person_file)
+
+    # detect too many input files
+    if 1 < len(seen_inputs):
+        raise OnlyOnePersonInputAllowed(rules_file, person_file, seen_inputs)
+
+    # check if the seen file is correct
+    seen_table: str = list(seen_inputs)[0]
+
+    if person_file.name != seen_table:
+        raise WrongInputException(rules_file, person_file, seen_table)
+
+
+def object_query(data: dict[str, dict | str], path: str):
     """
     Navigate a nested dictionary using a `/`-delimited path string.
 
