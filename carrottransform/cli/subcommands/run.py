@@ -115,7 +115,7 @@ def mapstream(
     last_used_ids_file: Path,
     log_file_threshold,
     input_dir: Path,
-    alchemy_input: Engine,
+    alchemy_input: Engine | None,
 ):
     """
     Map to output using input streams
