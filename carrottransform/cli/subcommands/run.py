@@ -22,6 +22,7 @@ from carrottransform.tools.person_helpers import (
     load_person_ids,
     set_saved_person_id_file,
 )
+from carrottransform.tools.args import person_rules_check, OnlyOnePersonInputAllowed
 
 
 logger = logger_setup()
@@ -209,6 +210,20 @@ def mapstream(
 
     saved_person_id_file = set_saved_person_id_file(saved_person_id_file, output_dir)
 
+    ## check on the person_file_rules
+    try:
+        person_rules_check(rules_file=rules_file, person_file_name=person_file.name)
+    except OnlyOnePersonInputAllowed as e:
+        inputs = list(sorted(list(e._inputs)))
+
+        logger.error(
+            f"Person properties were mapped from ({inputs}) but can only come from the person file {person_file.name=}"
+        )
+        sys.exit(-1)
+    except Exception as e:
+        logger.exception(f"person_file_rules check failed: {e}")
+        sys.exit(-1)
+
     start_time = time.time()
     ## create OmopCDM object, which contains attributes and methods for the omop data tables.
     omopcdm = tools.omopcdm.OmopCDM(omop_ddl_file, omop_config_file)
@@ -245,6 +260,7 @@ def mapstream(
             mappingrules,
             use_input_person_ids,
         )
+
         ## open person_ids output file
         with saved_person_id_file.open(mode="w") as fhpout:
             ## write the header to the file

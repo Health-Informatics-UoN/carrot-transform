@@ -1,0 +1,106 @@
+{
+    "metadata": {
+        "date_created": "2025-07-03T13:11:48.761146+00:00",
+        "dataset": "test_observe_smoking"
+    },
+    "cdm": {
+        "observation": {
+            "Never smoked 244734": {
+                "person_id": {
+                    "source_table": "smoke.csv",
+                    "source_field": "pid"
+                },
+                "observation_datetime": {
+                    "source_table": "smoke.csv",
+                    "source_field": "date"
+                },
+                "observation_source_concept_id": {
+                    "source_table": "smoke.csv",
+                    "source_field": "smoke",
+                    "term_mapping": {
+                        "never": 35821355
+                    }
+                },
+                "observation_concept_id": {
+                    "source_table": "smoke.csv",
+                    "source_field": "smoke",
+                    "term_mapping": {
+                        "never": 35821355
+                    }
+                },
+                "observation_source_value": {
+                    "source_table": "smoke.csv",
+                    "source_field": "smoke"
+                },
+                "value_as_string": {
+                    "source_table": "smoke.csv",
+                    "source_field": "smoke"
+                }
+            },
+            "Currently smoking daily 244735": {
+                "person_id": {
+                    "source_table": "smoke.csv",
+                    "source_field": "pid"
+                },
+                "observation_datetime": {
+                    "source_table": "smoke.csv",
+                    "source_field": "date"
+                },
+                "observation_source_concept_id": {
+                    "source_table": "smoke.csv",
+                    "source_field": "smoke",
+                    "term_mapping": {
+                        "active": 3959110
+                    }
+                },
+                "observation_concept_id": {
+                    "source_table": "smoke.csv",
+                    "source_field": "smoke",
+                    "term_mapping": {
+                        "active": 3959110
+                    }
+                },
+                "observation_source_value": {
+                    "source_table": "smoke.csv",
+                    "source_field": "smoke"
+                },
+                "value_as_string": {
+                    "source_table": "smoke.csv",
+                    "source_field": "smoke"
+                }
+            },
+            "Quit smoking forever 244736": {
+                "person_id": {
+                    "source_table": "smoke.csv",
+                    "source_field": "pid"
+                },
+                "observation_datetime": {
+                    "source_table": "smoke.csv",
+                    "source_field": "date"
+                },
+                "observation_source_concept_id": {
+                    "source_table": "smoke.csv",
+                    "source_field": "smoke",
+                    "term_mapping": {
+                        "quit": 3957361
+                    }
+                },
+                "observation_concept_id": {
+                    "source_table": "smoke.csv",
+                    "source_field": "smoke",
+                    "term_mapping": {
+                        "quit": 3957361
+                    }
+                },
+                "observation_source_value": {
+                    "source_table": "smoke.csv",
+                    "source_field": "smoke"
+                },
+                "value_as_string": {
+                    "source_table": "smoke.csv",
+                    "source_field": "smoke"
+                }
+            }
+        }
+    }
+}

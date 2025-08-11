@@ -1,6 +1,6 @@
 [project]
 name = "carrot_transform"
-version = "0.3.6"
+version = "0.4.0"
 description = ""
 authors = [{ name = "anwarfg", email = "913028+anwarfg@users.noreply.github.com" }]
 requires-python = ">=3.10"
@@ -21,6 +21,7 @@ carrot-transform = "carrottransform.cli.command:transform"
 test = [
     "pytest>=8.3.4,<9",
     "pandas>=2.2.3,<3",
+    "coverage>=7.10.3",
 ]
 dev = [
     "black>=24.2.0,<25",

@@ -1,38 +1,81 @@
 import pytest
 
 from pathlib import Path
-import carrottransform
-from carrottransform.tools.args import auto_person_in_rules
-from carrottransform.tools.args import MultipleTablesError
+from carrottransform.tools.args import (
+    person_rules_check,
+    OnlyOnePersonInputAllowed,
+    NoPersonMappings,
+)
 
 
-@pytest.mark.unit
-def test_on_the_example_rules():
-    rules = (
-        Path(carrottransform.__file__).parent
-        / "examples/test/rules/rules_14June2021.json"
-    )
+@pytest.mark.parametrize(
+    "exception",
+    [
+        pytest.param(
+            OnlyOnePersonInputAllowed(
+                person_file=Path("tests/test_data/args/empty-person-file.csv"),
+                rules_file=Path("tests/test_data/args/reads-from-other-tables.json"),
+                inputs={
+                    "demos_m.csv",
+                    "demos_f.csv",
+                },
+            ),
+            id="reads from other tables",
+        ),
+        pytest.param(
+            NoPersonMappings(
+                person_file=Path("tests/test_data/args/empty-person-file.csv"),
+                rules_file=Path("tests/test_data/args/no-person-rules.json"),
+            ),
+            id="test when no person mappings are defined",
+        ),
+        pytest.param(
+            OnlyOnePersonInputAllowed(
+                person_file=Path(
+                    "tests/test_data/mireda_key_error/demographics_mother_gold.csv"
+                ),
+                rules_file=Path("tests/test_data/mireda_key_error/original_rules.json"),
+                inputs={
+                    "infant_data_gold.csv",
+                    "demographics_child_gold.csv",
+                },
+            ),
+            id="test the mireda rules file",
+        ),
+        # TODO it'd be good to test;
+        # TODO - test reading from only a single wrong person file
+        # TODO - do a valid test here. one that passes.
+    ],
+)
+def test_person_rules_throws(exception):
+    # arrange
+    caught = False
 
-    people = (
-        Path(carrottransform.__file__).parent / "examples/test/rules/Demographics.csv"
-    )
+    # act
+    try:
+        person_rules_check(
+            person_file_name=exception._person_file.name,
+            rules_file=exception._rules_file,
+        )
+    except OnlyOnePersonInputAllowed as e:
+        assert not caught
+        caught = e
+    except NoPersonMappings as e:
+        assert not caught
+        caught = e
 
-    assert rules.is_file()
+    # assert
+    if exception is None:
+        assert not caught
+    else:
+        assert caught
 
-    assert people == auto_person_in_rules(rules)
+        assert isinstance(caught, type(exception)), (
+            f"{type(caught)=} != {type(exception)=}"
+        )
 
+        assert exception._person_file.name == caught._person_file
+        assert exception._rules_file == caught._rules_file
 
-@pytest.mark.unit
-def test_with_bad_rules():
-    rules = (
-        Path(carrottransform.__file__).parent.parent
-        / "tests/test_data/broken_rules.json"
-    )
-
-    assert rules.is_file()
-    with pytest.raises(MultipleTablesError) as exc_info:
-        auto_person_in_rules(rules)
-
-    assert "5Demographics.csv" in exc_info.value.source_tables
-    assert "aDemographics.csv" in exc_info.value.source_tables
-    assert 2 == len(exc_info.value.source_tables)
+        if isinstance(caught, OnlyOnePersonInputAllowed):
+            assert exception._inputs == caught._inputs

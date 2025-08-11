@@ -8,6 +8,7 @@ import pytest
 from pathlib import Path
 import tests.click_tools as click_tools
 
+import logging
 
 import csvrow
 
@@ -710,6 +711,36 @@ def test_fixture(
 
     if post_check is not None:
         post_check(result, output, person_id_source2target, person_id_target2source)
+
+
+@pytest.mark.integration
+def test_mireda_key_error(tmp_path: Path, caplog):
+    """this is the oprignal buggy version that should trigger the key error"""
+
+    # capture all
+    caplog.set_level(logging.DEBUG)
+
+    person_file = (
+        Path(__file__).parent
+        / "test_data/mireda_key_error/demographics_mother_gold.csv"
+    )
+    import tests.clicktools as clicktools
+
+    (result, output) = clicktools.click_generic(
+        tmp_path,
+        person_file,
+        failure=True,
+    )
+
+    assert result.exit_code == -1
+
+    message = caplog.text.splitlines(keepends=False)[-1]
+
+    assert message.strip().endswith(
+        "Person properties were mapped from (['demographics_child_gold.csv', 'infant_data_gold.csv']) but can only come from the person file person_file.name='demographics_mother_gold.csv'"
+    )
+
+    assert "-1" == str(result.exception)
 
 
 def assert_datetimes(onlydate: str, datetime: str, expected: str):
