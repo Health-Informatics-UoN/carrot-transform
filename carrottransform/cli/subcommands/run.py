@@ -106,16 +106,16 @@ logger = logger_setup()
 def mapstream(
     rules_file: Path,
     output_dir: Path,
-    write_mode,
+    write_mode: str | None,
     person_file: Path,
     omop_ddl_file: Path,
     omop_config_file: Path,
     omop_version,
-    saved_person_id_file: Path,
+    saved_person_id_file: Path | None,
     use_input_person_ids,
-    last_used_ids_file: Path,
+    last_used_ids_file: Path | None,
     log_file_threshold,
-    input_dir: Path,
+    input_dir: Path | None,
     input_db_url: Engine | None,
 ):
     """
