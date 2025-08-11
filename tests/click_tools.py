@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 # Get the package root directory
-package_root: Path = Path(importlib.resources.files("carrottransform"))
+package_root: Path = Path(str(importlib.resources.files("carrottransform")))
 
 
 def click_test(
@@ -27,6 +27,8 @@ def click_test(
     observations: dict | None = None,
     conditions: dict | None = None,
     rules_file: str | None = None,
+    # some tests need the failure
+    failure: bool = False,
 ):
     ##
     # check the person file
@@ -117,6 +119,12 @@ def click_test(
         mapstream,
         click_args,
     )
+
+    if failure:
+        if 0 == result.exit_code:
+            raise ValueError(f"expected an error, found {result=}")
+        else:
+            return (result, output)
 
     if result.exception is not None:
         raise (result.exception)

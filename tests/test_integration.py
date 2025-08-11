@@ -696,7 +696,6 @@ def test_fixture(
     conditions,
     post_check,
 ):
-    # TODO; should the `click_tools.click_test` be itnernalised here? Some tests from test_datetime would ahve to come as well.
     (result, output, person_id_source2target, person_id_target2source) = (
         click_tools.click_test(
             tmp_path=tmp_path,
@@ -715,7 +714,7 @@ def test_fixture(
 
 @pytest.mark.integration
 def test_mireda_key_error(tmp_path: Path, caplog):
-    """this is the oprignal buggy version that should trigger the key error"""
+    """this is the original buggy version that should trigger the key error"""
 
     # capture all
     caplog.set_level(logging.DEBUG)
@@ -724,9 +723,9 @@ def test_mireda_key_error(tmp_path: Path, caplog):
         Path(__file__).parent
         / "test_data/mireda_key_error/demographics_mother_gold.csv"
     )
-    import tests.clicktools as clicktools
+    import tests.click_tools as click_tools
 
-    (result, output) = clicktools.click_generic(
+    (result, output) = click_tools.click_test(
         tmp_path,
         person_file,
         failure=True,
@@ -747,7 +746,7 @@ def assert_datetimes(onlydate: str, datetime: str, expected: str):
     """
     this function performs date/time checking accounting for missing time info
 
-    ... it would become redundant if we/i moved to the expectations style ...
+    i would preffer new tests do somethign else
     """
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", onlydate), (
         f"onlydate {onlydate=} is the wrong format"
