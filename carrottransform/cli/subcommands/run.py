@@ -186,7 +186,7 @@ def mapstream(
     ## create the SourceOpener object we'll use
     if alchemy_input is not None:
         source = sources.SourceOpener(engine=alchemy_input)
-        logger.info("input data will be take from the SQLAlchemy connection")
+        logger.info("Input data will be taken from the SQLAlchemy connection")
     else:
         if not person_file.is_file():
             raise click.BadArgumentUsage(
