@@ -42,10 +42,12 @@ jobs:
           uv run coverage xml
 
       - name: Pytest coverage comment
+        if: github.event_name == 'pull_request'
         uses: MishaKav/pytest-coverage-comment@main
         with:
           pytest-xml-coverage-path: coverage.xml
           junitxml-path: pytest.xml
+        continue-on-error: true
 
       - name: ruff checks
         run: |
