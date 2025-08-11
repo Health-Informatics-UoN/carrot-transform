@@ -116,7 +116,7 @@ def mapstream(
     last_used_ids_file: Path,
     log_file_threshold,
     input_dir: Path,
-    input_db_url: Engine,
+    input_db_url: Engine | None,
 ):
     """
     Map to output using input streams
@@ -176,7 +176,7 @@ def mapstream(
 
     # check on the rules file
     if (rules_file is None) or (not rules_file.is_file()):
-        logger.error(f"rules file was set to `{rules_file=}` and is missing")
+        logger.error(f"rules file was set to {rules_file=} and is missing")
         sys.exit()
 
     ## set omop filenames
@@ -187,7 +187,7 @@ def mapstream(
     ## create the SourceOpener object we'll use
     if input_db_url is not None:
         source = sources.SourceOpener(engine=input_db_url)
-        logger.info(f"input data will be take from `{input_db_url=}`")
+        logger.info(f"Input data will be taken from {input_db_url=}")
     else:
         if not person_file.is_file():
             raise click.BadArgumentUsage(
