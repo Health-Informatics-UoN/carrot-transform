@@ -461,7 +461,7 @@ class TestOrchestratorIntegration:
         """Test orchestrator with actual test data"""
         # Use existing test data
         test_data_dir = Path("tests/test_data/integration_test1")
-        rules_file = test_data_dir / "transform-rules.json"
+        rules_file = Path("tests/test_data/rules-v2.json")
         person_file = test_data_dir / "src_PERSON.csv"
         ddl_file = Path("tests/test_data/test_ddl.sql")
         config_file = Path("tests/test_data/test_config.json")
@@ -510,4 +510,9 @@ class TestOrchestratorIntegration:
             except Exception as e:
                 # If this fails due to missing dependencies or data format issues,
                 # that's still valuable for coverage
-                pytest.skip(f"Integration test failed with: {e}")
+                # Added traceback for debugging
+                import traceback
+
+                pytest.skip(
+                    f"Integration test failed with: {e}\nTraceback: {traceback.format_exc()}"
+                )
