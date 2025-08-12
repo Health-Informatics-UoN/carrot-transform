@@ -1,1 +1,198 @@
-{"metadata":{"date_created":"2025-05-23T15:26:54.340109+00:00","dataset":"intest8"},"cdm":{"observation":{"Never smoked 179917":{"observation_datetime":{"source_table":"src_SMOKING.csv","source_field":"observation_datetime"},"observation_source_concept_id":{"source_table":"src_SMOKING.csv","source_field":"observation_source_value","term_mapping":{"NEVER_SMOKER":35821355}},"observation_concept_id":{"source_table":"src_SMOKING.csv","source_field":"observation_source_value","term_mapping":{"NEVER_SMOKER":35821355}},"observation_source_value":{"source_table":"src_SMOKING.csv","source_field":"observation_source_value"},"value_as_string":{"source_table":"src_SMOKING.csv","source_field":"observation_source_value"},"person_id":{"source_table":"src_SMOKING.csv","source_field":"person_id"}},"Past tobacco smoking 179918":{"person_id":{"source_table":"src_SMOKING.csv","source_field":"person_id"},"observation_datetime":{"source_table":"src_SMOKING.csv","source_field":"observation_datetime"},"observation_source_concept_id":{"source_table":"src_SMOKING.csv","source_field":"observation_source_value","term_mapping":{"FORMER_SMOKER":35810209}},"observation_concept_id":{"source_table":"src_SMOKING.csv","source_field":"observation_source_value","term_mapping":{"FORMER_SMOKER":35810209}},"observation_source_value":{"source_table":"src_SMOKING.csv","source_field":"observation_source_value"},"value_as_string":{"source_table":"src_SMOKING.csv","source_field":"observation_source_value"}},"Current tobacco smoking 179919":{"person_id":{"source_table":"src_SMOKING.csv","source_field":"person_id"},"observation_datetime":{"source_table":"src_SMOKING.csv","source_field":"observation_datetime"},"observation_source_concept_id":{"source_table":"src_SMOKING.csv","source_field":"observation_source_value","term_mapping":{"CURRENT_SMOKER":35810208}},"observation_concept_id":{"source_table":"src_SMOKING.csv","source_field":"observation_source_value","term_mapping":{"CURRENT_SMOKER":35810208}},"observation_source_value":{"source_table":"src_SMOKING.csv","source_field":"observation_source_value"},"value_as_string":{"source_table":"src_SMOKING.csv","source_field":"observation_source_value"}}},"person":{"MALE 179912":{"person_id":{"source_table":"src_PERSON.csv","source_field":"person_id"},"birth_datetime":{"source_table":"src_PERSON.csv","source_field":"birth_datetime"},"gender_source_concept_id":{"source_table":"src_PERSON.csv","source_field":"gender_source_value","term_mapping":{"male":8507}},"gender_concept_id":{"source_table":"src_PERSON.csv","source_field":"gender_source_value","term_mapping":{"male":8507}},"gender_source_value":{"source_table":"src_PERSON.csv","source_field":"gender_source_value"}},"FEMALE 179913":{"person_id":{"source_table":"src_PERSON.csv","source_field":"person_id"},"birth_datetime":{"source_table":"src_PERSON.csv","source_field":"birth_datetime"},"gender_source_concept_id":{"source_table":"src_PERSON.csv","source_field":"gender_source_value","term_mapping":{"female":8532}},"gender_concept_id":{"source_table":"src_PERSON.csv","source_field":"gender_source_value","term_mapping":{"female":8532}},"gender_source_value":{"source_table":"src_PERSON.csv","source_field":"gender_source_value"}},"FEMALE 179914":{"person_id":{"source_table":"src_PERSON.csv","source_field":"person_id"},"birth_datetime":{"source_table":"src_PERSON.csv","source_field":"birth_datetime"},"gender_source_concept_id":{"source_table":"src_PERSON.csv","source_field":"gender_source_value","term_mapping":{"femail":8532}},"gender_concept_id":{"source_table":"src_PERSON.csv","source_field":"gender_source_value","term_mapping":{"femail":8532}},"gender_source_value":{"source_table":"src_PERSON.csv","source_field":"gender_source_value"}}},"measurement":{"Weight 179920":{"person_id":{"source_table":"src_WEIGHT.csv","source_field":"person_id"},"measurement_datetime":{"source_table":"src_WEIGHT.csv","source_field":"measurement_date"},"value_as_number":{"source_table":"src_WEIGHT.csv","source_field":"body_kgs"},"measurement_source_concept_id":{"source_table":"src_WEIGHT.csv","source_field":"body_kgs","term_mapping":35811769},"measurement_concept_id":{"source_table":"src_WEIGHT.csv","source_field":"body_kgs","term_mapping":35811769},"measurement_source_value":{"source_table":"src_WEIGHT.csv","source_field":"body_kgs"}}}}}
+{
+  "metadata": {
+    "date_created": "2025-05-23T15:26:54.340109+00:00",
+    "dataset": "intest8"
+  },
+  "cdm": {
+    "observation": {
+      "Never smoked 179917": {
+        "observation_datetime": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_datetime"
+        },
+        "observation_source_concept_id": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_source_value",
+          "term_mapping": { "NEVER_SMOKER": 35821355 }
+        },
+        "observation_concept_id": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_source_value",
+          "term_mapping": { "NEVER_SMOKER": 35821355 }
+        },
+        "observation_source_value": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_source_value"
+        },
+        "value_as_string": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_source_value"
+        },
+        "person_id": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "person_id"
+        }
+      },
+      "Past tobacco smoking 179918": {
+        "person_id": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "person_id"
+        },
+        "observation_datetime": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_datetime"
+        },
+        "observation_source_concept_id": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_source_value",
+          "term_mapping": { "FORMER_SMOKER": 35810209 }
+        },
+        "observation_concept_id": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_source_value",
+          "term_mapping": { "FORMER_SMOKER": 35810209 }
+        },
+        "observation_source_value": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_source_value"
+        },
+        "value_as_string": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_source_value"
+        }
+      },
+      "Current tobacco smoking 179919": {
+        "person_id": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "person_id"
+        },
+        "observation_datetime": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_datetime"
+        },
+        "observation_source_concept_id": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_source_value",
+          "term_mapping": { "CURRENT_SMOKER": 35810208 }
+        },
+        "observation_concept_id": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_source_value",
+          "term_mapping": { "CURRENT_SMOKER": 35810208 }
+        },
+        "observation_source_value": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_source_value"
+        },
+        "value_as_string": {
+          "source_table": "src_SMOKING.csv",
+          "source_field": "observation_source_value"
+        }
+      }
+    },
+    "person": {
+      "MALE 179912": {
+        "person_id": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "person_id"
+        },
+        "birth_datetime": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "birth_datetime"
+        },
+        "gender_source_concept_id": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "gender_source_value",
+          "term_mapping": { "male": 8507 }
+        },
+        "gender_concept_id": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "gender_source_value",
+          "term_mapping": { "male": 8507 }
+        },
+        "gender_source_value": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "gender_source_value"
+        }
+      },
+      "FEMALE 179913": {
+        "person_id": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "person_id"
+        },
+        "birth_datetime": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "birth_datetime"
+        },
+        "gender_source_concept_id": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "gender_source_value",
+          "term_mapping": { "female": 8532 }
+        },
+        "gender_concept_id": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "gender_source_value",
+          "term_mapping": { "female": 8532 }
+        },
+        "gender_source_value": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "gender_source_value"
+        }
+      },
+      "FEMALE 179914": {
+        "person_id": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "person_id"
+        },
+        "birth_datetime": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "birth_datetime"
+        },
+        "gender_source_concept_id": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "gender_source_value",
+          "term_mapping": { "femail": 8532 }
+        },
+        "gender_concept_id": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "gender_source_value",
+          "term_mapping": { "femail": 8532 }
+        },
+        "gender_source_value": {
+          "source_table": "src_PERSON.csv",
+          "source_field": "gender_source_value"
+        }
+      }
+    },
+    "measurement": {
+      "Weight 179920": {
+        "person_id": {
+          "source_table": "src_WEIGHT.csv",
+          "source_field": "person_id"
+        },
+        "measurement_datetime": {
+          "source_table": "src_WEIGHT.csv",
+          "source_field": "measurement_date"
+        },
+        "value_as_number": {
+          "source_table": "src_WEIGHT.csv",
+          "source_field": "body_kgs"
+        },
+        "measurement_source_concept_id": {
+          "source_table": "src_WEIGHT.csv",
+          "source_field": "body_kgs",
+          "term_mapping": 35811769
+        },
+        "measurement_concept_id": {
+          "source_table": "src_WEIGHT.csv",
+          "source_field": "body_kgs",
+          "term_mapping": 35811769
+        },
+        "measurement_source_value": {
+          "source_table": "src_WEIGHT.csv",
+          "source_field": "body_kgs"
+        }
+      }
+    }
+  }
+}
