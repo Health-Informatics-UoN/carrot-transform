@@ -95,8 +95,20 @@ class TestV2ProcessingOrchestrator:
     def omop_config_file(self, temp_dirs):
         """Create a test OMOP config file"""
         config_data = {
-            "person_id_field": {"person": "person_id"},
-            "auto_number_field": {"person": "person_id"},
+            "date_field_components": {
+                "person": {
+                    "birth_datetime": {
+                        "year": "year_of_birth",
+                        "month": "month_of_birth",
+                        "day": "day_of_birth",
+                    }
+                }
+            },
+            "person_id_field": {
+                "person": "person_id",
+                "observation": "person_id",
+                "measurement": "person_id",
+            },
         }
 
         config_file = temp_dirs["tmp_path"] / "omop_config.json"
@@ -167,7 +179,7 @@ class TestV2ProcessingOrchestrator:
                         },
                     }
                 }
-            },  # v1 format uses rules array, not cdm structure
+            },  # v1 format - not a valid v2 rules file
         }
 
         rules_file = temp_dirs["tmp_path"] / "v1_rules.json"
