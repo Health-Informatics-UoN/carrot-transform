@@ -14,7 +14,7 @@ from carrottransform.tools.orchestrator import (
     V2ProcessingOrchestrator,
     StreamProcessor,
 )
-from carrottransform.tools.types import ProcessingResult, ProcessingContext
+from carrottransform.tools.types import ProcessingContext
 
 
 class TestV2ProcessingOrchestrator:
@@ -337,45 +337,51 @@ class TestV2ProcessingOrchestrator:
             # 10 records (4x2 records for Asian, and 2 records for UK) + headers
             assert len(lines) == 11
             # First line should be headers
-            assert "person_id" in lines[0]
+            assert "observation_id" in lines[0]
 
-    @patch("carrottransform.tools.orchestrator.StreamProcessor")
-    def test_execute_processing_failure(
-        self,
-        mock_stream_processor,
-        temp_dirs,
-        v2_rules_file,
-        person_file,
-        omop_config_file,
+    def test_execute_processing_with_missing_input_files(
+        self, temp_dirs, v2_rules_file, person_file, omop_config_file
     ):
-        """Test processing execution with failure"""
+        """Test processing fails gracefully when input files are missing"""
         ddl_file = Path("tests/test_data/test_ddl.sql")
 
-        # Mock the stream processor to return failure
-        mock_processor_instance = Mock()
-        mock_result = ProcessingResult(
-            output_counts={},
-            rejected_id_counts={},
-            success=False,
-            error_message="Test error",
-        )
-        mock_processor_instance.process_all_data.return_value = mock_result
-        mock_stream_processor.return_value = mock_processor_instance
+        # Remove the input files to cause a realistic failure
+        person_file.unlink()  # Delete the person file
 
         orchestrator = V2ProcessingOrchestrator(
             rules_file=v2_rules_file,
             output_dir=temp_dirs["output_dir"],
             input_dir=temp_dirs["input_dir"],
-            person_file=person_file,
+            person_file=person_file,  # This file no longer exists
             omop_ddl_file=ddl_file,
             omop_config_file=omop_config_file,
         )
 
-        result = orchestrator.execute_processing()
+        # This should fail because the person file doesn't exist
+        with pytest.raises(FileNotFoundError):
+            orchestrator.execute_processing()
 
-        # Check results
-        assert result.success is False
-        assert result.error_message == "Test error"
+    def test_execute_processing_with_invalid_rules(
+        self, temp_dirs, person_file, omop_config_file
+    ):
+        """Test processing fails with invalid/corrupt rules file"""
+        ddl_file = Path("tests/test_data/test_ddl.sql")
+
+        # Create an invalid rules file
+        invalid_rules_file = temp_dirs["tmp_path"] / "invalid_rules.json"
+        with invalid_rules_file.open("w") as f:
+            f.write('{"invalid json": "content"}')  # Malformed JSON
+
+        # This should fail during initialization with key error, missing "cdm" key
+        with pytest.raises(KeyError):
+            V2ProcessingOrchestrator(
+                rules_file=invalid_rules_file,
+                output_dir=temp_dirs["output_dir"],
+                input_dir=temp_dirs["input_dir"],
+                person_file=person_file,
+                omop_ddl_file=ddl_file,
+                omop_config_file=omop_config_file,
+            )
 
 
 class TestStreamProcessor:
