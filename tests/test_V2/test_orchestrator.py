@@ -329,6 +329,11 @@ class TestV2ProcessingOrchestrator:
             assert len(lines) == 7
             # First line should be headers
             assert "person_id" in lines[0]
+            #  race and gender are in the same record for the person with gender "M" and "UK" as ethnicity
+            # (record with the line index is 5, gender_concept_id is in the column index 1, race_concept_id is in the column index 6)
+            assert (
+                "8507" == lines[5].split("\t")[1] and "8527" == lines[5].split("\t")[6]
+            )
 
         # Verify observation.tsv has actual content
         observation_output = temp_dirs["output_dir"] / "observation.tsv"
@@ -553,7 +558,7 @@ class TestOrchestratorIntegration:
         """Test orchestrator with actual test data"""
         # Use existing test data
         test_data_dir = Path("tests/test_data/integration_test1")
-        rules_file = Path("tests/test_data/rules-v2.json")
+        rules_file = Path("tests/test_V2/rules-v2.json")
         person_file = test_data_dir / "src_PERSON.csv"
         ddl_file = Path("tests/test_data/test_ddl.sql")
         config_file = Path("tests/test_data/test_config.json")
@@ -599,6 +604,54 @@ class TestOrchestratorIntegration:
                 assert hasattr(result, "output_counts")
                 assert hasattr(result, "rejected_id_counts")
 
+                # Check that real output files were created
+                expected_files = [
+                    "person.tsv",
+                    "observation.tsv",
+                    "measurement.tsv",
+                    "summary_mapstream.tsv",
+                    "person_ids.tsv",
+                ]
+                for filename in expected_files:
+                    output_file = output_dir / filename
+                    assert output_file.exists(), (
+                        f"Expected output file {filename} was not created"
+                    )
+
+                # Verify person.tsv has actual content
+                person_output = output_dir / "person.tsv"
+                with person_output.open("r") as f:
+                    lines = f.readlines()
+                    # 3 valid records (one record does not have a concept mapping) + headers
+                    assert len(lines) == 4
+                    # First line should be headers
+                    assert "person_id" in lines[0]
+                    # TODO: can check race and gender in the same record here as well
+
+                # Verify observation.tsv has actual content
+                observation_output = output_dir / "observation.tsv"
+                with observation_output.open("r") as f:
+                    lines = f.readlines()
+                    # 3 valid records + headers
+                    assert len(lines) == 4
+                    # First line should be headers
+                    assert "observation_id" in lines[0]
+                    # Check that the observation_concept_id is 35811769 for the first record with id of person id is 2
+                    assert (
+                        "35810208" == lines[1].split("\t")[2]
+                        and "2" == lines[1].split("\t")[1]
+                    )
+
+                # Verify measurement.tsv has actual content
+                measurement_output = output_dir / "measurement.tsv"
+                with measurement_output.open("r") as f:
+                    lines = f.readlines()
+                    # 4 valid records for 4 values + headers
+                    assert len(lines) == 5
+                    # First line should be headers
+                    assert "measurement_id" in lines[0]
+                    # Check that the measurement_concept_id is 35811769 (all measurement_concept_id are the same)
+                    assert "35811769" == lines[1].split("\t")[2]
             except Exception as e:
                 # If this fails due to missing dependencies or data format issues,
                 # that's still valuable for coverage
