@@ -48,7 +48,7 @@ class TestV2ProcessingOrchestrator:
                 "person": {
                     "test_persons.csv": {
                         "person_id_mapping": {
-                            "source_field": "person_id",
+                            "source_field": "PersonID",
                             "dest_field": "person_id",
                         },
                         "date_mapping": {
@@ -66,10 +66,47 @@ class TestV2ProcessingOrchestrator:
                                     "gender_source_concept_id": [8532],
                                 },
                                 "original_value": ["gender_source_value"],
+                            },
+                            "ethnicity": {
+                                "UK": {
+                                    "race_concept_id": [8527],
+                                    "race_source_concept_id": [8527],
+                                },
+                            },
+                        },
+                    }
+                },
+                "observation": {
+                    "test_persons.csv": {
+                        "person_id_mapping": {
+                            "source_field": "PersonID",
+                            "dest_field": "person_id",
+                        },
+                        "date_mapping": {
+                            "source_field": "birth_date",
+                            "dest_field": ["observation_datetime"],
+                        },
+                        "concept_mappings": {
+                            "ethnicity": {
+                                "Asian": {
+                                    "observation_concept_id": [44803808, 4051276],
+                                    "observation_source_concept_id": [
+                                        44803808,
+                                        4051276,
+                                    ],
+                                },
+                                "UK": {
+                                    "observation_concept_id": [35818511],
+                                    "observation_source_concept_id": [35818511],
+                                },
+                                "original_value": [
+                                    "value_as_string",
+                                    "observation_source_value",
+                                ],
                             }
                         },
                     }
-                }
+                },
             },
         }
 
@@ -85,9 +122,24 @@ class TestV2ProcessingOrchestrator:
         person_file = temp_dirs["input_dir"] / "test_persons.csv"
         with person_file.open("w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["person_id", "birth_date", "gender"])
-            writer.writerow(["1", "1990-01-01", "M"])
-            writer.writerow(["2", "1985-06-15", "F"])
+            writer.writerow(["PersonID", "birth_date", "gender", "ethnicity"])
+            # Valid records
+            writer.writerow(["1", "1990-01-01", "M", "Asian"])  # Valid: ISO date
+            writer.writerow(["2", "1985-06-15", "F", "Asian"])  # Valid: ISO date
+            writer.writerow(
+                ["6", "06/12/2004", "F", "Asian"]
+            )  # Valid: DD/MM/YYYY format
+            writer.writerow(["7", "1985-06-15", "F", "Asian"])  # Valid: ISO date
+            writer.writerow(["8", "1985-06-15", "M", "UK"])  # Valid: ISO date
+            writer.writerow(["9", "1985-06-15", "F", "UK"])  # Valid: ISO date
+            # Invalid records (will be rejected)
+            writer.writerow(["", "1985-06-15", "F", "Asian"])  # REJECT: empty person_id
+            writer.writerow(
+                ["4", "1989", "F", "Asian"]
+            )  # REJECT: incomplete date (year only)
+            writer.writerow(
+                ["5", "1985/07/15", "F", "Asian"]
+            )  # REJECT: unsupported YYYY/MM/DD format
 
         return person_file
 
@@ -215,35 +267,29 @@ class TestV2ProcessingOrchestrator:
 
         person_lookup, rejected_count = orchestrator.setup_person_lookup()
 
-        # Check that person lookup was created
+        # Check that person lookup was created correctly
         assert isinstance(person_lookup, dict)
-        assert rejected_count >= 0
+
+        # Verify data quality validation worked correctly:
+        # - 3 records should be rejected (empty ID, incomplete date, bad date format)
+        # - 6 records should be accepted and added to person_lookup
+        assert rejected_count == 3
+        assert len(person_lookup) == 6
+
+        # Verify specific person IDs were processed (excluding the rejected ones)
+        expected_person_ids = {"1", "2", "6", "7", "8", "9"}
+        actual_person_ids = set(person_lookup.keys())
+        assert actual_person_ids == expected_person_ids
 
         # Check that person_ids.tsv was created
         person_ids_file = temp_dirs["output_dir"] / "person_ids.tsv"
         assert person_ids_file.exists()
 
-    @patch("carrottransform.tools.orchestrator.StreamProcessor")
     def test_execute_processing_success(
-        self,
-        mock_stream_processor,
-        temp_dirs,
-        v2_rules_file,
-        person_file,
-        omop_config_file,
+        self, temp_dirs, v2_rules_file, person_file, omop_config_file
     ):
         """Test successful processing execution"""
         ddl_file = Path("tests/test_data/test_ddl.sql")
-
-        # Mock the stream processor
-        mock_processor_instance = Mock()
-        mock_result = ProcessingResult(
-            output_counts={"person.tsv": 2},
-            rejected_id_counts={"test_persons.csv": 0},
-            success=True,
-        )
-        mock_processor_instance.process_all_data.return_value = mock_result
-        mock_stream_processor.return_value = mock_processor_instance
 
         orchestrator = V2ProcessingOrchestrator(
             rules_file=v2_rules_file,
@@ -254,16 +300,44 @@ class TestV2ProcessingOrchestrator:
             omop_config_file=omop_config_file,
         )
 
+        # Actually run the real processing
         result = orchestrator.execute_processing()
 
-        # Check results
+        # Check the real results
         assert result.success is True
-        assert "person.tsv" in result.output_counts
-        assert result.output_counts["person.tsv"] == 2
+        assert isinstance(result.output_counts, dict)
+        assert isinstance(result.rejected_id_counts, dict)
 
-        # Check that summary file was created
-        summary_file = temp_dirs["output_dir"] / "summary_mapstream.tsv"
-        assert summary_file.exists()
+        # Check that real output files were created
+        expected_files = [
+            "person.tsv",
+            "observation.tsv",
+            "summary_mapstream.tsv",
+            "person_ids.tsv",
+        ]
+        for filename in expected_files:
+            output_file = temp_dirs["output_dir"] / filename
+            assert output_file.exists(), (
+                f"Expected output file {filename} was not created"
+            )
+
+        # Verify person.tsv has actual content
+        person_output = temp_dirs["output_dir"] / "person.tsv"
+        with person_output.open("r") as f:
+            lines = f.readlines()
+            # 6 valid records (each record has both gender and race) + headers
+            assert len(lines) == 7
+            # First line should be headers
+            assert "person_id" in lines[0]
+
+        # Verify observation.tsv has actual content
+        observation_output = temp_dirs["output_dir"] / "observation.tsv"
+        with observation_output.open("r") as f:
+            lines = f.readlines()
+            # 10 records (4x2 records for Asian, and 2 records for UK) + headers
+            assert len(lines) == 11
+            # First line should be headers
+            assert "person_id" in lines[0]
 
     @patch("carrottransform.tools.orchestrator.StreamProcessor")
     def test_execute_processing_failure(
