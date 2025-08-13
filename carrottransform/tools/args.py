@@ -66,7 +66,7 @@ class NoPersonMappings(Exception):
 
 
 class WrongInputException(Exception):
-    """Raised when they try to read fromt he wrong table - and only the wrong table"""
+    """Raised when they try to read from the wrong table - and only the wrong table"""
 
     def __init__(self, rules_file: Path, person_file: str, source_table: str):
         self._rules_file = rules_file
