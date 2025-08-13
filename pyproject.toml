@@ -8,6 +8,7 @@ readme = "README.md"
 dependencies = [
     "click>=8.1.7,<9",
     "ruff>=0.12.0",
+    "trino>=0.335.0",
 ]
 license = "MIT"
 
@@ -54,3 +55,7 @@ markers = [
     "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
     "integration: marks integration tests"
 ]
+
+[[tool.mypy.overrides]]
+module = "trino.*"
+ignore_missing_imports = true

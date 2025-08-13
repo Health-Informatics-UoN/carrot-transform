@@ -18,6 +18,7 @@ from carrottransform.tools.types import (
 from carrottransform.tools.record_builder import RecordBuilderFactory
 from carrottransform.tools.file_helpers import OutputFileManager
 from carrottransform.tools.stream_helpers import StreamingLookupCache
+from trino.dbapi import connect
 
 logger = logger_setup()
 
@@ -32,6 +33,17 @@ class StreamProcessor:
     def process_all_data(self) -> ProcessingResult:
         """Process all data with single-pass streaming approach"""
         logger.info("Processing data...")
+        conn = connect(
+            host="localhost",
+            port=8080,
+            user="admin",
+            catalog="memory",
+            schema="test_schema",
+        )
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM test_persons")
+        rows = cur.fetchall()
+        print(rows)
 
         total_output_counts = {outfile: 0 for outfile in self.context.output_files}
         total_rejected_counts = {infile: 0 for infile in self.context.input_files}
