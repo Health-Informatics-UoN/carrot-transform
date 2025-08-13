@@ -45,8 +45,8 @@ def person_rules_check_v2(person_file: Path, mappingrules: MappingRules) -> None
     if not person_file.is_file():
         raise Exception(f"Person file not found: {person_file=}")
     person_file_name = person_file.name
-    rules_json = mappingrules.rules_data
-    person_rules = object_query(rules_json, "cdm/person")
+
+    person_rules = object_query(mappingrules.rules_data, "cdm/person")
     if not person_rules:
         raise Exception("Mapping rules to Person table not found")
     if len(person_rules) > 1:
