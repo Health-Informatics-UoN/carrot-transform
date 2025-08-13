@@ -237,15 +237,15 @@ class TestStreamingLookupCache:
         assert len(lab_outputs) == 1
         assert "measurement.tsv" in lab_outputs
 
-    def test_cache_performance_properties(self, mock_mappingrules, mock_omopcdm):
-        """Test that cache has properties needed for efficient processing"""
+    def test_cache_types(self, mock_mappingrules, mock_omopcdm):
+        """Test that cache has properties with correct types"""
         cache = StreamingLookupCache(mock_mappingrules, mock_omopcdm)
 
-        # All lookups should be dictionaries for O(1) access
+        # All lookups should be dictionaries
         assert isinstance(cache.input_to_outputs, dict)
         assert isinstance(cache.file_metadata_cache, dict)
         assert isinstance(cache.target_metadata_cache, dict)
 
-        # Sets should be used for target lookups for efficient membership testing
+        # Sets should be used for target lookups
         for target_set in cache.input_to_outputs.values():
             assert isinstance(target_set, set)
