@@ -19,17 +19,35 @@ package_root: Path = Path(str(importlib.resources.files("carrottransform")))
 
 
 def click_test(
+    # a folder that the test can read/write files into
     tmp_path: Path,
+    # either a path to the person_file, or, a string denoting a relative path in the `tests/test_data/` folder
     person_file: Path | str,
+    # if true: the data spreadsheets are copied to an SQL database and then read back from there
     engine: bool = False,
+    # optional check of how many people should be in the output
     persons: int | None = None,
+    # optional check of the measurements values (look for an example test)
     measurements: dict | None = None,
+    # optional check of the observations values (look for an example test)
     observations: dict | None = None,
+    # optional check of the conditions values (look for an example test)
     conditions: dict | None = None,
+    # relative path to the rules_file.json if it's missing we assume there's only one .json sibling of the above person_file path and that .json is the rules file
     rules_file: str | None = None,
-    # some tests need the failure
+    # bool value controlling wether we expect a failure or not. failure tests do no checking and all other tests fail if transform didn't execute/terminate correctly
     failure: bool = False,
 ):
+    """this function tests carrot transform.
+
+
+    carrot-transform was built on top of the "click" command line tool.
+    a lot of the (integration) tests are minor variations on eachother, and, can be execuited and checked with different parameters.
+    this function generalises a lot of that functionality - it also includes the option to create a junk database, import the original test csv files, and run the test against that configuration.
+
+    the file is named "click_tools" since this functionality was orignally divided amongst several functions before being combined here.
+    """
+
     ##
     # check the person file
     if isinstance(person_file, str):
@@ -43,14 +61,12 @@ def click_test(
     if not person_file.is_file():
         raise ValueError(f"person_file {person_file} does not exist")
 
-    # list all csvs in that folder, ensure the original file is the first one
-    csv_files = [
-        f.name
-        for f in person_file.parent.glob("*.csv")
-        if f.is_file() and f.name != person_file.name
-    ]
-    csv_files = list(csv_files)
-    csv_files.insert(0, person_file.name)
+    # these checks aren't performed for failure tests - so raise an error if the developer tried to get them done
+    if failure:
+        assert persons is None
+        assert measurements is None
+        assert observations is None
+        assert conditions is None
 
     # find the only rules file in that folder
     rules_json_file: Path
@@ -78,7 +94,8 @@ def click_test(
     if engine:
         connection_string = f"sqlite:///{(tmp_path / 'testing.db').absolute()}"
         source = sources.SourceOpener(engine=connection_string)
-        for csv_file in csv_files:
+
+        for csv_file in person_file.parent.glob("*.csv"):
             load_test_database_table(source, person_file.parent / csv_file)
 
         copied = tmp_path / "rules.json"
