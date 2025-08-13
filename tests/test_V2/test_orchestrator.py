@@ -353,18 +353,16 @@ class TestV2ProcessingOrchestrator:
         # Remove the input files to cause a realistic failure
         person_file.unlink()  # Delete the person file
 
-        orchestrator = V2ProcessingOrchestrator(
-            rules_file=v2_rules_file,
-            output_dir=temp_dirs["output_dir"],
-            input_dir=temp_dirs["input_dir"],
-            person_file=person_file,  # This file no longer exists
-            omop_ddl_file=ddl_file,
-            omop_config_file=omop_config_file,
-        )
-
         # This should fail because the person file doesn't exist
-        with pytest.raises(FileNotFoundError):
-            orchestrator.execute_processing()
+        with pytest.raises(Exception, match="Person file not found."):
+            V2ProcessingOrchestrator(
+                rules_file=v2_rules_file,
+                output_dir=temp_dirs["output_dir"],
+                input_dir=temp_dirs["input_dir"],
+                person_file=person_file,  # This file no longer exists
+                omop_ddl_file=ddl_file,
+                omop_config_file=omop_config_file,
+            )
 
     def test_execute_processing_with_invalid_rules(
         self, temp_dirs, person_file, omop_config_file
