@@ -8,7 +8,7 @@ from carrottransform.cli.subcommands.run import mapstream
 import csvrow
 import carrottransform.tools.sources as sources
 import logging
-from sqlalchemy import Table, Column, String, MetaData, insert
+from sqlalchemy import Table, Column, Text, MetaData, insert
 
 
 logger = logging.getLogger(__name__)
@@ -288,35 +288,49 @@ def click_test(
 
 
 def load_test_database_table(sourceOpener: sources.SourceOpener, csv: Path):
-    """load a csv file into a database. does some adjustments to make sure the column names work"""
+    """load a csv file into a testing database.
 
+    does some adjustments to make sure the column names work, but, generally dumps it itno a "dumb" database for testing"""
+
+    # check to ensure we're loading into a valid engine
     assert sourceOpener._engine is not None
 
+    # the table name will be inferred from the csv file name; this enforces consistency
     assert csv.name.endswith(".csv")
     tablename: str = csv.name[:-4]
 
-    csvr = sources.open_csv_rows(sourceOpener, csv)
-    column_names = next(csvr)
+    # open the csv using a sourceOpener
+    csvr = sources.SourceOpener(folder=csv.parent).open(csv.name)
 
-    # if the column names have a blank at the end we need to stripit
+    # if the column names have a blank at the end we need to remove it.
+    #   sometimes people (named Peter) write csvs like `user,data,data,value,` which would lead to a blank 5th column name; this removes that
+    column_names = next(csvr)
     if "" == column_names[-1]:
         column_names = column_names[:-1]
 
-    # make sure there's no other blankes
+    # make sure there are no other blankes
     for name in column_names:
         if "" == name:
             raise Exception("can't have a blank column name in the CSVs")
         if " " in name:
             raise Exception("can't have spaces in the CSV column names")
 
-    # Create the table in the database
+    # Create the table in the testing database
     metadata = MetaData()
     table = Table(
-        tablename, metadata, *([Column(name, String(255)) for name in column_names])
+        # we're reading from .csv files. all data in csv files will be
+        #   text. the data may encode numbers (as text) but we don't
+        #   have a way to know which columns are and which aren't.
+        #   that's why all columns in this testing database are encoded
+        #   as text.
+        tablename,
+        metadata,
+        *([Column(name, Text()) for name in column_names]),
     )
     metadata.create_all(sourceOpener._engine, tables=[table])
 
-    # # Insert rows
+    # Insert each row from teh csv, into the sql table
+    #   thios is tested and works when "columns with blank names" which were removed above
     with sourceOpener._engine.begin() as conn:
         for row in csvr:
             record = dict(zip(column_names, row))

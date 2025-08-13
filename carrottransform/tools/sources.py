@@ -69,11 +69,35 @@ class SourceOpener:
         assert name.endswith(".csv")
 
         if self._folder is None:
-            src = self._open_sql(name)
+
+            def open_sql(src, name: str):
+                name = name[:-4]
+
+                metadata = MetaData()
+                metadata.reflect(bind=src._engine, only=[name])
+                table = metadata.tables[name]
+
+                with src._engine.connect() as conn:
+                    result = conn.execute(select(table))
+                    yield result.keys()  # list of column names
+
+                    for row in result:
+                        # we overwrite the date values so convert it to a list
+                        yield list(row)
+
+            src = open_sql(self, name)
         else:
             path: Path = self._folder / name
             if not path.is_file():
                 raise SourceFileNotFoundException(self, path)
+
+            def open_csv_rows(src: SourceOpener, path: Path):
+                if not path.is_file():
+                    raise SourceFileNotFoundException(src, path)
+
+                with path.open(mode="r", encoding="utf-8-sig") as file:
+                    for row in csv.reader(file):
+                        yield row
 
             src = open_csv_rows(self, path)
 
@@ -87,28 +111,3 @@ class SourceOpener:
         except Exception as e:
             raise e
         return itertools.chain([first], src)
-
-    def _open_sql(self, name: str):
-        assert name.endswith(".csv")
-        name = name[:-4]
-
-        metadata = MetaData()
-        metadata.reflect(bind=self._engine, only=[name])
-        table = metadata.tables[name]
-
-        with self._engine.connect() as conn:
-            result = conn.execute(select(table))
-            yield result.keys()  # list of column names
-
-            for row in result:
-                # we overwrite the date values so convert it to a list
-                yield list(row)
-
-
-def open_csv_rows(src: SourceOpener, path: Path):
-    if not path.is_file():
-        raise SourceFileNotFoundException(src, path)
-
-    with path.open(mode="r", encoding="utf-8-sig") as file:
-        for row in csv.reader(file):
-            yield row
