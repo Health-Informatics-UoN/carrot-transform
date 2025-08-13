@@ -112,9 +112,25 @@ class TestStreamingLookupCache:
 
         def mock_get_notnull_numeric_fields(table_name):
             numeric_fields = {
-                "person.tsv": [],
-                "observation.tsv": [],
-                "measurement.tsv": ["value_as_number"],
+                "person.tsv": [
+                    "person_id",
+                    "gender_concept_id",
+                    "year_of_birth",
+                    "race_concept_id",
+                    "ethnicity_concept_id",
+                ],
+                "observation.tsv": [
+                    "observation_id",
+                    "person_id",
+                    "observation_concept_id",
+                    "observation_type_concept_id",
+                ],
+                "measurement.tsv": [
+                    "measurement_id",
+                    "person_id",
+                    "measurement_concept_id",
+                    "measurement_type_concept_id",
+                ],
             }
             return numeric_fields.get(table_name, [])
 
@@ -149,8 +165,8 @@ class TestStreamingLookupCache:
 
         assert cache.input_to_outputs == expected_lookup
 
-    def test_file_metadata_cache(self, mock_mappingrules, mock_omopcdm):
-        """Test file metadata cache building"""
+    def test_metadata_cache_building(self, mock_mappingrules, mock_omopcdm):
+        """Test metadata cache building"""
         cache = StreamingLookupCache(mock_mappingrules, mock_omopcdm)
 
         # Check that all input files are in the cache
@@ -159,6 +175,15 @@ class TestStreamingLookupCache:
         assert "Surveys.csv" in cache.file_metadata_cache
         assert "LabResults.csv" in cache.file_metadata_cache
 
+        # Check that all output files are in the cache
+        assert "person.tsv" in cache.target_metadata_cache
+        assert "observation.tsv" in cache.target_metadata_cache
+        assert "measurement.tsv" in cache.target_metadata_cache
+
+    def test_file_metadata_cache(self, mock_mappingrules, mock_omopcdm):
+        """Test file metadata cache building"""
+        cache = StreamingLookupCache(mock_mappingrules, mock_omopcdm)
+
         # Check specific metadata for Demographics.csv
         demo_meta = cache.file_metadata_cache["Demographics.csv"]
         assert demo_meta["datetime_source"] == "birth_date"
@@ -166,14 +191,9 @@ class TestStreamingLookupCache:
         assert "person.tsv" in demo_meta["data_fields"]
         assert "observation.tsv" in demo_meta["data_fields"]
 
-    def test_target_metadata_cache(self, mock_mappingrules, mock_omopcdm):
+    def test_target_metadata_cache_person(self, mock_mappingrules, mock_omopcdm):
         """Test target metadata cache building"""
         cache = StreamingLookupCache(mock_mappingrules, mock_omopcdm)
-
-        # Check that all output files are in the cache
-        assert "person.tsv" in cache.target_metadata_cache
-        assert "observation.tsv" in cache.target_metadata_cache
-        assert "measurement.tsv" in cache.target_metadata_cache
 
         # Check specific metadata for person.tsv
         person_meta = cache.target_metadata_cache["person.tsv"]
@@ -181,10 +201,35 @@ class TestStreamingLookupCache:
         assert person_meta["person_id_col"] == "person_id"
         assert "birth_datetime" in person_meta["date_component_data"]
 
+    def test_target_metadata_cache_measurement(self, mock_mappingrules, mock_omopcdm):
+        """Test target metadata cache building"""
+        cache = StreamingLookupCache(mock_mappingrules, mock_omopcdm)
+
         # Check specific metadata for measurement.tsv
         measurement_meta = cache.target_metadata_cache["measurement.tsv"]
         assert measurement_meta["auto_num_col"] == "measurement_id"
-        assert "value_as_number" in measurement_meta["notnull_numeric_fields"]
+        assert "measurement_id" in measurement_meta["notnull_numeric_fields"]
+        assert "person_id" in measurement_meta["notnull_numeric_fields"]
+        assert "measurement_concept_id" in measurement_meta["notnull_numeric_fields"]
+        assert (
+            "measurement_type_concept_id" in measurement_meta["notnull_numeric_fields"]
+        )
+        assert "measurement_datetime" in measurement_meta["date_col_data"]
+
+    def test_target_metadata_cache_observation(self, mock_mappingrules, mock_omopcdm):
+        """Test target metadata cache building"""
+        cache = StreamingLookupCache(mock_mappingrules, mock_omopcdm)
+
+        # Check specific metadata for observation.tsv
+        observation_meta = cache.target_metadata_cache["observation.tsv"]
+        assert observation_meta["auto_num_col"] == "observation_id"
+        assert "observation_datetime" in observation_meta["date_col_data"]
+        assert "observation_concept_id" in observation_meta["notnull_numeric_fields"]
+        assert "observation_id" in observation_meta["notnull_numeric_fields"]
+        assert (
+            "observation_type_concept_id" in observation_meta["notnull_numeric_fields"]
+        )
+        assert "person_id" in observation_meta["notnull_numeric_fields"]
 
     def test_empty_mappings(self):
         """Test cache with empty mappings"""
