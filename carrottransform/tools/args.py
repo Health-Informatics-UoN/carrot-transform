@@ -43,7 +43,7 @@ class ObjectStructureError(Exception):
 def person_rules_check_v2(person_file: Path, mappingrules: MappingRules) -> None:
     """check that the person rules file is correct."""
     if not person_file.is_file():
-        raise Exception(f"Person file not found: {person_file=}")
+        raise Exception("Person file not found.")
     person_file_name = person_file.name
 
     person_rules = object_query(mappingrules.rules_data, "cdm/person")
