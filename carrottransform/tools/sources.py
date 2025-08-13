@@ -49,24 +49,23 @@ class SourceOpener:
 
         self._folder = folder
         if self._folder is not None:
-            assert engine is None
             if not self._folder.is_dir():
                 raise SourceFolderMissingException(self)
 
         if engine is None:
-            assert self._folder is not None
             self._engine = None
         elif isinstance(engine, str):
-            assert self._folder is None
             self._engine = sqlalchemy.create_engine(engine)
         else:
             self._engine = engine
 
-        assert (self._folder is None) or (self._engine is None)
-        assert (self._folder is not None) or (self._engine is not None)
-
     def open(self, name: str):
-        assert name.endswith(".csv")
+        if not name.endswith(".csv"):
+            raise RuntimeError(f"source names must end with .csv but was {name=}")
+        if "/" in name or "\\" in name:
+            raise RuntimeError(
+                f"source names must name a file not a path but was {name=}"
+            )
 
         if self._folder is None:
 
