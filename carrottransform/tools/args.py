@@ -3,6 +3,7 @@ functions to handle args
 """
 
 from pathlib import Path
+from carrottransform.tools.mappingrules import MappingRules
 
 
 class OnlyOnePersonInputAllowed(Exception):
@@ -37,6 +38,25 @@ class ObjectQueryError(Exception):
 
 class ObjectStructureError(Exception):
     """Raised when the object path format points to inaccessible elements."""
+
+
+def person_rules_check_v2(person_file: Path, mappingrules: MappingRules) -> None:
+    """check that the person rules file is correct."""
+    if not person_file.is_file():
+        raise Exception(f"Person file not found: {person_file=}")
+    person_file_name = person_file.name
+    rules_json = mappingrules.rules_data
+    person_rules = object_query(rules_json, "cdm/person")
+    if not person_rules:
+        raise Exception("Mapping rules to Person table not found")
+    if len(person_rules) > 1:
+        raise Exception(
+            f"""The source table for the OMOP table Person can be only one, which is the person file: {person_file_name}. However, there are multiple source tables {list(person_rules.keys())} for the Person table in the mapping rules."""
+        )
+    if len(person_rules) == 1 and person_file_name not in person_rules:
+        raise Exception(
+            f"""The source table for the OMOP table Person should be the person file {person_file_name}, but the current source table for Person is {list(person_rules.keys())[0]}."""
+        )
 
 
 def person_rules_check(person_file: Path, rules_file: Path) -> None:
