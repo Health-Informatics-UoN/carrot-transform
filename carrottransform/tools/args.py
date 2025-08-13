@@ -125,6 +125,11 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
 
     we need all person/patient records to come from one file - the person file. this includes the gender mapping. this should/must also be the person_file parameter.
 
+    requiring this fixes these three issues;
+        - https://github.com/Health-Informatics-UoN/carrot-transform/issues/72
+        - https://github.com/Health-Informatics-UoN/carrot-transform/issues/76
+        - https://github.com/Health-Informatics-UoN/carrot-transform/issues/78
+
     ... this does reopen the possibility of auto-detecting the person file from the rules file
     """
 
