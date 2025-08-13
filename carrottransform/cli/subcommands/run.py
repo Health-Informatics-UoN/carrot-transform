@@ -200,7 +200,8 @@ def mapstream(
             )
 
         source = sources.SourceOpener(folder=person_file.parent)
-    # input_dir is now redudnat?
+
+    # TODO; this (and the fact that the `person_rules_check()` has to happen) means that the input_dir parameter is redundant - it can be inferred from the person_file parameter
     input_dir = person_file.parent
 
     # ## check directories are valid
