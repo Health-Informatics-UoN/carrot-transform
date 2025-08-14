@@ -21,7 +21,6 @@ from carrottransform.tools.file_helpers import OutputFileManager
 from carrottransform.tools.stream_helpers import StreamingLookupCache
 from carrottransform.tools.args import person_rules_check_v2
 from sqlalchemy import create_engine
-from sqlalchemy.schema import Table, MetaData
 from sqlalchemy.sql.expression import select
 
 
@@ -326,16 +325,18 @@ class V2ProcessingOrchestrator:
         rules_file: Path,
         output_dir: Path,
         input_dir: Optional[Path],
-        person_file: Path,
         omop_ddl_file: Optional[Path],
         omop_config_file: Optional[Path],
         write_mode: str = "w",
+        person_file: Optional[Path] = None,
+        person_table: Optional[str] = None,
         db_conn_params: Optional[DBConnParams] = None,
     ):
         self.rules_file = rules_file
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.person_file = person_file
+        self.person_table = person_table
         self.omop_ddl_file = omop_ddl_file
         self.omop_config_file = omop_config_file
         self.write_mode = write_mode
@@ -353,7 +354,9 @@ class V2ProcessingOrchestrator:
             raise ValueError("Rules file is not in v2 format!")
         else:
             try:
-                person_rules_check_v2(self.person_file, self.mappingrules)
+                person_rules_check_v2(
+                    self.person_file, self.person_table, self.mappingrules
+                )
             except Exception as e:
                 logger.exception(f"Validation for person rules failed: {e}")
                 raise e
@@ -370,22 +373,20 @@ class V2ProcessingOrchestrator:
     def setup_person_lookup(self) -> Tuple[Dict[str, str], int]:
         """Setup person ID lookup and save mapping"""
         saved_person_id_file = set_saved_person_id_file(None, self.output_dir)
-        rows = None
+        connection = None
+        schema = None
         if self.db_conn_params:
             connection = self.engine_connection.connect()
-            person_table = Table(
-                "test_persons",
-                MetaData(schema=self.db_conn_params.schema),
-                autoload_with=connection,
-            )
-            rows = connection.execute(select(person_table)).fetchall()
+            schema = self.db_conn_params.schema
 
         person_lookup, rejected_person_count = load_person_ids(
             saved_person_id_file,
-            self.person_file,
-            self.mappingrules,
+            person_file=self.person_file,
+            person_table_name=self.person_table,
+            mappingrules=self.mappingrules,
             use_input_person_ids="N",
-            person_table=rows,
+            db_connection=connection,
+            schema=schema,
         )
 
         # Save person IDs
