@@ -1,5 +1,8 @@
 import datetime
 import re
+from carrottransform.tools.logger import logger_setup
+
+logger = logger_setup()
 
 
 def get_datetime_value(item: str) -> datetime.datetime | None:
@@ -39,8 +42,8 @@ def normalise_to8601(item: str) -> str:
         )
 
     if not match:
-        raise Exception(f"invalid date format {item=}")
-
+        logger.warning(f"Invalid date format {item=}")
+        return ""
     data = match.groupdict()
     year, month, day = data["year"], data["month"], data["day"]
     value = str(int(year)).zfill(4)
