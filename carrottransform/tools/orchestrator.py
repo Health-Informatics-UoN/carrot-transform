@@ -155,7 +155,7 @@ class StreamProcessor:
                 datetime_col_idx = input_column_map.get(file_meta["datetime_source"])
                 if datetime_col_idx is None:
                     logger.warning(
-                        f"Date field {file_meta['datetime_source']} not found in {source_filename}"
+                        f"Date field {file_meta['datetime_source']} not found in table {source_filename.split('.')[0]}"
                     )
                     return output_counts, rejected_count
 
