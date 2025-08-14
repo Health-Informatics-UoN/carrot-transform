@@ -403,7 +403,10 @@ class V2ProcessingOrchestrator:
         try:
             # Setup person lookup
             person_lookup, rejected_person_count = self.setup_person_lookup()
-
+            # Log results of person lookup
+            logger.info(
+                f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
+            )
             # Setup output files - keep all open for streaming
             output_files = self.mappingrules.get_all_outfile_names()
             file_handles, target_column_maps = self.output_manager.setup_output_files(
@@ -426,10 +429,6 @@ class V2ProcessingOrchestrator:
             processor = StreamProcessor(context, self.lookup_cache)
             result = processor.process_all_data()
 
-            # Log results
-            logger.info(
-                f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
-            )
             for target_file, count in result.output_counts.items():
                 logger.info(f"TARGET: {target_file}: output count {count}")
 
