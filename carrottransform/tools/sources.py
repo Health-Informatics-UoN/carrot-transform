@@ -39,7 +39,7 @@ class SourceOpener:
     def __init__(
         self,
         folder: Path | None = None,
-        engine: sqlalchemy.engine.Engine | str | None = None,
+        engine: sqlalchemy.engine.Engine | None = None,
     ) -> None:
         if folder is None and engine is None:
             raise RuntimeError("SourceOpener needs either an engine or a folder")
@@ -54,8 +54,6 @@ class SourceOpener:
 
         if engine is None:
             self._engine = None
-        elif isinstance(engine, str):
-            self._engine = sqlalchemy.create_engine(engine)
         else:
             self._engine = engine
 

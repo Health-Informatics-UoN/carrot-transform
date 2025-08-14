@@ -114,6 +114,7 @@ class ObjectStructureError(Exception):
 functions to handle args
 """
 
+
 def person_rules_check_v2(person_file: Path, mappingrules: MappingRules) -> None:
     """check that the person rules file is correct."""
     if not person_file.is_file():

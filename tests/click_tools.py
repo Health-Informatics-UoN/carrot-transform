@@ -9,6 +9,7 @@ import csvrow
 import carrottransform.tools.sources as sources
 import logging
 from sqlalchemy import Table, Column, Text, MetaData, insert
+import sqlalchemy
 
 
 logger = logging.getLogger(__name__)
@@ -93,10 +94,10 @@ def click_test(
     # ... also change enough parameters we know we're not cheating and looking at the .csv files
     if engine:
         connection_string = f"sqlite:///{(tmp_path / 'testing.db').absolute()}"
-        source = sources.SourceOpener(engine=connection_string)
+        engine: sqlalchemy.engine.Engine = sqlalchemy.create_engine(connection_string)
 
         for csv_file in person_file.parent.glob("*.csv"):
-            load_test_database_table(source, person_file.parent / csv_file)
+            load_test_database_table(engine, person_file.parent / csv_file)
 
         copied = tmp_path / "rules.json"
         shutil.copy(rules_json_file, copied)
@@ -304,13 +305,10 @@ def click_test(
     return (result, output, person_id_source2target, person_id_target2source)
 
 
-def load_test_database_table(sourceOpener: sources.SourceOpener, csv: Path):
+def load_test_database_table(connection: sqlalchemy.engine.Engine, csv: Path):
     """load a csv file into a testing database.
 
     does some adjustments to make sure the column names work, but, generally dumps it itno a "dumb" database for testing"""
-
-    # check to ensure we're loading into a valid engine
-    assert sourceOpener._engine is not None
 
     # the table name will be inferred from the csv file name; this enforces consistency
     assert csv.name.endswith(".csv")
@@ -344,11 +342,11 @@ def load_test_database_table(sourceOpener: sources.SourceOpener, csv: Path):
         metadata,
         *([Column(name, Text()) for name in column_names]),
     )
-    metadata.create_all(sourceOpener._engine, tables=[table])
+    metadata.create_all(connection, tables=[table])
 
     # Insert each row from teh csv, into the sql table
     #   thios is tested and works when "columns with blank names" which were removed above
-    with sourceOpener._engine.begin() as conn:
+    with connection.begin() as conn:
         for row in csvr:
             record = dict(zip(column_names, row))
             conn.execute(insert(table), record)

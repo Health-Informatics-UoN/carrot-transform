@@ -25,19 +25,20 @@ def load_person_ids(
     person_file: Path,
     mappingrules: MappingRules,
     use_input_person_ids: bool,
-    delim: str=",",
+    delim: str = ",",
 ):
     """`old` loading method that accepts a Path object pointing to the file along witrh a delimeter.
 
     this is used to preserve the old API for the current v2 testing
     """
     return read_person_ids(
-        saved_person_id_file = saved_person_id_file,
-        csvr = csv.reader(person_file.open(mode="r", encoding="utf-8-sig"), delimiter=delim),
-        mappingrules = mappingrules,
-        use_input_person_ids = use_input_person_ids
+        saved_person_id_file=saved_person_id_file,
+        csvr=csv.reader(
+            person_file.open(mode="r", encoding="utf-8-sig"), delimiter=delim
+        ),
+        mappingrules=mappingrules,
+        use_input_person_ids=use_input_person_ids,
     )
-
 
 
 def read_person_ids(
@@ -46,17 +47,14 @@ def read_person_ids(
     mappingrules: MappingRules,
     use_input_person_ids: bool,
 ):
-    """revised loading method that accepts an itterator eitehr for a file or for a database connection
-    """
+    """revised loading method that accepts an itterator eitehr for a file or for a database connection"""
 
     if not isinstance(use_input_person_ids, bool):
         raise Exception(
             f"use_input_person_ids needs to be bool but it was {type(use_input_person_ids)=}"
         )
     if not isinstance(csvr, Iterable):
-        raise Exception(
-            f"csvr needs to be iterable but it was {type(csvr)=}"
-        )
+        raise Exception(f"csvr needs to be iterable but it was {type(csvr)=}")
 
     person_ids, person_number = _get_person_lookup(saved_person_id_file)
 

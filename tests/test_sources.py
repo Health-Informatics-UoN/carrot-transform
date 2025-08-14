@@ -2,6 +2,7 @@
 runs some tests on the source reader thing
 """
 
+import sqlalchemy
 import pytest
 from pathlib import Path
 import carrottransform.tools.sources as sources
@@ -39,12 +40,12 @@ def test_basic_sqlite():
     """opens a sql connection, loads data from a file, checks the correct data comes back out"""
 
     folder = Path(__file__).parent / "test_data/measure_weight_height/"
-    engine = "sqlite:///:memory:"
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
 
     source = sources.SourceOpener(engine=engine)
 
     # load a table with data
-    click_tools.load_test_database_table(source, folder / "heights.csv")
+    click_tools.load_test_database_table(engine, folder / "heights.csv")
 
     # read that table back
     iterator = source.open("heights.csv")
