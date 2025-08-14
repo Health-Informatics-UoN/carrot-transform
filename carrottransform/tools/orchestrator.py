@@ -11,6 +11,7 @@ from carrottransform.tools.person_helpers import (
 )
 from carrottransform.tools.date_helpers import normalise_to8601
 from carrottransform.tools.types import (
+    DBConnParams,
     ProcessingResult,
     ProcessingContext,
     RecordContext,
@@ -37,30 +38,6 @@ class StreamProcessor:
     def process_all_data(self) -> ProcessingResult:
         """Process all data with single-pass streaming approach"""
         logger.info("Processing data...")
-        engine = create_engine("trino://admin@localhost:8080/postgres")
-        # engine = create_engine(
-        #     "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres"
-        # )
-        connection = engine.connect()
-        nodes = Table(
-            "test_persons",
-            MetaData(schema="test_schema_transform"),
-            autoload_with=engine,
-        )
-        rows = connection.execute(select(nodes)).fetchall()
-        print(rows)
-        # conn = connect(
-        #     host="localhost",
-        #     port=8080,
-        #     user="admin",
-        #     catalog="postgres",
-        #     schema="test_schema_transform",
-        # )
-        # cur = conn.cursor()
-        # cur.execute("SELECT * FROM test_persons")
-        # rows = cur.fetchall()
-        # print(rows)
-
         total_output_counts = {outfile: 0 for outfile in self.context.output_files}
         total_rejected_counts = {infile: 0 for infile in self.context.input_files}
 
@@ -310,6 +287,37 @@ class StreamProcessor:
         return result.record_count, rejected_count
 
 
+class EngineConnection:
+    """Connection to an engine"""
+
+    def __init__(self, db_conn_params: DBConnParams):
+        self.db_conn_params = db_conn_params
+        # If db_type is postgres, we convert it to the correct driver for postgres
+        if self.db_conn_params.db_type == "postgres":
+            self.db_conn_params.db_type = "postgresql+psycopg2"
+
+        self.engine = create_engine(
+            f"{self.db_conn_params.db_type}://{self.db_conn_params.username}:{self.db_conn_params.password}@{self.db_conn_params.host}:{self.db_conn_params.port}/{self.db_conn_params.db_name}"
+        )
+        # TODO: handle error better
+        self.test_connection()
+
+    def connect(self):
+        return self.engine.connect()
+
+    def test_connection(self):
+        """Test the connection to the engine"""
+        try:
+            connection = self.connect()
+            connection.execute(select(1))
+            logger.info(
+                f"Connection to engine {self.db_conn_params.db_type} successful"
+            )
+        except Exception as e:
+            logger.error(f"Error testing connection to engine: {e}")
+            raise e
+
+
 class V2ProcessingOrchestrator:
     """Main orchestrator for the entire V2 processing pipeline"""
 
@@ -322,7 +330,7 @@ class V2ProcessingOrchestrator:
         omop_ddl_file: Optional[Path],
         omop_config_file: Optional[Path],
         write_mode: str = "w",
-        db_params: Optional[dict] = None,
+        db_conn_params: Optional[DBConnParams] = None,
     ):
         self.rules_file = rules_file
         self.output_dir = output_dir
@@ -331,6 +339,7 @@ class V2ProcessingOrchestrator:
         self.omop_ddl_file = omop_ddl_file
         self.omop_config_file = omop_config_file
         self.write_mode = write_mode
+        self.db_conn_params = db_conn_params
 
         # Initialize components immediately
         self.initialize_components()
@@ -355,15 +364,28 @@ class V2ProcessingOrchestrator:
         # Pre-compute lookup cache for efficient streaming
         self.lookup_cache = StreamingLookupCache(self.mappingrules, self.omopcdm)
 
+        if self.db_conn_params:
+            self.engine_connection = EngineConnection(self.db_conn_params)
+
     def setup_person_lookup(self) -> Tuple[Dict[str, str], int]:
         """Setup person ID lookup and save mapping"""
         saved_person_id_file = set_saved_person_id_file(None, self.output_dir)
+        rows = None
+        if self.db_conn_params:
+            connection = self.engine_connection.connect()
+            person_table = Table(
+                "test_persons",
+                MetaData(schema=self.db_conn_params.schema),
+                autoload_with=connection,
+            )
+            rows = connection.execute(select(person_table)).fetchall()
 
         person_lookup, rejected_person_count = load_person_ids(
             saved_person_id_file,
             self.person_file,
             self.mappingrules,
             use_input_person_ids="N",
+            person_table=rows,
         )
 
         # Save person IDs
@@ -391,7 +413,7 @@ class V2ProcessingOrchestrator:
             context = ProcessingContext(
                 mappingrules=self.mappingrules,
                 omopcdm=self.omopcdm,
-                input_dir=self.input_dir if self.input_dir is not None else Path("."),
+                input_dir=self.input_dir if self.input_dir else Path("."),
                 person_lookup=person_lookup,
                 record_numbers={output_file: 1 for output_file in output_files},
                 file_handles=file_handles,

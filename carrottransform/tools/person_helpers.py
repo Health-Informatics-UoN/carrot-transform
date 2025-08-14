@@ -4,6 +4,8 @@ from pathlib import Path
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.validation import valid_value, valid_date_value
 from carrottransform.tools.mappingrules import MappingRules
+from typing import Optional
+from sqlalchemy.schema import Table, Sequence
 
 logger = logger_setup()
 
@@ -25,6 +27,7 @@ def load_person_ids(
     mappingrules: MappingRules,
     use_input_person_ids,
     delim=",",
+    person_table: Optional[Sequence] = None,
 ):
     person_ids, person_number = _get_person_lookup(saved_person_id_file)
 
@@ -51,7 +54,7 @@ def load_person_ids(
     ## get the column index of the PersonID from the input file
     person_col = person_columns[person_id_source]
 
-    for persondata in csvr:
+    for persondata in person_table:
         if not valid_value(
             persondata[person_columns[person_id_source]]
         ):  # just checking that the id is not an empty string
