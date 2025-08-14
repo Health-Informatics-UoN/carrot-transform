@@ -57,11 +57,21 @@ def person_rules_check_v2(
         raise Exception(
             f"""The source table for the OMOP table Person can be only one, which is the person file: {person_file_name}. However, there are multiple source tables {list(person_rules.keys())} for the Person table in the mapping rules."""
         )
-    if len(person_rules) == 1 and (
-        (person_file_name or f"{person_table}.csv") not in person_rules
+    if (
+        len(person_rules) == 1
+        and person_table
+        and person_table != list(person_rules.keys())[0].split(".")[0]
     ):
         raise Exception(
-            f"""The source table for the OMOP table Person should be the person file {person_file_name or person_table}, but the current source table for Person is {list(person_rules.keys())[0]}."""
+            f"""The source table for the OMOP table Person should be the person table {person_table}, but the current source table for Person is {list(person_rules.keys())[0].split(".")[0]}."""
+        )
+    if (
+        len(person_rules) == 1
+        and person_file_name
+        and (person_file_name not in person_rules)
+    ):
+        raise Exception(
+            f"""The source table for the OMOP table Person should be the person file {person_file_name}, but the current source table for Person is {list(person_rules.keys())[0]}."""
         )
 
 
