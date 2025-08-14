@@ -104,6 +104,7 @@ class StreamProcessor:
             return output_counts, rejected_count
 
         try:
+            # TODO: refactor this logic to be more efficient
             if db_connection is None:
                 with file_path.open(mode="r", encoding="utf-8-sig") as fh:
                     csv_reader = csv.reader(fh)
