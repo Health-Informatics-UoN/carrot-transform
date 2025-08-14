@@ -31,8 +31,6 @@ def object_query(data: dict[str, dict | str], path: str) -> dict | str:
         )
 
     current_key, _, remaining_path = path.partition("/")
-    if not current_key:
-        raise ObjectQueryError(f"Invalid path: blank key at start in {path!r}")
 
     if current_key not in data:
         raise ObjectStructureError(f"Key {current_key!r} not found in object")
