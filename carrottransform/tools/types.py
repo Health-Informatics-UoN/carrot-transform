@@ -5,6 +5,7 @@ import carrottransform.tools as tools
 from carrottransform.tools.omopcdm import OmopCDM
 from carrottransform.tools.mapping_types import V2TableMapping
 from carrottransform.tools.mappingrules import MappingRules
+from sqlalchemy.engine import Connection
 
 
 @dataclass
@@ -13,12 +14,14 @@ class ProcessingContext:
 
     mappingrules: MappingRules
     omopcdm: OmopCDM
-    input_dir: Optional[Path]
     person_lookup: Dict[str, str]
     record_numbers: Dict[str, int]
     file_handles: Dict[str, TextIO]
     target_column_maps: Dict[str, Dict[str, int]]
     metrics: tools.metrics.Metrics
+    input_dir: Optional[Path] = None
+    db_connection: Optional[Connection] = None
+    schema: Optional[str] = None
 
     @property
     def input_files(self) -> List[str]:

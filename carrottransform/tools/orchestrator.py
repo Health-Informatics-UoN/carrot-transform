@@ -22,6 +22,8 @@ from carrottransform.tools.stream_helpers import StreamingLookupCache
 from carrottransform.tools.args import person_rules_check_v2
 from sqlalchemy import create_engine
 from sqlalchemy.sql.expression import select
+from sqlalchemy.engine import Connection
+from sqlalchemy.schema import Table, MetaData
 
 
 logger = logger_setup()
@@ -44,7 +46,9 @@ class StreamProcessor:
         for source_filename in self.context.input_files:
             try:
                 output_counts, rejected_count = self._process_input_file_stream(
-                    source_filename
+                    source_filename,
+                    self.context.db_connection,
+                    self.context.schema,
                 )
 
                 # Update totals
@@ -64,22 +68,25 @@ class StreamProcessor:
         return ProcessingResult(total_output_counts, total_rejected_counts)
 
     def _process_input_file_stream(
-        self, source_filename: str
+        self,
+        source_filename: str,
+        db_connection: Optional[Connection] = None,
+        schema: Optional[str] = None,
     ) -> Tuple[Dict[str, int], int]:
         """Stream process a single input file with direct output writing"""
         logger.info(f"Streaming input file: {source_filename}")
+        if db_connection is None:
+            # Ensure we have a valid input directory in folder mode
+            if self.context.input_dir is None:
+                logger.warning(
+                    "No input_dir provided; skipping file streaming for folder mode"
+                )
+                return {}, 0
 
-        # Ensure we have a valid input directory in folder mode
-        if self.context.input_dir is None:
-            logger.warning(
-                "No input_dir provided; skipping file streaming for folder mode"
-            )
-            return {}, 0
-
-        file_path = self.context.input_dir / source_filename
-        if not file_path.exists():
-            logger.warning(f"Input file not found: {source_filename}")
-            return {}, 0
+            file_path = self.context.input_dir / source_filename
+            if not file_path.exists():
+                logger.warning(f"Input file not found: {source_filename}")
+                return {}, 0
 
         # Get which output tables this input file can map to
         applicable_targets = self.cache.input_to_outputs.get(source_filename, set())
@@ -97,11 +104,50 @@ class StreamProcessor:
             return output_counts, rejected_count
 
         try:
-            with file_path.open(mode="r", encoding="utf-8-sig") as fh:
-                csv_reader = csv.reader(fh)
-                csv_column_headers = next(csv_reader)
+            if db_connection is None:
+                with file_path.open(mode="r", encoding="utf-8-sig") as fh:
+                    csv_reader = csv.reader(fh)
+                    csv_column_headers = next(csv_reader)
+                    input_column_map = self.context.omopcdm.get_column_map(
+                        csv_column_headers
+                    )
+
+                    # Validate required columns exist
+                    datetime_col_idx = input_column_map.get(
+                        file_meta["datetime_source"]
+                    )
+                    if datetime_col_idx is None:
+                        logger.warning(
+                            f"Date field {file_meta['datetime_source']} not found in {source_filename}"
+                        )
+                        return output_counts, rejected_count
+
+                    # Stream process each row
+                    for input_data in csv_reader:
+                        row_counts, row_rejected = self._process_single_row_stream(
+                            source_filename,
+                            input_data,
+                            input_column_map,
+                            applicable_targets,
+                            datetime_col_idx,
+                            file_meta,
+                        )
+
+                        for target, count in row_counts.items():
+                            output_counts[target] += count
+                        rejected_count += row_rejected
+            else:
+                source_table_model = Table(
+                    source_filename.split(".")[0],
+                    MetaData(schema=schema),
+                    autoload_with=db_connection,
+                )
+                source_table_headers = source_table_model.columns.keys()
+                source_table_data = db_connection.execute(
+                    select(source_table_model)
+                ).fetchall()
                 input_column_map = self.context.omopcdm.get_column_map(
-                    csv_column_headers
+                    source_table_headers
                 )
 
                 # Validate required columns exist
@@ -113,10 +159,12 @@ class StreamProcessor:
                     return output_counts, rejected_count
 
                 # Stream process each row
-                for input_data in csv_reader:
+                for row in source_table_data:
+                    # Convert DB row to a mutable list of strings
+                    input_row = ["" if v is None else str(v) for v in row]
                     row_counts, row_rejected = self._process_single_row_stream(
                         source_filename,
-                        input_data,
+                        input_row,
                         input_column_map,
                         applicable_targets,
                         datetime_col_idx,
@@ -417,12 +465,16 @@ class V2ProcessingOrchestrator:
             context = ProcessingContext(
                 mappingrules=self.mappingrules,
                 omopcdm=self.omopcdm,
-                input_dir=self.input_dir if self.input_dir else Path("."),
+                input_dir=self.input_dir,
                 person_lookup=person_lookup,
                 record_numbers={output_file: 1 for output_file in output_files},
                 file_handles=file_handles,
                 target_column_maps=target_column_maps,
                 metrics=self.metrics,
+                db_connection=self.engine_connection.connect()
+                if self.db_conn_params
+                else None,
+                schema=self.db_conn_params.schema if self.db_conn_params else None,
             )
 
             # Process data using efficient streaming approach
