@@ -11,8 +11,6 @@ jobs:
     name: Run Ruff
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
       - name: Check out the repo
@@ -25,3 +23,21 @@ jobs:
           
       - name: Run Ruff
         uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1
+  coverage:
+    name: Check Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run pyTest for Coverage
+        run: |
+          uv run pytest --junitxml=pytest.xml
+          uv run coverage run -m pytest
+          uv run coverage xml
+
+      - name: set pyTest Coverage Comment
+        if: github.event_name == 'pull_request'
+        uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-xml-coverage-path: coverage.xml
+          junitxml-path: pytest.xml
+        continue-on-error: true
+

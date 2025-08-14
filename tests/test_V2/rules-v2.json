@@ -1,0 +1,87 @@
+{
+  "metadata": {
+    "date_created": "2025-08-12T09:59:37.245623+00:00",
+    "dataset": "integration test transform"
+  },
+  "cdm": {
+    "measurement": {
+      "src_WEIGHT.csv": {
+        "person_id_mapping": {
+          "source_field": "person_id",
+          "dest_field": "person_id"
+        },
+        "date_mapping": {
+          "source_field": "measurement_date",
+          "dest_field": ["measurement_datetime"]
+        },
+        "concept_mappings": {
+          "body_kgs": {
+            "*": {
+              "measurement_source_concept_id": [35811769],
+              "measurement_concept_id": [35811769]
+            },
+            "original_value": ["measurement_source_value", "value_as_number"]
+          }
+        }
+      }
+    },
+    "observation": {
+      "src_SMOKING.csv": {
+        "person_id_mapping": {
+          "source_field": "person_id",
+          "dest_field": "person_id"
+        },
+        "date_mapping": {
+          "source_field": "observation_datetime",
+          "dest_field": ["observation_datetime"]
+        },
+        "concept_mappings": {
+          "observation_source_value": {
+            "NEVER_SMOKER": {
+              "observation_source_concept_id": [35821355],
+              "observation_concept_id": [35821355]
+            },
+            "CURRENT_SMOKER": {
+              "observation_source_concept_id": [35810208],
+              "observation_concept_id": [35810208]
+            },
+            "FORMER_SMOKER": {
+              "observation_source_concept_id": [35810209],
+              "observation_concept_id": [35810209]
+            },
+            "original_value": ["value_as_string", "observation_source_value"]
+          }
+        }
+      }
+    },
+    "person": {
+      "src_PERSON.csv": {
+        "person_id_mapping": {
+          "source_field": "person_id",
+          "dest_field": "person_id"
+        },
+        "date_mapping": {
+          "source_field": "birth_datetime",
+          "dest_field": ["birth_datetime"]
+        },
+        "concept_mappings": {
+          "gender_source_value": {
+            "male": {
+              "gender_concept_id": [8507],
+              "gender_source_concept_id": [8507]
+            },
+            "femail": {
+              "gender_source_concept_id": [8532],
+              "gender_concept_id": [8532]
+            },
+            "female": {
+              "gender_source_concept_id": [8532],
+              "gender_concept_id": [8532]
+            },
+            "original_value": ["gender_source_value"]
+          }
+        }
+      }
+    }
+  }
+}

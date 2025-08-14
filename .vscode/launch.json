@@ -48,6 +48,30 @@
       ],
       "console": "integratedTerminal",
       "justMyCode": false
+    },
+    {
+      "name": "Integration Test - V2 - Debug Carrot Transform Rules",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "carrottransform.cli.command",
+      "args": [
+        "run_v2",
+        "mapstream",
+        "--input-dir",
+        "tests/test_data/integration_test1",
+        "--rules-file",
+        "tests/test_V2/rules-v2.json",
+        "--person-file",
+        "tests/test_data/integration_test1/src_PERSON.csv",
+        "--output-dir",
+        "tests/test_data/integration_test1/outputs",
+        "--omop-ddl-file",
+        "tests/test_data/test_ddl.sql",
+        "--omop-config-file",
+        "tests/test_data/test_config.json"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
     }
   ]
 }

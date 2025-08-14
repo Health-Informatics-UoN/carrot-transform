@@ -39,3 +39,29 @@ CREATE TABLE OBSERVATION (
     unit_source_value varchar(50) NULL,
     qualifier_source_value varchar(50) NULL
 ); 
+
+CREATE TABLE MEASUREMENT (
+    measurement_id integer NOT NULL,
+    person_id integer NOT NULL,
+    measurement_concept_id integer NOT NULL,
+    measurement_date date NOT NULL,
+    measurement_datetime TIMESTAMP NULL,
+    measurement_time varchar(10) NULL,
+    measurement_type_concept_id integer NOT NULL,
+    operator_concept_id integer NULL,
+    value_as_number NUMERIC NULL,
+    value_as_concept_id integer NULL,
+    unit_concept_id integer NULL,
+    range_low NUMERIC NULL,
+    range_high NUMERIC NULL,
+    provider_id integer NULL,
+    visit_occurrence_id integer NULL,
+    visit_detail_id integer NULL,
+    measurement_source_value varchar(50) NULL,
+    measurement_source_concept_id integer NULL,
+    unit_source_value varchar(50) NULL,
+    unit_source_concept_id integer NULL,
+    value_source_value varchar(50) NULL,
+    measurement_event_id bigint NULL,
+    meas_event_field_concept_id integer NULL 
+);
