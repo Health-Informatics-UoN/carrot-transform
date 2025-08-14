@@ -41,12 +41,6 @@ def common_options(func):
         help="force write-mode on output files",
     )(func)
     func = click.option(
-        "--person-file",
-        type=PathArgs,
-        required=True,
-        help="File containing person_ids in the first column",
-    )(func)
-    func = click.option(
         "--omop-ddl-file",
         type=PathArgs,
         required=False,
@@ -70,10 +64,11 @@ def process_common_logic(
     rules_file: Path,
     output_dir: Path,
     write_mode: str,
-    person_file: Path,
     omop_ddl_file: Optional[Path],
     omop_config_file: Optional[Path],
     omop_version: Optional[str],
+    person_file: Optional[Path] = None,
+    person_table: Optional[str] = None,
     input_dir: Optional[Path] = None,
     db_conn_params: Optional[DBConnParams] = None,
 ):
@@ -99,8 +94,6 @@ def process_common_logic(
             raise ValueError("rules_file is required")
         if resolved_paths[1] is None:
             raise ValueError("output_dir is required")
-        if resolved_paths[2] is None:
-            raise ValueError("person_file is required")
 
         rules_file = resolved_paths[0]
         output_dir = resolved_paths[1]
@@ -127,6 +120,7 @@ def process_common_logic(
             output_dir=output_dir,
             input_dir=input_dir,
             person_file=person_file,
+            person_table=person_table,
             omop_ddl_file=omop_ddl_file,
             omop_config_file=omop_config_file,
             write_mode=write_mode,
@@ -156,7 +150,13 @@ def process_common_logic(
     "--input-dir",
     type=PathArgs,
     required=True,
-    help="Input directory (optional for folder mode)",
+    help="Input directory",
+)
+@click.option(
+    "--person-file",
+    type=PathArgs,
+    required=True,
+    help="File containing person_ids in the first column",
 )
 @common_options
 def folder(
@@ -183,6 +183,11 @@ def folder(
 
 
 @click.command()
+@click.option(
+    "--person-table",
+    required=True,
+    help="Table containing person_ids in the first column",
+)
 @click.option("--username", required=True, help="Database username")
 @click.option(
     "--password",
@@ -217,7 +222,7 @@ def db(
     rules_file: Path,
     output_dir: Path,
     write_mode: str,
-    person_file: Path,
+    person_table: str,
     omop_ddl_file: Optional[Path],
     omop_config_file: Optional[Path],
     omop_version: Optional[str],
@@ -237,7 +242,7 @@ def db(
         rules_file=rules_file,
         output_dir=output_dir,
         write_mode=write_mode,
-        person_file=person_file,
+        person_table=person_table,
         omop_ddl_file=omop_ddl_file,
         omop_config_file=omop_config_file,
         omop_version=omop_version,
