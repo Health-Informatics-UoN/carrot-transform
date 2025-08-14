@@ -14,6 +14,7 @@ from carrottransform.tools.file_helpers import (
 )
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.orchestrator import V2ProcessingOrchestrator
+from carrottransform.tools.types import DBConnParams
 
 logger = logger_setup()
 
@@ -74,7 +75,7 @@ def process_common_logic(
     omop_config_file: Optional[Path],
     omop_version: Optional[str],
     input_dir: Optional[Path] = None,
-    db_params: Optional[dict] = None,
+    db_conn_params: Optional[DBConnParams] = None,
 ):
     """Common processing logic for both modes"""
     start_time = time.time()
@@ -129,7 +130,7 @@ def process_common_logic(
             omop_ddl_file=omop_ddl_file,
             omop_config_file=omop_config_file,
             write_mode=write_mode,
-            db_params=db_params,
+            db_conn_params=db_conn_params,
         )
 
         logger.info(
@@ -222,15 +223,15 @@ def db(
     omop_version: Optional[str],
 ):
     """Process data from database input"""
-    db_params = {
-        "db_type": db_type,
-        "username": username,
-        "password": password,
-        "host": host,
-        "port": port,
-        "db_name": db_name,
-        "schema": schema,
-    }
+    db_conn_params = DBConnParams(
+        db_type=db_type,
+        username=username,
+        password=password,
+        host=host,
+        port=port,
+        db_name=db_name,
+        schema=schema,
+    )
 
     process_common_logic(
         rules_file=rules_file,
@@ -240,7 +241,7 @@ def db(
         omop_ddl_file=omop_ddl_file,
         omop_config_file=omop_config_file,
         omop_version=omop_version,
-        db_params=db_params,
+        db_conn_params=db_conn_params,
     )
 
 

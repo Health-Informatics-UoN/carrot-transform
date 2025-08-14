@@ -69,3 +69,16 @@ class ProcessingResult:
     rejected_id_counts: Dict[str, int]
     success: bool = True
     error_message: Optional[str] = None
+
+
+@dataclass
+class DBConnParams:
+    """Parameters for connecting to an engine"""
+
+    db_type: str
+    username: str
+    password: str
+    host: str
+    port: int
+    db_name: str
+    schema: str
