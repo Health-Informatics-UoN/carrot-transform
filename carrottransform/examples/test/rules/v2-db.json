@@ -1,0 +1,64 @@
+{
+  "metadata": {
+    "date_created": "2025-01-01T00:00:00+00:00",
+    "dataset": "test"
+  },
+  "cdm": {
+    "person": {
+      "test_persons.csv": {
+        "person_id_mapping": {
+          "source_field": "personid",
+          "dest_field": "person_id"
+        },
+        "date_mapping": {
+          "source_field": "birth_date",
+          "dest_field": ["birth_datetime"]
+        },
+        "concept_mappings": {
+          "gender": {
+            "M": {
+              "gender_concept_id": [8507],
+              "gender_source_concept_id": [8507]
+            },
+            "F": {
+              "gender_concept_id": [8532],
+              "gender_source_concept_id": [8532]
+            },
+            "original_value": ["gender_source_value"]
+          },
+          "ethnicity": {
+            "UK": {
+              "race_concept_id": [8527],
+              "race_source_concept_id": [8527]
+            }
+          }
+        }
+      }
+    },
+    "observation": {
+      "test_persons.csv": {
+        "person_id_mapping": {
+          "source_field": "personid",
+          "dest_field": "person_id"
+        },
+        "date_mapping": {
+          "source_field": "birth_date",
+          "dest_field": ["observation_datetime"]
+        },
+        "concept_mappings": {
+          "ethnicity": {
+            "Asian": {
+              "observation_concept_id": [44803808, 4051276],
+              "observation_source_concept_id": [44803808, 4051276]
+            },
+            "UK": {
+              "observation_concept_id": [35818511],
+              "observation_source_concept_id": [35818511]
+            },
+            "original_value": ["value_as_string", "observation_source_value"]
+          }
+        }
+      }
+    }
+  }
+}
