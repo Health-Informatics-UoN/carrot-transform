@@ -13,7 +13,7 @@ class ProcessingContext:
 
     mappingrules: MappingRules
     omopcdm: OmopCDM
-    input_dir: Path
+    input_dir: Optional[Path]
     person_lookup: Dict[str, str]
     record_numbers: Dict[str, int]
     file_handles: Dict[str, TextIO]
