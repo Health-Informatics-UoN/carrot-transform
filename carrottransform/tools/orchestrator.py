@@ -19,7 +19,10 @@ from carrottransform.tools.record_builder import RecordBuilderFactory
 from carrottransform.tools.file_helpers import OutputFileManager
 from carrottransform.tools.stream_helpers import StreamingLookupCache
 from carrottransform.tools.args import person_rules_check_v2
-from trino.dbapi import connect
+from sqlalchemy import create_engine
+from sqlalchemy.schema import Table, MetaData
+from sqlalchemy.sql.expression import select
+
 
 logger = logger_setup()
 
@@ -34,17 +37,29 @@ class StreamProcessor:
     def process_all_data(self) -> ProcessingResult:
         """Process all data with single-pass streaming approach"""
         logger.info("Processing data...")
-        conn = connect(
-            host="localhost",
-            port=8080,
-            user="admin",
-            catalog="memory",
-            schema="test_schema",
+        engine = create_engine("trino://admin@localhost:8080/postgres")
+        # engine = create_engine(
+        #     "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres"
+        # )
+        connection = engine.connect()
+        nodes = Table(
+            "test_persons",
+            MetaData(schema="test_schema_transform"),
+            autoload_with=engine,
         )
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM test_persons")
-        rows = cur.fetchall()
+        rows = connection.execute(select(nodes)).fetchall()
         print(rows)
+        # conn = connect(
+        #     host="localhost",
+        #     port=8080,
+        #     user="admin",
+        #     catalog="postgres",
+        #     schema="test_schema_transform",
+        # )
+        # cur = conn.cursor()
+        # cur.execute("SELECT * FROM test_persons")
+        # rows = cur.fetchall()
+        # print(rows)
 
         total_output_counts = {outfile: 0 for outfile in self.context.output_files}
         total_rejected_counts = {infile: 0 for infile in self.context.input_files}
@@ -77,6 +92,13 @@ class StreamProcessor:
     ) -> Tuple[Dict[str, int], int]:
         """Stream process a single input file with direct output writing"""
         logger.info(f"Streaming input file: {source_filename}")
+
+        # Ensure we have a valid input directory in folder mode
+        if self.context.input_dir is None:
+            logger.warning(
+                "No input_dir provided; skipping file streaming for folder mode"
+            )
+            return {}, 0
 
         file_path = self.context.input_dir / source_filename
         if not file_path.exists():
@@ -295,11 +317,12 @@ class V2ProcessingOrchestrator:
         self,
         rules_file: Path,
         output_dir: Path,
-        input_dir: Path,
+        input_dir: Optional[Path],
         person_file: Path,
         omop_ddl_file: Optional[Path],
         omop_config_file: Optional[Path],
         write_mode: str = "w",
+        db_params: Optional[dict] = None,
     ):
         self.rules_file = rules_file
         self.output_dir = output_dir
@@ -368,7 +391,7 @@ class V2ProcessingOrchestrator:
             context = ProcessingContext(
                 mappingrules=self.mappingrules,
                 omopcdm=self.omopcdm,
-                input_dir=self.input_dir,
+                input_dir=self.input_dir if self.input_dir is not None else Path("."),
                 person_lookup=person_lookup,
                 record_numbers={output_file: 1 for output_file in output_files},
                 file_handles=file_handles,
