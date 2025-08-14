@@ -4,6 +4,7 @@ functions to handle args
 
 import click
 from pathlib import Path
+from carrottransform.tools.mappingrules import MappingRules
 
 
 from sqlalchemy import create_engine
@@ -114,6 +115,24 @@ class ObjectStructureError(Exception):
 """
 functions to handle args
 """
+
+def person_rules_check_v2(person_file: Path, mappingrules: MappingRules) -> None:
+    """check that the person rules file is correct."""
+    if not person_file.is_file():
+        raise Exception("Person file not found.")
+    person_file_name = person_file.name
+
+    person_rules = object_query(mappingrules.rules_data, "cdm/person")
+    if not person_rules:
+        raise Exception("Mapping rules to Person table not found")
+    if len(person_rules) > 1:
+        raise Exception(
+            f"""The source table for the OMOP table Person can be only one, which is the person file: {person_file_name}. However, there are multiple source tables {list(person_rules.keys())} for the Person table in the mapping rules."""
+        )
+    if len(person_rules) == 1 and person_file_name not in person_rules:
+        raise Exception(
+            f"""The source table for the OMOP table Person should be the person file {person_file_name}, but the current source table for Person is {list(person_rules.keys())[0]}."""
+        )
 
 
 def person_rules_check(person_file_name: str, rules_file: Path) -> None:

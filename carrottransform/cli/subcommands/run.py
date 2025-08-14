@@ -19,7 +19,7 @@ from carrottransform.tools.core import (
 from carrottransform.tools.date_helpers import normalise_to8601
 from carrottransform.tools.person_helpers import (
     load_last_used_ids,
-    load_person_ids,
+    read_person_ids,
     set_saved_person_id_file,
 )
 from carrottransform.tools.args import person_rules_check, OnlyOnePersonInputAllowed
@@ -255,11 +255,11 @@ def mapstream(
 
     try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
-        person_lookup, rejected_person_count = load_person_ids(
+        person_lookup, rejected_person_count = read_person_ids(
             saved_person_id_file,
             source.open(person_file.name),
             mappingrules,
-            use_input_person_ids,
+            use_input_person_ids != "N",
         )
 
         ## open person_ids output file

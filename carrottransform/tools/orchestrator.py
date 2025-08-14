@@ -18,6 +18,7 @@ from carrottransform.tools.types import (
 from carrottransform.tools.record_builder import RecordBuilderFactory
 from carrottransform.tools.file_helpers import OutputFileManager
 from carrottransform.tools.stream_helpers import StreamingLookupCache
+from carrottransform.tools.args import person_rules_check_v2
 
 logger = logger_setup()
 
@@ -306,6 +307,12 @@ class V2ProcessingOrchestrator:
 
         if not self.mappingrules.is_v2_format:
             raise ValueError("Rules file is not in v2 format!")
+        else:
+            try:
+                person_rules_check_v2(self.person_file, self.mappingrules)
+            except Exception as e:
+                logger.exception(f"Validation for person rules failed: {e}")
+                raise e
 
         self.metrics = tools.metrics.Metrics(self.mappingrules.get_dataset_name())
         self.output_manager = OutputFileManager(self.output_dir, self.omopcdm)
@@ -321,7 +328,7 @@ class V2ProcessingOrchestrator:
             saved_person_id_file,
             self.person_file,
             self.mappingrules,
-            use_input_person_ids="N",
+            use_input_person_ids=False,
         )
 
         # Save person IDs
