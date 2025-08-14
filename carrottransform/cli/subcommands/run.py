@@ -228,7 +228,11 @@ def mapstream(
     try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
         person_lookup, rejected_person_count = load_person_ids(
-            saved_person_id_file, person_file, mappingrules, use_input_person_ids
+            saved_person_id_file,
+            person_file,
+            None,
+            mappingrules,
+            use_input_person_ids,
         )
 
         ## open person_ids output file
