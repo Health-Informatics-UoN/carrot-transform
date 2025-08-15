@@ -35,7 +35,6 @@ jobs:
     steps:
       - name: Run pyTest for Coverage
         run: |
-          uv run pytest --junitxml=pytest.xml
           uv run coverage run -m pytest
           uv run coverage xml
 
