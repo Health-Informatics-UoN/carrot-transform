@@ -28,10 +28,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Set up Python
-        run: uv python install
-
       - name: Run tests
-        run: |
-          uv run pytest --junitxml=pytest.xml
-
+        # this will run at least six times to be sure it works on all platforms
+        run: uv run pytest 

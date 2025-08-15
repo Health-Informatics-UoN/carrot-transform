@@ -1,48 +1,49 @@
-name: Check Code Quality
-
-permissions:
-  contents: read
-
-on:
-  workflow_run:
-    workflows: ["Run Tests"]
-    types:
-      - completed
-
-jobs:
-  ruff:
-    name: Run Ruff
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@v4
-      
-      - name: ruff checks
-        run: |
-          ruff check . --no-fix --output-format=concise
-          ruff format --check . --quiet
-          
-      - name: Run Ruff
-        uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1
-  coverage:
-    name: Check Coverage
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - name: Run pyTest for Coverage
-        run: |
+name: Check Code Quality 
+ 
+permissions: 
+  contents: read 
+ 
+on: 
+  workflow_run: 
+    workflows: ["Run Tests"] 
+    types: 
+      - completed 
+ 
+jobs: 
+  ruff: 
+    name: Run Ruff 
+    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
+    runs-on: ubuntu-latest 
+ 
+    steps: 
+      - name: Check out the repo 
+        uses: actions/checkout@v4 
+       
+      - name: ruff checks 
+        run: | 
+          ruff check . --no-fix --output-format=concise 
+          ruff format --check . --quiet 
+           
+      - name: Run Ruff 
+        uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1 
+  coverage: 
+    name: Check Coverage 
+    runs-on: ubuntu-latest 
+    permissions: 
+      contents: read 
+      pull-requests: write 
+    steps: 
+      - name: Run pyTest for Coverage 
+        # this will only run once
+        run: | 
           uv run coverage run -m pytest
-          uv run coverage xml
-
-      - name: set pyTest Coverage Comment
-        if: github.event_name == 'pull_request'
-        uses: MishaKav/pytest-coverage-comment@main
-        with:
-          pytest-xml-coverage-path: coverage.xml
-          junitxml-path: pytest.xml
-        continue-on-error: true
-
+          uv run coverage xml 
+ 
+      - name: set pyTest Coverage Comment 
+        if: github.event_name == 'pull_request' 
+        uses: MishaKav/pytest-coverage-comment@main 
+        with: 
+          pytest-xml-coverage-path: coverage.xml 
+          junitxml-path: pytest.xml 
+        continue-on-error: true 
+ 
