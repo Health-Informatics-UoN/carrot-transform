@@ -1,12 +1,15 @@
 
 FROM astral/uv:bookworm-slim
 
-RUN uvx carrot-transform@0.4.0 -v
+ARG CARROT_VERSION
+ENV CARROT_VERSION=${CARROT_VERSION}
+
+RUN uvx carrot-transform@${CARROT_VERSION} -v
 
 RUN mkdir /app
 WORKDIR /app
 
-ENTRYPOINT ["uvx", "carrot-transform@0.4.0"]
+ENTRYPOINT ["uvx", "carrot-transform@${CARROT_VERSION}"]
 
 
 ##   λ docker build . -t ctra

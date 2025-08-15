@@ -19,6 +19,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
 
+      # read source version
+      - uses: SebRollen/toml-action@b1b3628f55fc3a28208d4203ada8b737e9687876 # v1.2.0
+        id: read_version
+        with:
+          file: pyproject.toml
+          field: project.version
+
       - name: Build Docker image
         uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
         with:
@@ -26,3 +33,5 @@ jobs:
           file: docker/Dockerfile
           push: false
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            CARROT_VERSION=${{ steps.read_version.outputs.value }}
