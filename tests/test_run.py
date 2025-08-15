@@ -8,6 +8,7 @@ from carrottransform.tools.person_helpers import (
 import carrottransform.cli.subcommands.run as run
 from pathlib import Path
 from unittest.mock import patch
+import carrottransform.tools.sources as sources
 
 
 logger = logging.getLogger(__name__)
@@ -83,54 +84,6 @@ def test_matching_files(caplog):
 
 
 @pytest.mark.unit
-def test_extra_existing_file(caplog):
-    """Test when there's an existing file not in rules"""
-    with caplog.at_level(logging.WARNING):
-        rules_files = ["file1.txt"]
-        existing_files = ["file1.txt", "extra.txt"]
-
-        run.check_files_in_rules_exist(rules_files, existing_files)
-
-    assert (
-        "WARNING: no mapping rules found for existing input file - extra.txt"
-        in caplog.text
-    )
-
-
-@pytest.mark.unit
-def test_extra_rules_file(caplog):
-    """Test when there's a rules file with no existing data"""
-    with caplog.at_level(logging.WARNING):
-        rules_files = ["file1.txt", "missing.txt"]
-        existing_files = ["file1.txt"]
-
-        run.check_files_in_rules_exist(rules_files, existing_files)
-
-    assert "WARNING: no data for mapped input file - missing.txt" in caplog.text
-
-
-@pytest.mark.unit
-def test_multiple_mismatches(caplog):
-    """Test when there are multiple mismatches in both directions"""
-    with caplog.at_level(logging.WARNING):
-        rules_files = ["file1.txt", "missing1.txt", "missing2.txt"]
-        existing_files = ["file1.txt", "extra1.txt", "extra2.txt"]
-
-        run.check_files_in_rules_exist(rules_files, existing_files)
-
-    assert (
-        "WARNING: no mapping rules found for existing input file - extra1.txt"
-        in caplog.text
-    )
-    assert (
-        "WARNING: no mapping rules found for existing input file - extra2.txt"
-        in caplog.text
-    )
-    assert "WARNING: no data for mapped input file - missing1.txt" in caplog.text
-    assert "WARNING: no data for mapped input file - missing2.txt" in caplog.text
-
-
-@pytest.mark.unit
 def test_successful_file_open(tmp_path: Path):
     """Test successful opening of a valid file"""
     # Create a test file
@@ -141,29 +94,32 @@ def test_successful_file_open(tmp_path: Path):
     with file_path.open("w", encoding="utf-8") as f:
         f.write(file_content)
 
-    file_handle, csv_reader = run.open_file(file_path)
+    source = sources.SourceOpener(folder=file_path.parent)
+    csv_reader = source.open(file_path.name)
 
-    try:
-        assert file_handle is not None
-        # Verify we can read the content
-        rows = list(csv_reader)
-        assert rows[0] == ["header1", "header2"]
-        assert rows[1] == ["value1", "value2"]
-    finally:
-        if file_handle:
-            file_handle.close()
+    assert csv_reader is not None
+
+    # Verify we can read the content
+    rows = list(csv_reader)
+    assert rows[0] == ["header1", "header2"]
+    assert rows[1] == ["value1", "value2"]
 
 
 @pytest.mark.unit
-def test_nonexistent_file(tmp_path, caplog):
+def test_nonexistent_file(tmp_path: Path):
     """Test attempting to open a non-existent file"""
 
-    with caplog.at_level(logging.ERROR):
-        result = run.open_file(tmp_path / "nonexistent.csv")
+    src = tmp_path / "nonexistent.csv"
+    print(src.is_file())
 
-        assert result is None
-    assert "Unable to open:" in caplog.text
-    assert "nonexistent.csv" in caplog.text
+    source = sources.SourceOpener(folder=tmp_path)
+    try:
+        result = source.open("nonexistent.csv")
+
+        raise Exception(f"the test shouldn't get this far {result=}")
+    except sources.SourceFileNotFoundException as sourceException:
+        assert sourceException._name == "nonexistent.csv"
+        assert sourceException._path == (tmp_path / "nonexistent.csv")
 
 
 @pytest.mark.unit
@@ -171,12 +127,14 @@ def test_directory_not_found(caplog):
     """Test attempting to open a file in a non-existent directory"""
 
     with caplog.at_level(logging.ERROR):
-        result = run.open_file(Path("/nonexistent/directory") / "test.csv")
-
-        assert result is None
-
-    assert "Unable to open:" in caplog.text
-    assert "No such file or directory" in caplog.text
+        folder = Path("/nonexistent/directory")
+        try:
+            source = sources.SourceOpener(folder=folder)
+            raise Exception("the test shouldn't get this far")
+            result = source.open("test.csv")
+            assert result is None, "the result should be None"
+        except sources.SourceFolderMissingException as sourceFolderMissingException:
+            assert sourceFolderMissingException._source._folder == folder
 
 
 @pytest.mark.unit
@@ -192,16 +150,14 @@ def test_utf8_with_bom(tmp_path: Path):
         f.write(b"\xef\xbb\xbf")  # UTF-8 BOM
         f.write(content.encode("utf-8"))
 
-    file_handle, csv_reader = run.open_file(file_path)
+    source = sources.SourceOpener(folder=file_path.parent)
+    csv_reader = source.open(file_path.name)
 
-    try:
-        assert file_handle is not None
-        rows = list(csv_reader)
-        assert rows[0] == ["header1", "header2"]  # Should not have BOM in content
-        assert rows[1] == ["value1", "value2"]
-    finally:
-        if file_handle:
-            file_handle.close()
+    assert csv_reader is not None
+
+    rows = list(csv_reader)
+    assert rows[0] == ["header1", "header2"]  # Should not have BOM in content
+    assert rows[1] == ["value1", "value2"]
 
 
 ### test_set_omop_filenames(omop_ddl_file, omop_config_file, omop_version):
