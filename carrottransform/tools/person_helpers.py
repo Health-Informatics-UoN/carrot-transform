@@ -74,7 +74,7 @@ def load_person_ids(
         ):  # just checking that the id is not an empty string
             reject_count += 1
             continue
-        if not valid_date_value(persondata[person_columns[birth_datetime_source]]):
+        if not valid_date_value(str(persondata[person_columns[birth_datetime_source]])):
             reject_count += 1
             continue
         if (
