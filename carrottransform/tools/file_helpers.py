@@ -1,9 +1,9 @@
-import csv
 import json
 import logging
 import sys
 import importlib.resources as resources
-from typing import IO, Iterator, List, Optional, Dict, TextIO, Tuple, cast
+from typing import List, Optional
+from typing import Dict, TextIO, Tuple, cast
 from pathlib import Path
 from carrottransform.tools.omopcdm import OmopCDM
 
@@ -85,18 +85,6 @@ def check_files_in_rules_exist(
         if infile not in existing_input_files:
             msg = "WARNING: no data for mapped input file - {0}".format(infile)
             logger.warning(msg)
-
-
-def open_file(file_path: Path) -> tuple[IO[str], Iterator[list[str]]] | None:
-    """opens a file and does something related to CSVs"""
-    try:
-        fh = file_path.open(mode="r", encoding="utf-8-sig")
-        csvr = csv.reader(fh)
-        return fh, csvr
-    except IOError as e:
-        logger.exception("Unable to open: {0}".format(file_path))
-        logger.exception("I/O error({0}): {1}".format(e.errno, e.strerror))
-        return None
 
 
 def set_omop_filenames(

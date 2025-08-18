@@ -1,14 +1,14 @@
+import carrottransform.tools.sources as sources
+
 import sys
 import time
 from pathlib import Path
 import click
-
+from sqlalchemy.engine import Engine
 import carrottransform.tools as tools
-from carrottransform.tools.click import PathArgs
+from carrottransform.tools.args import PathArg, AlchemyConnectionArg
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
-    check_files_in_rules_exist,
-    open_file,
     resolve_paths,
     set_omop_filenames,
 )
@@ -19,10 +19,11 @@ from carrottransform.tools.core import (
 from carrottransform.tools.date_helpers import normalise_to8601
 from carrottransform.tools.person_helpers import (
     load_last_used_ids,
-    load_person_ids,
+    read_person_ids,
     set_saved_person_id_file,
 )
 from carrottransform.tools.args import person_rules_check, OnlyOnePersonInputAllowed
+
 
 logger = logger_setup()
 
@@ -30,13 +31,13 @@ logger = logger_setup()
 @click.command()
 @click.option(
     "--rules-file",
-    type=PathArgs,
+    type=PathArg,
     required=True,
     help="json file containing mapping rules",
 )
 @click.option(
     "--output-dir",
-    type=PathArgs,
+    type=PathArg,
     default=None,
     required=True,
     help="define the output directory for OMOP-format tsv files",
@@ -49,19 +50,19 @@ logger = logger_setup()
 )
 @click.option(
     "--person-file",
-    type=PathArgs,
+    type=PathArg,
     required=True,
     help="File containing person_ids in the first column",
 )
 @click.option(
     "--omop-ddl-file",
-    type=PathArgs,
+    type=PathArg,
     required=False,
     help="File containing OHDSI ddl statements for OMOP tables",
 )
 @click.option(
     "--omop-config-file",
-    type=PathArgs,
+    type=PathArg,
     required=False,
     help="File containing additional / override json config for omop outputs",
 )
@@ -72,7 +73,7 @@ logger = logger_setup()
 )
 @click.option(
     "--saved-person-id-file",
-    type=PathArgs,
+    type=PathArg,
     default=None,
     required=False,
     help="Full path to person id file used to save person_id state and share person_ids between data sets",
@@ -85,7 +86,7 @@ logger = logger_setup()
 )
 @click.option(
     "--last-used-ids-file",
-    type=PathArgs,
+    type=PathArg,
     default=None,
     required=False,
     help="Full path to last used ids file for OMOP tables - format: tablename\tlast_used_id, \nwhere last_used_id must be an integer",
@@ -96,20 +97,27 @@ logger = logger_setup()
     default=0,
     help="Lower outcount limit for logfile output",
 )
-@click.option("--input-dir", type=PathArgs, required=True, help="Input directories")
+@click.option("--input-dir", type=PathArg, required=False, help="Input directories")
+@click.option(
+    "--input-db-url",
+    type=AlchemyConnectionArg,
+    required=False,
+    help="connection string to read data from a database",
+)
 def mapstream(
     rules_file: Path,
     output_dir: Path,
-    write_mode,
+    write_mode: str | None,
     person_file: Path,
     omop_ddl_file: Path,
     omop_config_file: Path,
     omop_version,
-    saved_person_id_file: Path,
+    saved_person_id_file: Path | None,
     use_input_person_ids,
-    last_used_ids_file: Path,
+    last_used_ids_file: Path | None,
     log_file_threshold,
-    input_dir: Path,
+    input_dir: Path | None,
+    input_db_url: Engine | None,
 ):
     """
     Map to output using input streams
@@ -161,6 +169,7 @@ def mapstream(
                     last_used_ids_file,
                     log_file_threshold,
                     input_dir,
+                    input_db_url,
                 ],
             )
         )
@@ -168,15 +177,34 @@ def mapstream(
 
     # check on the rules file
     if (rules_file is None) or (not rules_file.is_file()):
-        logger.exception(f"rules file was set to `{rules_file=}` and is missing")
-        sys.exit(-1)
+        logger.error(f"rules file was set to {rules_file=} and is missing")
+        sys.exit()
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(
         omop_ddl_file, omop_config_file, omop_version
     )
-    ## check directories are valid
-    check_dir_isvalid(input_dir)  # Input directory must exist - we need the files in it
+
+    ## create the SourceOpener object we'll use
+    if input_db_url is not None:
+        source = sources.SourceOpener(engine=input_db_url)
+        logger.info(f"Input data will be taken from {input_db_url=}")
+    else:
+        if not person_file.is_file():
+            raise click.BadArgumentUsage(
+                f"the supplied person file does not exist {person_file}"
+            )
+        if (input_dir is not None) and person_file.parent != input_dir:
+            raise click.BadArgumentUsage(
+                "the supplied person file must be in the input_dir"
+            )
+
+        source = sources.SourceOpener(folder=person_file.parent)
+
+    # TODO; this (and the fact that the `person_rules_check()` has to happen) means that the input_dir parameter is redundant - it can be inferred from the person_file parameter
+    input_dir = person_file.parent
+
+    # ## check directories are valid
     check_dir_isvalid(
         output_dir, create_if_missing=True
     )  # Create output directory if needed
@@ -185,7 +213,7 @@ def mapstream(
 
     ## check on the person_file_rules
     try:
-        person_rules_check(rules_file=rules_file, person_file=person_file)
+        person_rules_check(rules_file=rules_file, person_file_name=person_file.name)
     except OnlyOnePersonInputAllowed as e:
         inputs = list(sorted(list(e._inputs)))
 
@@ -227,8 +255,11 @@ def mapstream(
 
     try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
-        person_lookup, rejected_person_count = load_person_ids(
-            saved_person_id_file, person_file, mappingrules, use_input_person_ids
+        person_lookup, rejected_person_count = read_person_ids(
+            saved_person_id_file,
+            source.open(person_file.name),
+            mappingrules,
+            use_input_person_ids != "N",
         )
 
         ## open person_ids output file
@@ -254,18 +285,13 @@ def mapstream(
 
     except IOError as e:
         logger.exception(f"I/O - error({e.errno}): {e.strerror} -> {str(e)}")
-        exit()
+        sys.exit()
 
     logger.info(
         f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
     )
 
-    ## Compare files found in the input_dir with those expected based on mapping rules
-    existing_input_files = [f.name for f in input_dir.glob("*.csv")]
     rules_input_files = mappingrules.get_all_infile_names()
-
-    ## Log mismatches but continue
-    check_files_in_rules_exist(rules_input_files, existing_input_files)
 
     ## set up overall counts
     rejidcounts = {}
@@ -281,10 +307,7 @@ def mapstream(
     for srcfilename in rules_input_files:
         rcount = 0
 
-        fhcsvr = open_file(input_dir / srcfilename)
-        if fhcsvr is None:  # check if it's none before unpacking
-            raise Exception(f"Couldn't find file {srcfilename} in {input_dir}")
-        fh, csvr = fhcsvr  # unpack now because we can't unpack none
+        csvr = source.open(srcfilename)
 
         ## create dict for input file, giving the data and output file
         tgtfiles, src_to_tgt = mappingrules.parse_rules_src_to_tgt(srcfilename)
@@ -399,8 +422,6 @@ def mapstream(
                     if tgtfile == "person":
                         break
 
-        fh.close()
-
         logger.info(
             f"INPUT file data : {srcfilename}: input count {str(rcount)}, time since start {time.time() - start_time:.5} secs"
         )
@@ -414,9 +435,8 @@ def mapstream(
 
     data_summary = metrics.get_mapstream_summary()
     try:
-        dsfh = (output_dir / "summary_mapstream.tsv").open(mode="w")
-        dsfh.write(data_summary)
-        dsfh.close()
+        with (output_dir / "summary_mapstream.tsv").open(mode="w") as dsfh:
+            dsfh.write(data_summary)
     except IOError as e:
         logger.exception(f"I/O error({e.errno}): {e.strerror}")
         logger.exception("Unable to write file")

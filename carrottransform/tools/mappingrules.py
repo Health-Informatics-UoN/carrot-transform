@@ -353,6 +353,7 @@ class MappingRules:
         Process rules for an infile, outfile combination
         """
         data = {}
+
         ### used for mapping simple fields that are always mapped (e.g., dob)
         plain_key = ""
         term_value_key = ""  ### used for mapping terms (e.g., gender, race, ethnicity)
