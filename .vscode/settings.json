@@ -3,5 +3,9 @@
   "python.testing.unittestEnabled": true,
   "python.testing.autoTestDiscoverOnSaveEnabled": true,
   "python.testing.pytestArgs": ["tests"],
-  "python.testing.cwd": "${workspaceFolder}"
+  "python.testing.cwd": "${workspaceFolder}",
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python",
+  "files.watcherExclude": {
+    "**/target": true
+  }
 }

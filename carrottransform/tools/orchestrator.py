@@ -328,7 +328,7 @@ class V2ProcessingOrchestrator:
             saved_person_id_file,
             self.person_file,
             self.mappingrules,
-            use_input_person_ids="N",
+            use_input_person_ids=False,
         )
 
         # Save person IDs
