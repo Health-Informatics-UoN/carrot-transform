@@ -2,14 +2,14 @@
 tests the complete system in a few ways. needs better verification of the outputs
 """
 
-import pytest
 import importlib.resources
 import logging
-
-from pathlib import Path
 import shutil
+from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
+
 from carrottransform.cli.subcommands.run import mapstream
 
 

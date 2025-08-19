@@ -1,5 +1,5 @@
-from typing import Dict, List, Optional
 from dataclasses import dataclass
+from typing import Dict, List, Optional
 
 
 # To prevent circular import, these types should be in a separate file rather than in the types.py

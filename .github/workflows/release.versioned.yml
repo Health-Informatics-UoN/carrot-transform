@@ -77,9 +77,9 @@ jobs:
           tag: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           body: |
-            # Hutch Bunny ${{ github.ref_name }}
+            # Carrot Transform ${{ github.ref_name }}
 
-            [Tagged Container images](https://github.com/Health-Informatics-UoN/hutch-bunny/pkgs/container/hutch%2Fbunny)
+            [Tagged Container images](https://github.com/Health-Informatics-UoN/carrot-transform/pkgs/container/carrot%2Ftransform)
           generateReleaseNotes: true
           prerelease: ${{ steps.version.outputs.prerelease != '' }}
           makeLatest: false # TODO: can we reliably detect and automate this in future?

@@ -3,29 +3,45 @@ name: Check Code Quality
 permissions: 
   contents: read 
  
-on: 
-  workflow_run: 
-    workflows: ["Run Tests"] 
-    types: 
-      - completed 
- 
+on:
+  push: # always run on push
+  pull_request: # always run on pull request
+
 jobs: 
   ruff: 
     name: Run Ruff 
-    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
     runs-on: ubuntu-latest 
  
     steps: 
       - name: Check out the repo 
         uses: actions/checkout@v4 
-       
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
       - name: ruff checks 
         run: | 
-          ruff check . --no-fix --output-format=concise 
-          ruff format --check . --quiet 
-           
-      - name: Run Ruff 
-        uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1 
+          uv run ruff check . --no-fix --output-format=concise 
+          uv run ruff format --check . --quiet 
+  # TODO; these seem to step on ruff. ideally; we'd run them all (and do changes) then check weitehr anythign was changed
+  # isort:
+  #   name: Run iSort 
+  #   runs-on: ubuntu-latest 
+  #   steps: 
+  #     - name: Check out the repo 
+  #       uses: actions/checkout@v4 
+  #     - name: Install uv
+  #       uses: astral-sh/setup-uv@v5
+  #     - name: iSort Checks
+  #       run: uv run isort . --check --diff
+  # black:
+  #   name: Run black
+  #   runs-on: ubuntu-latest 
+  #   steps: 
+  #     - name: Check out the repo 
+  #       uses: actions/checkout@v4 
+  #     - name: Install uv
+  #       uses: astral-sh/setup-uv@v5
+  #     - name: iSort Checks
+  #       run: uv run black . --check
   coverage: 
     name: Check Coverage 
     runs-on: ubuntu-latest 
@@ -33,11 +49,17 @@ jobs:
       contents: read 
       pull-requests: write 
     steps: 
+      - name: Check out the repo 
+        uses: actions/checkout@v4 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Run pyTest for Coverage 
         # this will only run once
         run: | 
-          uv run coverage run -m pytest
-          uv run coverage xml 
+          uv run coverage run --omit=tests/* -m pytest
+          uv run coverage run --omit=tests/* -a -m pytest -m docker
+          uv run coverage xml
  
       - name: set pyTest Coverage Comment 
         if: github.event_name == 'pull_request' 

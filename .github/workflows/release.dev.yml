@@ -14,7 +14,7 @@ env:
   registry: ghcr.io
 
 jobs:
-  publish-bunny:
+  publish-transform:
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -68,7 +68,7 @@ jobs:
           # TODO: More Annotations may be desirable instead of labels for some metadata,
           # since we produce multiarch images
           annotations: |
-            org.opencontainers.image.description=Hutch Bunny
+            org.opencontainers.image.description=Carrot Transform
 
       - name: Build and push Docker images
         uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
