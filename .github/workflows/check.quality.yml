@@ -4,44 +4,9 @@ permissions:
   contents: read 
  
 on:
-  push: # always run on push
   pull_request: # always run on pull request
 
 jobs: 
-  ruff: 
-    name: Run Ruff 
-    runs-on: ubuntu-latest 
- 
-    steps: 
-      - name: Check out the repo 
-        uses: actions/checkout@v4 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-      - name: ruff checks 
-        run: | 
-          uv run ruff check . --no-fix --output-format=concise 
-          uv run ruff format --check . --quiet 
-  # TODO; these seem to step on ruff. ideally; we'd run them all (and do changes) then check weitehr anythign was changed
-  # isort:
-  #   name: Run iSort 
-  #   runs-on: ubuntu-latest 
-  #   steps: 
-  #     - name: Check out the repo 
-  #       uses: actions/checkout@v4 
-  #     - name: Install uv
-  #       uses: astral-sh/setup-uv@v5
-  #     - name: iSort Checks
-  #       run: uv run isort . --check --diff
-  # black:
-  #   name: Run black
-  #   runs-on: ubuntu-latest 
-  #   steps: 
-  #     - name: Check out the repo 
-  #       uses: actions/checkout@v4 
-  #     - name: Install uv
-  #       uses: astral-sh/setup-uv@v5
-  #     - name: iSort Checks
-  #       run: uv run black . --check
   coverage: 
     name: Check Coverage 
     runs-on: ubuntu-latest 

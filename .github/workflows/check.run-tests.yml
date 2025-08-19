@@ -4,7 +4,6 @@ name: Run Tests
 
 on:
   push: # always run on push
-  pull_request: # always run on pull request
 
 jobs:
   test:
@@ -44,3 +43,17 @@ jobs:
         uses: astral-sh/setup-uv@v5
       - name: Run tests
         run: uv run pytest -m docker
+
+  ruff: 
+    name: Run Ruff 
+    runs-on: ubuntu-latest 
+ 
+    steps: 
+      - name: Check out the repo 
+        uses: actions/checkout@v4 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: ruff checks 
+        run: | 
+          uv run ruff check . --no-fix --output-format=concise 
+          uv run ruff format --check . --quiet 
