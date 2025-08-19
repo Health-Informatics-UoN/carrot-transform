@@ -8,7 +8,9 @@ from carrottransform.tools.args import (
     NoPersonMappings,
     ObjectStructureError,
     WrongInputException,
+    RulesFileNotFound,
     object_query,
+    PersonRulesWrong,
 )
 
 
@@ -108,6 +110,83 @@ def test_person_rules_throws_WrongInputException():
     assert caught._rules_file == rules_file
     assert caught._person_file == person_file
     assert caught._source_table == source_table
+
+@pytest.mark.unit
+def test_person_rules_check__not_found(tmp_path: Path):
+
+    fred_file: Path = tmp_path / 'fred.json'
+
+    try:
+        person_rules_check('dave.csv', fred_file)
+        raise Exception('that should have failed')
+    except RulesFileNotFound as e:
+        assert fred_file == e._rules_file
+    
+
+@pytest.mark.unit
+def test_person_rules_check__bad_form(tmp_path: Path):
+
+    fred_file: Path = tmp_path / 'fred.json'
+
+    open(fred_file, 'w').write(
+        """
+        {
+            "cdm": {
+                "person": "fred"
+            }
+        }
+        """
+    )
+
+    try:
+        person_rules_check('dave.csv', fred_file)
+        raise Exception('that should have failed')
+    except PersonRulesWrong as e:
+        assert fred_file == e._rules_file
+    
+
+@pytest.mark.unit
+def test_person_rules_check__no_person(tmp_path: Path):
+
+    fred_file: Path = tmp_path / 'fred.json'
+
+    open(fred_file, 'w').write(
+        """
+        {
+            "cdm": {
+                "persons": "the name is wrong here"
+            }
+        }
+        """
+    )
+
+    try:
+        person_rules_check('dave.csv', fred_file)
+        raise Exception('that should have failed')
+    except NoPersonMappings as e:
+        assert fred_file == e._rules_file
+    
+@pytest.mark.unit
+def test_person_rules_check__empty_person(tmp_path: Path):
+
+    fred_file: Path = tmp_path / 'fred.json'
+
+    open(fred_file, 'w').write(
+        """
+        {
+            "cdm": {
+                "person": {}
+            }
+        }
+        """
+    )
+
+    try:
+        person_rules_check('dave.csv', fred_file)
+        raise Exception('that should have failed')
+    except NoPersonMappings as e:
+        assert fred_file == e._rules_file
+    
 
 
 def test_object_query_error():

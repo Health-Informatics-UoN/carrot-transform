@@ -133,6 +133,15 @@ def person_rules_check_v2(person_file: Path, mappingrules: MappingRules) -> None
             f"""The source table for the OMOP table Person should be the person file {person_file_name}, but the current source table for Person is {list(person_rules.keys())[0]}."""
         )
 
+class RulesFileNotFound(Exception):
+    def __init__(self, rules_file: Path):
+        super().__init__(f"rules_file not found: {rules_file=}") 
+        self._rules_file = rules_file
+
+class PersonRulesWrong(Exception):
+    def __init__(self, rules_file: Path):
+        super().__init__(f"rules_file not found: {rules_file=}") 
+        self._rules_file = rules_file
 
 def person_rules_check(person_file_name: str, rules_file: Path) -> None:
     """check that the person rules file is correct.
@@ -155,7 +164,7 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
 
     # check the rules file is real
     if not rules_file.is_file():
-        raise Exception(f"person file not found: {rules_file=}")
+        raise RulesFileNotFound(rules_file)
 
     # load the rules file
     with open(rules_file) as file:
@@ -165,10 +174,11 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
 
     # to allow prettier error reporting - we collect all names that were used
     seen_inputs: set[str] = set()
+    found_a_rule = False
     try:
         person_rules = object_query(rules_json, "cdm/person")
         if not isinstance(person_rules, dict):
-            raise RuntimeError("the person section is not in the expected format")
+            raise PersonRulesWrong(rules_file)
 
         for rule_name, person in person_rules.items():
             found_a_rule = True

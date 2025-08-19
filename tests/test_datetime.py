@@ -6,7 +6,7 @@ from pathlib import Path
 import csvrow
 import re
 import carrottransform.cli.subcommands.run as run
-
+import carrottransform.tools.date_helpers as date_helpers
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
@@ -166,3 +166,17 @@ def test_dateimes_in_measurement(tmp_path: Path, engine: bool):
         ), (
             f"{measurement.measurement_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
         )
+
+
+
+
+@pytest.mark.unit
+def test_bad_date():
+    item = 'june 14, 2051'
+    try:
+        date_helpers.normalise_to8601(item)
+        assert False, 'that shound have failed'
+    except Exception as e:
+       assert f"invalid date format {item=}" == e.args[0]
+
+
