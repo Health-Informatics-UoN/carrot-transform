@@ -2,12 +2,12 @@
 functions to handle args
 """
 
-import click
 from pathlib import Path
-from carrottransform.tools.mappingrules import MappingRules
 
-
+import click
 from sqlalchemy import create_engine
+
+from carrottransform.tools.mappingrules import MappingRules
 
 
 def object_query(data: dict[str, dict | str], path: str) -> dict | str:
@@ -76,7 +76,7 @@ class WrongInputException(Exception):
 class PathArgumentType(click.ParamType):
     """implements a "Path" type that click can pass to our program ... rather than checking the value ourselves"""
 
-    name = "pathlib.Path"
+    name = "filepath"
 
     def convert(self, value, param, ctx):
         try:
@@ -88,7 +88,7 @@ class PathArgumentType(click.ParamType):
 class AlchemyConnectionArgumentType(click.ParamType):
     """implements an SQLAlchemy connection type that can be checkd and passed to our function by click"""
 
-    name = "sqlalchemy.engine.Engine"
+    name = "sqlalchemy connection string"
 
     def convert(self, value, param, ctx):
         try:
@@ -108,11 +108,6 @@ class ObjectQueryError(Exception):
 
 class ObjectStructureError(Exception):
     """Raised when the object path format points to inaccessible elements."""
-
-
-"""
-functions to handle args
-"""
 
 
 def person_rules_check_v2(person_file: Path, mappingrules: MappingRules) -> None:

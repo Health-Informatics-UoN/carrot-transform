@@ -1,0 +1,59 @@
+permissions:
+  contents: read
+name: Run Tests
+
+on:
+  push: # always run on push
+
+jobs:
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version:
+          - '3.10'
+          - '3.11'
+          - '3.12'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run tests
+        # this will run at least six times to be sure it works on all platforms
+        run: uv run pytest 
+
+  dind-tests:
+    name: Docker in Docker Tests
+    runs-on: ubuntu-latest 
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Run tests
+        run: uv run pytest -m docker
+
+  ruff: 
+    name: Run Ruff 
+    runs-on: ubuntu-latest 
+ 
+    steps: 
+      - name: Check out the repo 
+        uses: actions/checkout@v4 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: ruff checks 
+        run: | 
+          uv run ruff check . --no-fix --output-format=concise 
+          uv run ruff format --check . --quiet 

@@ -1,16 +1,15 @@
 import importlib.resources
-
-from pathlib import Path
-import shutil
-
-from click.testing import CliRunner
-from carrottransform.cli.subcommands.run import mapstream
-import csvrow
-import carrottransform.tools.sources as sources
 import logging
-from sqlalchemy import Table, Column, Text, MetaData, insert
-import sqlalchemy
+import shutil
+from pathlib import Path
 
+import csvrow
+import sqlalchemy
+from click.testing import CliRunner
+from sqlalchemy import Column, MetaData, Table, Text, insert
+
+import carrottransform.tools.sources as sources
+from carrottransform.cli.subcommands.run import mapstream
 
 logger = logging.getLogger(__name__)
 
@@ -308,7 +307,8 @@ def click_test(
 def load_test_database_table(connection: sqlalchemy.engine.Engine, csv: Path):
     """load a csv file into a testing database.
 
-    does some adjustments to make sure the column names work, but, generally dumps it itno a "dumb" database for testing"""
+    does some adjustments to make sure the column names work, but, generally dumps it itno a "dumb" database for testing
+    """
 
     # the table name will be inferred from the csv file name; this enforces consistency
     assert csv.name.endswith(".csv")

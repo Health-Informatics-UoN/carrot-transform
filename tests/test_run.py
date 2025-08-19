@@ -1,15 +1,14 @@
-import pytest
-import os
-import logging
 import importlib
-from carrottransform.tools.person_helpers import (
-    _get_person_lookup,
-)
-import carrottransform.cli.subcommands.run as run
+import logging
+import os
 from pathlib import Path
 from unittest.mock import patch
-import carrottransform.tools.sources as sources
 
+import pytest
+
+import carrottransform.cli.subcommands.run as run
+import carrottransform.tools.sources as sources
+from carrottransform.tools.person_helpers import _get_person_lookup
 
 logger = logging.getLogger(__name__)
 
