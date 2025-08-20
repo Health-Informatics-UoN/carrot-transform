@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 class SourceException(Exception):
     def __init__(self, source, message: str):
         self._source = source
+        self._message = message
         super().__init__(message)
 
 
@@ -59,10 +60,12 @@ class SourceOpener:
 
     def open(self, name: str):
         if not name.endswith(".csv"):
-            raise RuntimeError(f"source names must end with .csv but was {name=}")
+            raise SourceNotFoundException(
+                self, name, f"source names must end with .csv but was {name=}"
+            )
         if "/" in name or "\\" in name:
-            raise RuntimeError(
-                f"source names must name a file not a path but was {name=}"
+            raise SourceNotFoundException(
+                self, name, f"source names must name a file not a path but was {name=}"
             )
 
         if self._folder is None:
@@ -89,9 +92,6 @@ class SourceOpener:
                 raise SourceFileNotFoundException(self, path)
 
             def open_csv_rows(src: SourceOpener, path: Path):
-                if not path.is_file():
-                    raise SourceFileNotFoundException(src, path)
-
                 with path.open(mode="r", encoding="utf-8-sig") as file:
                     for row in csv.reader(file):
                         yield row
@@ -104,7 +104,10 @@ class SourceOpener:
         try:
             first = next(src)
         except StopIteration:
-            return src  # empty generator
+            # empty generator? can only happen if we tried to open a csv file, right?
+            raise SourceNotFoundException(self, name, f"csv file is empty {name=}")
         except Exception as e:
-            raise e
+            raise SourceNotFoundException(
+                self, name, f"failed to find first row because {e=}"
+            )
         return itertools.chain([first], src)

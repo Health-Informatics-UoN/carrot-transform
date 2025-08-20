@@ -12,6 +12,108 @@ import carrottransform.tools.sources as sources
 
 
 @pytest.mark.unit
+def test_too_many_parameters(tmp_path: Path):
+    try:
+        sources.SourceOpener(
+            folder=tmp_path, engine=sqlalchemy.create_engine("sqlite:///:memory:")
+        )
+        assert False, "this should have failed"
+    except RuntimeError as e:
+        assert str(e) == "SourceOpener cannot have both a folder and an engine"
+
+
+@pytest.mark.unit
+def test_too_few_parameters(tmp_path: Path):
+    try:
+        sources.SourceOpener(folder=None, engine=None)
+        assert False, "this should have failed"
+    except RuntimeError as e:
+        assert str(e) == "SourceOpener needs either an engine or a folder"
+
+
+@pytest.mark.unit
+def test_bad_table_name(tmp_path: Path):
+    source = sources.SourceOpener(engine=sqlalchemy.create_engine("sqlite:///:memory:"))
+    try:
+        source.open("a_table")
+        assert False, "this should have failed"
+    except sources.SourceNotFoundException as e:
+        assert e._message == "source names must end with .csv but was name='a_table'"
+        assert e._source == source
+        assert e._name == "a_table"
+
+
+@pytest.mark.unit
+def test_mssing_csv(tmp_path: Path):
+    source = sources.SourceOpener(folder=tmp_path)
+    try:
+        source.open("a_table.csv")
+        assert False, "this should have failed"
+    except sources.SourceFileNotFoundException as e:
+        assert e._path == tmp_path / "a_table.csv"
+        assert e._name == "a_table.csv"
+
+
+@pytest.mark.unit
+def test_name_not_a_path(tmp_path: Path):
+    source = sources.SourceOpener(folder=tmp_path)
+    try:
+        source.open("sub/a_table.csv")
+        assert False, "this should have failed"
+    except sources.SourceNotFoundException as e:
+        assert (
+            e._message
+            == "source names must name a file not a path but was name='sub/a_table.csv'"
+        )
+        assert e._source == source
+        assert e._name == "sub/a_table.csv"
+
+
+@pytest.mark.unit
+def test_name_not_a_path_sql(tmp_path: Path):
+    source = sources.SourceOpener(engine=sqlalchemy.create_engine("sqlite:///:memory:"))
+    try:
+        source.open("sub/a_table.csv")
+        assert False, "this should have failed"
+    except sources.SourceNotFoundException as e:
+        assert (
+            e._message
+            == "source names must name a file not a path but was name='sub/a_table.csv'"
+        )
+        assert e._source == source
+        assert e._name == "sub/a_table.csv"
+
+
+@pytest.mark.unit
+def test_blank_csv(tmp_path: Path):
+    open(tmp_path / "a_table.csv", "w").close()
+    source = sources.SourceOpener(folder=tmp_path)
+    try:
+        source.open("a_table.csv")
+        assert False, "this should have failed"
+    except sources.SourceNotFoundException as e:
+        assert e._message == "csv file is empty name='a_table.csv'"
+        assert e._source == source
+        assert e._name == "a_table.csv"
+
+
+@pytest.mark.unit
+def test_missing_table():
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+    source = sources.SourceOpener(engine=engine)
+    try:
+        source.open("a_table.csv")
+        assert False, "this should have failed"
+    except sources.SourceNotFoundException as e:
+        assert (
+            e._message
+            == "failed to find first row because e=InvalidRequestError('Could not reflect: requested table(s) not available in Engine(sqlite:///:memory:): (a_table)')"
+        )
+        assert e._source == source
+        assert e._name == "a_table.csv"
+
+
+@pytest.mark.unit
 def test_basic_csv():
     """opens a csv connection, reads a file, checks we got the correct data"""
 

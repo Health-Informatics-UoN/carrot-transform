@@ -170,6 +170,36 @@ def test_dateimes_in_measurement(tmp_path: Path, engine: bool):
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize(
+    "text, valid",
+    [
+        ("", False),
+        ("   ", False),
+        ("2025-07-21", True),
+    ],
+)
+def test_date_validation__valid_date_value(text: str, valid: bool):
+    import carrottransform.tools.validation as validation
+
+    assert valid == validation.valid_date_value(text)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "text, valid",
+    [
+        ("", False),
+        ("   ", False),
+        ("21-09-1996", True),
+    ],
+)
+def test_date_validation_valid_reverse_iso_date(text: str, valid: bool):
+    import carrottransform.tools.validation as validation
+
+    assert valid == validation._valid_reverse_iso_date(text)
+
+
+@pytest.mark.unit
 def test_bad_date():
     item = "june 14, 2051"
     try:
