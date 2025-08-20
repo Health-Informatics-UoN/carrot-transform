@@ -1,19 +1,21 @@
+from pathlib import Path
+
 import pytest
 
-from pathlib import Path
 from carrottransform.tools.args import (
-    ObjectQueryError,
-    person_rules_check,
-    OnlyOnePersonInputAllowed,
     NoPersonMappings,
+    ObjectQueryError,
     ObjectStructureError,
-    WrongInputException,
-    RulesFileNotFound,
-    object_query,
+    OnlyOnePersonInputAllowed,
     PersonRulesWrong,
+    RulesFileNotFound,
+    WrongInputException,
+    object_query,
+    person_rules_check,
 )
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize(
     "exception",
     [
@@ -85,6 +87,7 @@ def test_person_rules_throws(exception):
             assert exception._inputs == caught._inputs
 
 
+@pytest.mark.unit
 def test_person_rules_throws_WrongInputException():
     """this is a test to trigger the WrongInputException"""
     person_file = "demographics_mother_gold.csv"
@@ -111,24 +114,23 @@ def test_person_rules_throws_WrongInputException():
     assert caught._person_file == person_file
     assert caught._source_table == source_table
 
+
 @pytest.mark.unit
 def test_person_rules_check__not_found(tmp_path: Path):
-
-    fred_file: Path = tmp_path / 'fred.json'
+    fred_file: Path = tmp_path / "fred.json"
 
     try:
-        person_rules_check('dave.csv', fred_file)
-        raise Exception('that should have failed')
+        person_rules_check("dave.csv", fred_file)
+        raise Exception("that should have failed")
     except RulesFileNotFound as e:
         assert fred_file == e._rules_file
-    
+
 
 @pytest.mark.unit
 def test_person_rules_check__bad_form(tmp_path: Path):
+    fred_file: Path = tmp_path / "fred.json"
 
-    fred_file: Path = tmp_path / 'fred.json'
-
-    open(fred_file, 'w').write(
+    open(fred_file, "w").write(
         """
         {
             "cdm": {
@@ -139,18 +141,17 @@ def test_person_rules_check__bad_form(tmp_path: Path):
     )
 
     try:
-        person_rules_check('dave.csv', fred_file)
-        raise Exception('that should have failed')
+        person_rules_check("dave.csv", fred_file)
+        raise Exception("that should have failed")
     except PersonRulesWrong as e:
         assert fred_file == e._rules_file
-    
+
 
 @pytest.mark.unit
 def test_person_rules_check__no_person(tmp_path: Path):
+    fred_file: Path = tmp_path / "fred.json"
 
-    fred_file: Path = tmp_path / 'fred.json'
-
-    open(fred_file, 'w').write(
+    open(fred_file, "w").write(
         """
         {
             "cdm": {
@@ -161,17 +162,17 @@ def test_person_rules_check__no_person(tmp_path: Path):
     )
 
     try:
-        person_rules_check('dave.csv', fred_file)
-        raise Exception('that should have failed')
+        person_rules_check("dave.csv", fred_file)
+        raise Exception("that should have failed")
     except NoPersonMappings as e:
         assert fred_file == e._rules_file
-    
+
+
 @pytest.mark.unit
 def test_person_rules_check__empty_person(tmp_path: Path):
+    fred_file: Path = tmp_path / "fred.json"
 
-    fred_file: Path = tmp_path / 'fred.json'
-
-    open(fred_file, 'w').write(
+    open(fred_file, "w").write(
         """
         {
             "cdm": {
@@ -182,13 +183,13 @@ def test_person_rules_check__empty_person(tmp_path: Path):
     )
 
     try:
-        person_rules_check('dave.csv', fred_file)
-        raise Exception('that should have failed')
+        person_rules_check("dave.csv", fred_file)
+        raise Exception("that should have failed")
     except NoPersonMappings as e:
         assert fred_file == e._rules_file
-    
 
 
+@pytest.mark.unit
 def test_object_query_error():
     """tests the object_query() throws an error when it starts with /"""
 
@@ -209,6 +210,7 @@ def test_object_query_error():
     )
 
 
+@pytest.mark.unit
 def test_object_structure_error():
     """tests the object_query() throws an error when trying to read a string as a dict"""
 
@@ -224,3 +226,54 @@ def test_object_structure_error():
     assert error is not None
 
     assert str(error) == "Cannot descend into non-dict value at key 'foo'"
+
+
+@pytest.mark.unit
+def test_invalid_paths():
+    """i can't find a way to make an invalid Path(: str) so i'm using `:int`"""
+
+    bad_path = 7
+
+    from carrottransform.tools.args import PathArgumentType
+
+    class E(Exception):
+        def __init__(self, message):
+            super().__init__(message)
+            self._message = message
+
+    class M(PathArgumentType):
+        def fail(self, message, param, ctx):
+            raise E(message)
+
+    try:
+        M().convert(bad_path, "p", "c")
+
+        raise Exception("that should have failed")
+    except E as e:
+        assert e._message.startswith("Invalid path: 7 (")
+
+
+@pytest.mark.unit
+def test_invalid_connection():
+    """use a junk connection string"""
+
+    from carrottransform.tools.args import AlchemyConnectionArgumentType
+
+    class E(Exception):
+        def __init__(self, message):
+            super().__init__(message)
+            self._message = message
+
+    class M(AlchemyConnectionArgumentType):
+        def fail(self, message, param, ctx):
+            raise E(message)
+
+    try:
+        M().convert("this.wont.work", "p", "c")
+
+        raise Exception("that should have failed")
+    except E as e:
+        assert (
+            "invalid connection string: this.wont.work (Could not parse SQLAlchemy URL from given URL string)"
+            == e._message
+        )

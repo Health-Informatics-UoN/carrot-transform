@@ -44,6 +44,20 @@ To have the project up and running, please follow the [Quick Start Guide](https:
 
 If you need to perform development, [there's a brief guide here](https://carrot.ac.uk/transform/development) to get the tool up and running.
 
+## Docker Usage
+
+> Needs the final contianer url/image/specifier
+
+Carrot-Transform can be run from docker, here's how you cehck the version ...
+
+`λ docker run -it --rm carrot/transform -v`
+
+... so if you had a folder with `rules.json` along with a subfolder `data/people.csv` and all the other details ...
+
+`λ docker run -it --rm -v.:/app carrot/transform --rules-file rules.json --output-dir out/ --person-file data/people.csv --input-dir data/`
+
+... would output to `out/` back on the host machine.
+
 ## Formatting and Linting
 
 This project is using [ruff](https://docs.astral.sh/ruff/) to check formatting and linting. 

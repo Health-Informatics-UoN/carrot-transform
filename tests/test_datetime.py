@@ -1,12 +1,13 @@
-import pytest
-import tests.click_tools as click_tools
-
+import re
 from pathlib import Path
 
 import csvrow
-import re
+import pytest
+
 import carrottransform.cli.subcommands.run as run
 import carrottransform.tools.date_helpers as date_helpers
+import tests.click_tools as click_tools
+
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
@@ -168,15 +169,11 @@ def test_dateimes_in_measurement(tmp_path: Path, engine: bool):
         )
 
 
-
-
 @pytest.mark.unit
 def test_bad_date():
-    item = 'june 14, 2051'
+    item = "june 14, 2051"
     try:
         date_helpers.normalise_to8601(item)
-        assert False, 'that shound have failed'
+        assert False, "that shound have failed"
     except Exception as e:
-       assert f"invalid date format {item=}" == e.args[0]
-
-
+        assert f"invalid date format {item=}" == e.args[0]

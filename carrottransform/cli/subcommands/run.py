@@ -1,29 +1,31 @@
-import carrottransform.tools.sources as sources
-
 import sys
 import time
 from pathlib import Path
+
 import click
 from sqlalchemy.engine import Engine
+
 import carrottransform.tools as tools
-from carrottransform.tools.args import PathArg, AlchemyConnectionArg
+import carrottransform.tools.sources as sources
+from carrottransform.tools.args import (
+    AlchemyConnectionArg,
+    OnlyOnePersonInputAllowed,
+    PathArg,
+    person_rules_check,
+)
+from carrottransform.tools.core import get_target_records
+from carrottransform.tools.date_helpers import normalise_to8601
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
     resolve_paths,
     set_omop_filenames,
 )
 from carrottransform.tools.logger import logger_setup
-from carrottransform.tools.core import (
-    get_target_records,
-)
-from carrottransform.tools.date_helpers import normalise_to8601
 from carrottransform.tools.person_helpers import (
     load_last_used_ids,
     read_person_ids,
     set_saved_person_id_file,
 )
-from carrottransform.tools.args import person_rules_check, OnlyOnePersonInputAllowed
-
 
 logger = logger_setup()
 
