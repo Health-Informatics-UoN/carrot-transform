@@ -2,12 +2,12 @@
 functions to handle args
 """
 
-import click
 from pathlib import Path
-from carrottransform.tools.mappingrules import MappingRules
 
-
+import click
 from sqlalchemy import create_engine
+
+from carrottransform.tools.mappingrules import MappingRules
 
 
 def object_query(data: dict[str, dict | str], path: str) -> dict | str:

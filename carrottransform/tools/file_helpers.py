@@ -1,10 +1,10 @@
+import importlib.resources as resources
 import json
 import logging
 import sys
-import importlib.resources as resources
-from typing import List, Optional
-from typing import Dict, TextIO, Tuple, cast
 from pathlib import Path
+from typing import Dict, List, Optional, TextIO, Tuple, cast
+
 from carrottransform.tools.omopcdm import OmopCDM
 
 logger = logging.getLogger(__name__)

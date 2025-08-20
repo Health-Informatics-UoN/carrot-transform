@@ -1,17 +1,15 @@
-from typing import Dict, List, Optional, Tuple, Set
 from abc import ABC, abstractmethod
-from carrottransform.tools.mapping_types import ConceptMapping
-from carrottransform.tools.date_helpers import get_datetime_value
-from carrottransform.tools.logger import logger_setup
-from carrottransform.tools.validation import valid_value
-from carrottransform.tools.types import (
-    RecordContext,
-    RecordResult,
-)
+from typing import Dict, List, Optional, Set, Tuple
+
 from carrottransform.tools.concept_helpers import (
     generate_combinations,
     get_value_mapping,
 )
+from carrottransform.tools.date_helpers import get_datetime_value
+from carrottransform.tools.logger import logger_setup
+from carrottransform.tools.mapping_types import ConceptMapping
+from carrottransform.tools.types import RecordContext, RecordResult
+from carrottransform.tools.validation import valid_value
 
 logger = logger_setup()
 
