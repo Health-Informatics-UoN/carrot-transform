@@ -2,6 +2,17 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Ruff the whole project",
+      "type": "shell",
+      "command": "uv run isort . && uv run black . && uv run ruff check --fix . && uv run ruff format .",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Ruff the current file",
       "type": "shell",
       "command": "uv run ruff check --fix \"${file}\" && uv run ruff format \"${file}\"",

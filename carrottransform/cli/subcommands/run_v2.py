@@ -2,10 +2,12 @@
 Entry point for the v2 processing system
 """
 
+import time
 from pathlib import Path
 from typing import Optional
+
 import click
-import time
+
 from carrottransform.tools.click import PathArgs
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,

@@ -1,16 +1,15 @@
 import importlib.resources
-
-from pathlib import Path
-import shutil
-
-from click.testing import CliRunner
-from carrottransform.cli.subcommands.run import mapstream
-import csvrow
-import carrottransform.tools.sources as sources
 import logging
-from sqlalchemy import Table, Column, Text, MetaData, insert
-import sqlalchemy
+import shutil
+from pathlib import Path
 
+import csvrow
+import sqlalchemy
+from click.testing import CliRunner
+from sqlalchemy import Column, MetaData, Table, Text, insert
+
+import carrottransform.tools.sources as sources
+from carrottransform.cli.subcommands.run import mapstream
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +37,6 @@ def click_test(
     rules_file: str | None = None,
     # bool value controlling wether we expect a failure or not. failure tests do no checking and all other tests fail if transform didn't execute/terminate correctly
     failure: bool = False,
-
     # various booleans to control wether paramters are passed as args or evnars
     pass__input__as_arg: bool = True,
     pass__rules_file__as_arg: bool = True,
@@ -121,13 +119,13 @@ def click_test(
 
     # to allow swithcing between passign args via ENVAR or command line; we use this
     def pass_as_arg(arg: bool, key: str, value):
-        assert key.startswith('--')
+        assert key.startswith("--")
         assert key == key.lower()
         if arg:
             click_args.append(key)
             click_args.append(str(value))
         else:
-            key = key[2:].upper().replace('-', '_')
+            key = key[2:].upper().replace("-", "_")
             assert key not in click_env
             click_env[key] = str(value)
 
@@ -138,17 +136,21 @@ def click_test(
     pass_as_arg(pass__rules_file__as_arg, "--rules-file", rules_json_file)
     pass_as_arg(pass__person_file__as_arg, "--person-file", person_file)
     pass_as_arg(pass__output_dir__as_arg, "--output-dir", output)
-    pass_as_arg(pass__omop_ddl_file__as_arg, "--omop-ddl-file", f"{package_root / 'config/OMOPCDM_postgresql_5.3_ddl.sql'}")
-    pass_as_arg(pass__omop_config_file__as_arg, "--omop-config-file", f"{package_root / 'config/omop.json'}")
+    pass_as_arg(
+        pass__omop_ddl_file__as_arg,
+        "--omop-ddl-file",
+        f"{package_root / 'config/OMOPCDM_postgresql_5.3_ddl.sql'}",
+    )
+    pass_as_arg(
+        pass__omop_config_file__as_arg,
+        "--omop-config-file",
+        f"{package_root / 'config/omop.json'}",
+    )
 
     ##
     # run click
     runner = CliRunner()
-    result = runner.invoke(
-        mapstream,
-        click_args,
-        env=click_env
-    )
+    result = runner.invoke(mapstream, click_args, env=click_env)
 
     if failure:
         if 0 == result.exit_code:
@@ -320,7 +322,8 @@ def click_test(
 def load_test_database_table(connection: sqlalchemy.engine.Engine, csv: Path):
     """load a csv file into a testing database.
 
-    does some adjustments to make sure the column names work, but, generally dumps it itno a "dumb" database for testing"""
+    does some adjustments to make sure the column names work, but, generally dumps it itno a "dumb" database for testing
+    """
 
     # the table name will be inferred from the csv file name; this enforces consistency
     assert csv.name.endswith(".csv")
