@@ -1,11 +1,12 @@
-import pytest
-import tests.click_tools as click_tools
-
+import re
 from pathlib import Path
 
 import csvrow
-import re
+import pytest
+
 import carrottransform.cli.subcommands.run as run
+import carrottransform.tools.date_helpers as date_helpers
+import tests.click_tools as click_tools
 
 
 @pytest.mark.unit
@@ -166,3 +167,43 @@ def test_dateimes_in_measurement(tmp_path: Path, engine: bool):
         ), (
             f"{measurement.measurement_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
         )
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "text, valid",
+    [
+        ("", False),
+        ("   ", False),
+        ("2025-07-21", True),
+    ],
+)
+def test_date_validation__valid_date_value(text: str, valid: bool):
+    import carrottransform.tools.validation as validation
+
+    assert valid == validation.valid_date_value(text)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "text, valid",
+    [
+        ("", False),
+        ("   ", False),
+        ("21-09-1996", True),
+    ],
+)
+def test_date_validation_valid_reverse_iso_date(text: str, valid: bool):
+    import carrottransform.tools.validation as validation
+
+    assert valid == validation._valid_reverse_iso_date(text)
+
+
+@pytest.mark.unit
+def test_bad_date():
+    item = "june 14, 2051"
+    try:
+        date_helpers.normalise_to8601(item)
+        assert False, "that shound have failed"
+    except Exception as e:
+        assert f"invalid date format {item=}" == e.args[0]

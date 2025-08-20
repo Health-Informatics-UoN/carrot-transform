@@ -2,8 +2,9 @@
 Tests for stream helpers module
 """
 
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 from carrottransform.tools.stream_helpers import StreamingLookupCache
 

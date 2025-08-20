@@ -1,5 +1,6 @@
-from typing import Dict, Set, Any
 from collections import defaultdict
+from typing import Any, Dict, Set
+
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
 

@@ -1,9 +1,11 @@
-import pytest
-from carrottransform.tools.file_helpers import resolve_paths
-import os
 import importlib.resources as resources
+import os
 from pathlib import Path
 from unittest.mock import patch
+
+import pytest
+
+from carrottransform.tools.file_helpers import resolve_paths
 
 
 @pytest.mark.unit
