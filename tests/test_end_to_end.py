@@ -76,8 +76,8 @@ def test_with_two_dirs(tmp_path: Path, caplog):
 
     # ddl and config files (copied here rather than using embedded one ... for now?)
     ddl = tmp_path / "ddl.sql"
-    omop = tmp_path / "omop.json"
-    shutil.copy2("carrottransform/config/omop.json", omop)
+    omop = tmp_path / "config.json"
+    shutil.copy2("carrottransform/config/config.json", omop)
     shutil.copy2("carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
 
     ##
@@ -96,7 +96,7 @@ def test_with_two_dirs(tmp_path: Path, caplog):
             "--omop-ddl-file",
             f"{tmp_path / 'ddl.sql'}",
             "--omop-config-file",
-            f"{tmp_path / 'omop.json'}",
+            f"{tmp_path / 'config.json'}",
             "--input-dir",
             f"{input2}",
         ],
@@ -156,8 +156,8 @@ def test_with_one_csv_missing(tmp_path: Path, caplog):
 
     # ddl and config files (copied here rather than using embedded one ... for now?)
     ddl = tmp_path / "ddl.sql"
-    omop = tmp_path / "omop.json"
-    shutil.copy2(package_root / "config/omop.json", omop)
+    omop = tmp_path / "config.json"
+    shutil.copy2(package_root / "config/config.json", omop)
     shutil.copy2(package_root / "config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
 
     ###
@@ -181,7 +181,7 @@ def test_with_one_csv_missing(tmp_path: Path, caplog):
             "--omop-ddl-file",
             f"{tmp_path / 'ddl.sql'}",
             "--omop-config-file",
-            f"{tmp_path / 'omop.json'}",
+            f"{tmp_path / 'config.json'}",
         ],
     )
 
@@ -240,8 +240,8 @@ def test_with_auto_person(tmp_path: Path):
 
     # ddl and config files (copied here rather than using embedded one ... for now?)
     ddl = tmp_path / "ddl.sql"
-    omop = tmp_path / "omop.json"
-    shutil.copy2(package_root / "config/omop.json", omop)
+    omop = tmp_path / "config.json"
+    shutil.copy2(package_root / "config/config.json", omop)
     shutil.copy2(package_root / "config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
 
     ##
@@ -259,7 +259,7 @@ def test_with_auto_person(tmp_path: Path):
             "--omop-ddl-file",
             f"{tmp_path / 'ddl.sql'}",
             "--omop-config-file",
-            f"{tmp_path / 'omop.json'}",
+            f"{tmp_path / 'config.json'}",
         ],
     )
 
