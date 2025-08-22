@@ -148,7 +148,7 @@ def omopcdm():
     """Fixture providing OmopCDM instance using the latest available OMOP version."""
     ddl_path = get_latest_omop_ddl()
     with importlib.resources.as_file(
-        importlib.resources.files("carrottransform.config") / "omop.json"
+        importlib.resources.files("carrottransform.config") / "config.json"
     ) as config_path:
         return OmopCDM(ddl_path, config_path)
 

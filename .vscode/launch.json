@@ -38,7 +38,7 @@
         "--omop-ddl-file",
         "carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql",
         "--omop-config-file",
-        "carrottransform/config/omop.json"
+        "carrottransform/config/config.json"
       ],
       "console": "integratedTerminal",
       "justMyCode": false
@@ -62,7 +62,7 @@
         "--omop-ddl-file",
         "carrottransform/config/OMOPCDM_postgresql_5.4_ddl.sql",
         "--omop-config-file",
-        "carrottransform/config/omop.json"
+        "carrottransform/config/config.json"
       ],
       "console": "integratedTerminal",
       "justMyCode": false
