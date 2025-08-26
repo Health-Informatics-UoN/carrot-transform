@@ -144,7 +144,7 @@ def click_test(
     pass_as_arg(
         pass__omop_config_file__as_arg,
         "--omop-config-file",
-        f"{package_root / 'config/omop.json'}",
+        f"{package_root / 'config/config.json'}",
     )
 
     ##

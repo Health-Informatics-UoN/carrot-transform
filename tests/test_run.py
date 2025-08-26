@@ -182,7 +182,7 @@ def test_auto_filenames_from_version():
     expected_base = importlib.resources.files("carrottransform")
     assert isinstance(expected_base, Path), "this test assumes it's a Path()"
 
-    expected_config = expected_base / "config/omop.json"
+    expected_config = expected_base / "config/config.json"
     expected_ddl = expected_base / f"config/OMOPCDM_postgresql_{version}_ddl.sql"
 
     result_config, result_ddl = run.set_omop_filenames(None, None, version)
