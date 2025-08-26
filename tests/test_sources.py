@@ -2,11 +2,13 @@
 runs some tests on the source reader thing
 """
 
-import sqlalchemy
-import pytest
 from pathlib import Path
-import carrottransform.tools.sources as sources
+
 import click_tools
+import pytest
+import sqlalchemy
+
+import carrottransform.tools.sources as sources
 
 
 @pytest.mark.unit

@@ -1,4 +1,5 @@
 from typing import Dict, List, Optional
+
 from carrottransform.tools.mapping_types import ConceptMapping
 
 

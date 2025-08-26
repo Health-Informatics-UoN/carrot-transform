@@ -3,18 +3,14 @@ these are various integration tests for carroti using pytest and the inbuild cli
 
 """
 
-import pytest
-
-from pathlib import Path
-import tests.click_tools as click_tools
-
 import logging
+import re
+from pathlib import Path
 
 import csvrow
+import pytest
 
-
-import re
-
+import tests.click_tools as click_tools
 
 ##
 # concept constants
