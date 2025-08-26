@@ -118,7 +118,9 @@ def set_omop_filenames(
         logger.info(f"Using default OMOP files for version {omop_version}")
 
         # Set default config file - convert Traversable to Path
-        config_traversable = resources.files("carrottransform") / "config" / "omop.json"
+        config_traversable = (
+            resources.files("carrottransform") / "config" / "config.json"
+        )
         omop_config_file = Path(str(config_traversable))
 
         # Set version-specific DDL file - convert Traversable to Path

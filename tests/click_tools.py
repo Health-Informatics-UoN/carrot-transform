@@ -127,7 +127,7 @@ def click_test(
     click_args.append(f"{package_root / 'config/OMOPCDM_postgresql_5.3_ddl.sql'}")
 
     click_args.append("--omop-config-file")
-    click_args.append(f"{package_root / 'config/omop.json'}")
+    click_args.append(f"{package_root / 'config/config.json'}")
 
     ##
     # run click
