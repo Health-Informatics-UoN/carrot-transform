@@ -12,3 +12,4 @@ temp
 .python-version
 
 *.orig
+.mypy_cache/
