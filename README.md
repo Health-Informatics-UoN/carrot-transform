@@ -72,17 +72,17 @@ This is experimental, and requires [specifying a connection-string](https://docs
 The person-file parameter and carrot-mapper workflow should still be used, as if working with .csv files, but carrot-transform can read from an SQLAlchemy database.
 
 1. Extract/export some rows from the various tables
-  - something like `SELECT column_name(s) FROM patients LIMIT 1000;` is written to `patients.csv`
+    - something like `SELECT column_name(s) FROM patients LIMIT 1000;` is written to `patients.csv`
 2. the usual [scan reports](https://carrot.ac.uk/mapper/user_guide/projects_datasets_scanreports) are performed on these subsets
 3. [when carrot-transform is invoked](https://carrot.ac.uk/transform/quickstart) instead of `--input-dir` one specifies `--input-db-url` with a database connection string
-  - the `--person-file` parameter should still point to the equivalent of `person_tablename.csv`
-  - the `--rules-file` parameter needs to refer to a file on the disk as usual
+    - the `--person-file` parameter should still point to the equivalent of `person_tablename.csv`
+    - the `--rules-file` parameter needs to refer to a file on the disk as usual
 4. carrot transform will still write data to `--output-dir` and otherwise operate as normal
-  - The following parameters have undefined behaviour with this functionality
-    - `--write-mode`
-    - `--saved-person-id-file`
-    - `--use-input-person-ids`
-    - `--last-used-ids-file`
+    - The following parameters have undefined behaviour with this functionality
+      - `--write-mode`
+      - `--saved-person-id-file`
+      - `--use-input-person-ids`
+      - `--last-used-ids-file`
 
 ## Release Procedure 
 
