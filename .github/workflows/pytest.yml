@@ -48,9 +48,12 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Run tests
+        # run the coverage check, but, don't worry about coverage of the tests themselves
         run: |
           uv run coverage run --omit=tests/* -m pytest --junitxml=pytest.xml
           uv run coverage xml
+
+      # adds a comment to the PR detailing code coverage
       - name: Pytest coverage comment
         if: github.event_name == 'pull_request'
         uses: MishaKav/pytest-coverage-comment@main
@@ -88,9 +91,6 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
-
-      - name: Set up Python
-        run: uv python install
 
       - name: Build package
         run: |
