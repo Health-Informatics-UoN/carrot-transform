@@ -17,14 +17,10 @@ from carrottransform.cli.subcommands.run import mapstream
 def test_run_the_command_line():
     """simple test/check to see if the project can "run" - which is good for checking things like imports"""
 
-    root = Path(__file__).parent.parent
-    import subprocess
+    import os
 
-    result = subprocess.run(
-        "uv run carrot-transform run mapstream --help".split(" "), shell=True, cwd=root
-    )
-
-    assert 0 == result.returncode
+    # we only care about the return value, and, subprocess kept failing
+    assert 0 == os.system("uv run carrot-transform run mapstream --help")
 
 
 @pytest.mark.unit
