@@ -15,7 +15,29 @@
     {
       "label": "Ruff the current file",
       "type": "shell",
-      "command": "uv run ruff check --fix \"${file}\" && uv run ruff format \"${file}\"",
+      "command": "uv run isort \"${file}\" && uv run black \"${file}\" && uv run ruff check --fix \"${file}\" && uv run ruff format \"${file}\" ",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Ruff the project",
+      "type": "shell",
+      "command": "uv run isort . && uv run black . && uv run ruff check --fix . && uv run ruff format .",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Coverage Report",
+      "type": "shell",
+      "command": "uv run coverage run --omit=tests/* -m pytest && uv run coverage run --omit=tests/* -a -m pytest -m docker && uv run coverage html && uv run coverage erase",
       "group": "build",
       "presentation": {
         "reveal": "always",

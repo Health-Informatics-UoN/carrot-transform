@@ -8,7 +8,7 @@ from typing import Optional
 
 import click
 
-from carrottransform.tools.click import PathArgs
+from carrottransform.tools.args import PathArg
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
     resolve_paths,
@@ -23,13 +23,13 @@ logger = logger_setup()
 @click.command()
 @click.option(
     "--rules-file",
-    type=PathArgs,
+    type=PathArg,
     required=True,
     help="v2 json file containing mapping rules",
 )
 @click.option(
     "--output-dir",
-    type=PathArgs,
+    type=PathArg,
     required=True,
     help="define the output directory for OMOP-format tsv files",
 )
@@ -41,19 +41,19 @@ logger = logger_setup()
 )
 @click.option(
     "--person-file",
-    type=PathArgs,
+    type=PathArg,
     required=True,
     help="File containing person_ids in the first column",
 )
 @click.option(
     "--omop-ddl-file",
-    type=PathArgs,
+    type=PathArg,
     required=False,
     help="File containing OHDSI ddl statements for OMOP tables",
 )
 @click.option(
     "--omop-config-file",
-    type=PathArgs,
+    type=PathArg,
     required=False,
     help="File containing additional / override json config for omop outputs",
 )
@@ -62,7 +62,7 @@ logger = logger_setup()
     required=False,
     help="Quoted string containing omop version - eg '5.3'",
 )
-@click.option("--input-dir", type=PathArgs, required=True, help="Input directories")
+@click.option("--input-dir", type=PathArg, required=True, help="Input directories")
 def mapstream_v2(
     rules_file: Path,
     output_dir: Path,
