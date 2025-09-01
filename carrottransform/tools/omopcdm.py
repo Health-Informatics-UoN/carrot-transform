@@ -1,10 +1,10 @@
-import carrottransform.tools as tools
 import json
-from carrottransform.tools.logger import logger_setup
 import re
 import sys
-
 from pathlib import Path
+
+import carrottransform.tools as tools
+from carrottransform.tools.logger import logger_setup
 
 logger = logger_setup()
 

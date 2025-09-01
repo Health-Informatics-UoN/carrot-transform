@@ -2,18 +2,16 @@
 Tests for the V2 orchestrator module
 """
 
-import pytest
-import json
 import csv
+import json
+import shutil
+import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
-import tempfile
-import shutil
 
-from carrottransform.tools.orchestrator import (
-    V2ProcessingOrchestrator,
-    StreamProcessor,
-)
+import pytest
+
+from carrottransform.tools.orchestrator import StreamProcessor, V2ProcessingOrchestrator
 from carrottransform.tools.types import ProcessingContext
 
 
