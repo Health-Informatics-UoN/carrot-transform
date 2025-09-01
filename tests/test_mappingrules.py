@@ -1,10 +1,12 @@
-import pytest
-import pandas as pd
-from pathlib import Path
 import importlib.resources
-import re
 import json
+import re
 import tempfile
+from pathlib import Path
+
+import pandas as pd
+import pytest
+
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
 
