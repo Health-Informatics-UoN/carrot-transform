@@ -85,7 +85,6 @@ def test_dock_observations(tmp_path: Path):
             "--rm",
             f"-v{tmp_path}:/run",
             image_name,
-            # "uv", "run", "python", "-m", "carrottransform.cli.command", "run", "mapstream",
             "--rules-file",
             "/run/mapping.json",
             "--output-dir",
