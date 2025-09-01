@@ -40,9 +40,6 @@ jobs:
           uv run pytest --junitxml=pytest.xml
           uv run coverage run -m pytest
           uv run coverage xml
-          
-      - name: Run tests (docker)
-        run: uv run pytest -m docker
 
       - name: Pytest coverage comment
         if: github.event_name == 'pull_request'
@@ -56,12 +53,28 @@ jobs:
         run: |
           ruff check . --no-fix --output-format=concise
           ruff format --check . --quiet
-  
+
+  docker_tests:
+    name: Docker Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+      - name: Run tests (docker)
+        run: uv run pytest -m docker
+
   build:
     name: Build distribution
     runs-on: ubuntu-latest
     needs:
       - test
+      - docker_tests
     permissions:
       contents: read
 
