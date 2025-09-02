@@ -10,20 +10,17 @@ from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
 from carrottransform.tools.person_helpers import (
-    load_person_ids,
+    load_person_ids_v2,
     set_saved_person_id_file,
 )
 from carrottransform.tools.record_builder import RecordBuilderFactory
 from carrottransform.tools.stream_helpers import StreamingLookupCache
 from carrottransform.tools.types import (
     DBConnParams,
+    ProcessingContext,
     ProcessingResult,
     RecordContext,
 )
-from carrottransform.tools.record_builder import RecordBuilderFactory
-from carrottransform.tools.file_helpers import OutputFileManager
-from carrottransform.tools.stream_helpers import StreamingLookupCache
-from carrottransform.tools.args import person_rules_check_v2
 from sqlalchemy import create_engine
 from sqlalchemy.sql.expression import select
 from sqlalchemy.engine import Connection
@@ -432,7 +429,7 @@ class V2ProcessingOrchestrator:
             connection = self.engine_connection.connect()
             schema = self.db_conn_params.schema
 
-        person_lookup, rejected_person_count = load_person_ids(
+        person_lookup, rejected_person_count = load_person_ids_v2(
             saved_person_id_file,
             person_file=self.person_file,
             person_table_name=self.person_table,
