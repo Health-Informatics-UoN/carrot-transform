@@ -27,6 +27,7 @@ dev = [
     "build>=1.2.2.post1",
     "ruff>=0.12.0",
     "isort>=6.0.1",
+    "mypy>=1.17.1",
 ]
 
 [tool.uv]

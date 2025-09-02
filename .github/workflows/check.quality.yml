@@ -6,10 +6,35 @@ permissions:
 
 on:
   pull_request:
-    paths:
-      - '**/*.py'
 
 jobs:
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+      
+      - name: Run mypy with GitHub annotations
+        run: |
+          # This format is optimized for GitHub's annotation system
+          uv run mypy \
+            --show-error-codes \
+            --hide-error-context \
+            --no-error-summary \
+            --no-pretty \
+            --soft-error-limit=-1 \
+            .
+        
+        # Continue on error to see all results, not just the first failure
+        continue-on-error: true
+      
+      - name: Fail if mypy found errors
+        if: failure() && steps.mypy.outcome == 'failure'
+        run: |
+          echo "MyPy found type errors. Check the annotations above."
+          exit 1
   ruff:
     name: Run Ruff
     runs-on: ubuntu-latest
