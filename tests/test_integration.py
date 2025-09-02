@@ -534,6 +534,12 @@ def test_sql_read(tmp_path: Path):
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("pass__input__as_arg", [True, False])
+@pytest.mark.parametrize("pass__rules_file__as_arg", [True, False])
+@pytest.mark.parametrize("pass__person_file__as_arg", [True, False])
+@pytest.mark.parametrize("pass__output_dir__as_arg", [True, False])
+@pytest.mark.parametrize("pass__omop_ddl_file__as_arg", [True, False])
+@pytest.mark.parametrize("pass__omop_config_file__as_arg", [True, False])
 @pytest.mark.parametrize(
     "patient_csv, persons, observations, measurements, conditions, post_check",
     [
@@ -685,6 +691,13 @@ def test_sql_read(tmp_path: Path):
 def test_fixture(
     tmp_path: Path,
     engine: bool,
+    # args or envar
+    pass__input__as_arg: bool,
+    pass__rules_file__as_arg: bool,
+    pass__person_file__as_arg: bool,
+    pass__output_dir__as_arg: bool,
+    pass__omop_ddl_file__as_arg: bool,
+    pass__omop_config_file__as_arg: bool,
     patient_csv,
     persons,
     observations,
@@ -701,6 +714,13 @@ def test_fixture(
             measurements=measurements,
             conditions=conditions,
             engine=engine,
+            # args or envar
+            pass__input__as_arg=pass__input__as_arg,
+            pass__rules_file__as_arg=pass__rules_file__as_arg,
+            pass__person_file__as_arg=pass__person_file__as_arg,
+            pass__output_dir__as_arg=pass__output_dir__as_arg,
+            pass__omop_ddl_file__as_arg=pass__omop_ddl_file__as_arg,
+            pass__omop_config_file__as_arg=pass__omop_config_file__as_arg,
         )
     )
 

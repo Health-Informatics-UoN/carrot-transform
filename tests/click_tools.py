@@ -37,6 +37,13 @@ def click_test(
     rules_file: str | None = None,
     # bool value controlling wether we expect a failure or not. failure tests do no checking and all other tests fail if transform didn't execute/terminate correctly
     failure: bool = False,
+    # various booleans to control wether paramters are passed as args or evnars
+    pass__input__as_arg: bool = True,
+    pass__rules_file__as_arg: bool = True,
+    pass__person_file__as_arg: bool = True,
+    pass__output_dir__as_arg: bool = True,
+    pass__omop_ddl_file__as_arg: bool = True,
+    pass__omop_config_file__as_arg: bool = True,
 ):
     """this function tests carrot transform.
 
@@ -105,37 +112,45 @@ def click_test(
 
     ##
     # build click args
+
+    # these are the containers for the args
     click_args: list[str] = []
+    click_env: dict[str, str] = {}
+
+    # to allow swithcing between passign args via ENVAR or command line; we use this
+    def pass_as_arg(arg: bool, key: str, value):
+        assert key.startswith("--")
+        assert key == key.lower()
+        if arg:
+            click_args.append(key)
+            click_args.append(str(value))
+        else:
+            key = key[2:].upper().replace("-", "_")
+            assert key not in click_env
+            click_env[key] = str(value)
+
     if not engine:
-        click_args.append("--input-dir")
-
-        click_args.append(str(person_file.parent))
+        pass_as_arg(pass__input__as_arg, "--input-dir", person_file.parent)
     else:
-        click_args.append("--input-db-url")
-        click_args.append(connection_string)
-
-    click_args.append("--rules-file")
-    click_args.append(f"{rules_json_file}")
-
-    click_args.append("--person-file")
-    click_args.append(f"{person_file}")
-
-    click_args.append("--output-dir")
-    click_args.append(f"{output}")
-
-    click_args.append("--omop-ddl-file")
-    click_args.append(f"{package_root / 'config/OMOPCDM_postgresql_5.3_ddl.sql'}")
-
-    click_args.append("--omop-config-file")
-    click_args.append(f"{package_root / 'config/config.json'}")
+        pass_as_arg(pass__input__as_arg, "--input-db-url", connection_string)
+    pass_as_arg(pass__rules_file__as_arg, "--rules-file", rules_json_file)
+    pass_as_arg(pass__person_file__as_arg, "--person-file", person_file)
+    pass_as_arg(pass__output_dir__as_arg, "--output-dir", output)
+    pass_as_arg(
+        pass__omop_ddl_file__as_arg,
+        "--omop-ddl-file",
+        f"{package_root / 'config/OMOPCDM_postgresql_5.3_ddl.sql'}",
+    )
+    pass_as_arg(
+        pass__omop_config_file__as_arg,
+        "--omop-config-file",
+        f"{package_root / 'config/config.json'}",
+    )
 
     ##
     # run click
     runner = CliRunner()
-    result = runner.invoke(
-        mapstream,
-        click_args,
-    )
+    result = runner.invoke(mapstream, click_args, env=click_env)
 
     if failure:
         if 0 == result.exit_code:

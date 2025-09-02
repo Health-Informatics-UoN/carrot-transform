@@ -33,12 +33,14 @@ logger = logger_setup()
 @click.command()
 @click.option(
     "--rules-file",
+    envvar="RULES_FILE",
     type=PathArg,
     required=True,
     help="json file containing mapping rules",
 )
 @click.option(
     "--output-dir",
+    envvar="OUTPUT_DIR",
     type=PathArg,
     default=None,
     required=True,
@@ -52,18 +54,21 @@ logger = logger_setup()
 )
 @click.option(
     "--person-file",
+    envvar="PERSON_FILE",
     type=PathArg,
     required=True,
     help="File containing person_ids in the first column",
 )
 @click.option(
     "--omop-ddl-file",
+    envvar="OMOP_DDL_FILE",
     type=PathArg,
     required=False,
     help="File containing OHDSI ddl statements for OMOP tables",
 )
 @click.option(
     "--omop-config-file",
+    envvar="OMOP_CONFIG_FILE",
     type=PathArg,
     required=False,
     help="File containing additional / override json config for omop outputs",
@@ -99,9 +104,16 @@ logger = logger_setup()
     default=0,
     help="Lower outcount limit for logfile output",
 )
-@click.option("--input-dir", type=PathArg, required=False, help="Input directories")
+@click.option(
+    "--input-dir",
+    envvar="INPUT_DIR",
+    type=PathArg,
+    required=False,
+    help="Input directories",
+)
 @click.option(
     "--input-db-url",
+    envvar="INPUT_DB_URL",
     type=AlchemyConnectionArg,
     required=False,
     help="connection string to read data from a database",
