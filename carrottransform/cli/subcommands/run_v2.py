@@ -26,13 +26,13 @@ def common_options(func):
     """Decorator for common options used by both folder and db modes"""
     func = click.option(
         "--rules-file",
-        type=PathArgs,
+        type=PathArg,
         required=True,
         help="v2 json file containing mapping rules",
     )(func)
     func = click.option(
         "--output-dir",
-        type=PathArgs,
+        type=PathArg,
         required=True,
         help="define the output directory for OMOP-format tsv files",
     )(func)
@@ -44,13 +44,13 @@ def common_options(func):
     )(func)
     func = click.option(
         "--omop-ddl-file",
-        type=PathArgs,
+        type=PathArg,
         required=False,
         help="File containing OHDSI ddl statements for OMOP tables",
     )(func)
     func = click.option(
         "--omop-config-file",
-        type=PathArgs,
+        type=PathArg,
         required=False,
         help="File containing additional / override json config for omop outputs",
     )(func)
@@ -150,13 +150,13 @@ def process_common_logic(
 @click.command()
 @click.option(
     "--input-dir",
-    type=PathArgs,
+    type=PathArg,
     required=True,
     help="Input directory",
 )
 @click.option(
     "--person-file",
-    type=PathArgs,
+    type=PathArg,
     required=True,
     help="File containing person_ids in the first column",
 )
