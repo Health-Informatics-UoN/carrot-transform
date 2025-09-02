@@ -1,12 +1,11 @@
-import pytest
-import logging
-
+import re
 from pathlib import Path
 
-import clicktools
 import csvrow
-import re
+import pytest
+
 import carrottransform.cli.subcommands.run as run
+import tests.click_tools as click_tools
 
 
 @pytest.mark.unit
@@ -39,19 +38,33 @@ def test_normalise_to8601(expected, source):
 
 
 @pytest.mark.unit
-def test_dateimes_in_persons(tmp_path: Path, caplog):
-    # capture all and run the transformation
-    caplog.set_level(logging.DEBUG)
-    clicktools.click_example(tmp_path, limit=10)
+@pytest.mark.parametrize(
+    "engine",
+    [
+        pytest.param(False, id="date-time with CSV source"),
+        pytest.param(True, id="date-time with SQL source"),
+    ],
+)
+def test_dateimes_in_persons(tmp_path: Path, engine):
+    (result, output, person_id_source2target, person_id_target2source) = (
+        click_tools.click_test(
+            tmp_path=tmp_path,
+            person_file="/examples/test/inputs/Demographics.csv",
+            rules_file="/examples/test/rules/rules_14June2021.json",
+            engine=engine,
+        )
+    )
 
     # get the target2source mapping
-    [_, t2s] = csvrow.back_get(tmp_path / "out/person_ids.tsv")
-
-    s_people = csvrow.csv2dict(tmp_path / "Demographics.csv", lambda p: p.PersonID)
+    [_, t2s] = csvrow.back_get(output / "person_ids.tsv")
+    s_people = csvrow.csv2dict(
+        click_tools.package_root / "examples/test/inputs/Demographics.csv",
+        lambda p: p.PersonID,
+    )
 
     ##
     # check the person.tsv created by the above steps
-    people = list(csvrow.csv_rows(tmp_path / "out/person.tsv", "\t"))
+    people = list(csvrow.csv_rows(output / "person.tsv", "\t"))
     assert 0 != len(people)
     for person in people:
         ##
@@ -80,14 +93,26 @@ def test_dateimes_in_persons(tmp_path: Path, caplog):
 
 
 @pytest.mark.unit
-def test_dateimes_in_observation(tmp_path: Path, caplog):
-    # capture all and run the transformation
-    caplog.set_level(logging.DEBUG)
-    clicktools.click_example(tmp_path, limit=10)
+@pytest.mark.parametrize(
+    "engine",
+    [
+        pytest.param(False, id="date-time with CSV source"),
+        pytest.param(True, id="date-time with SQL source"),
+    ],
+)
+def test_dateimes_in_observation(tmp_path: Path, engine: bool):
+    (result, output, person_id_source2target, person_id_target2source) = (
+        click_tools.click_test(
+            tmp_path=tmp_path,
+            person_file="/examples/test/inputs/Demographics.csv",
+            rules_file="/examples/test/rules/rules_14June2021.json",
+            engine=engine,
+        )
+    )
 
     ##
     # check the observation.tsv created by the above steps
-    observations = list(csvrow.csv_rows(tmp_path / "out/observation.tsv", "\t"))
+    observations = list(csvrow.csv_rows(output / "observation.tsv", "\t"))
     assert 0 != len(observations)
     for observation in observations:
         assert observation.observation_date == observation.observation_datetime[:10], (
@@ -106,14 +131,26 @@ def test_dateimes_in_observation(tmp_path: Path, caplog):
 
 
 @pytest.mark.unit
-def test_dateimes_in_measurement(tmp_path: Path, caplog):
-    # capture all and run the transformation
-    caplog.set_level(logging.DEBUG)
-    clicktools.click_example(tmp_path, limit=10)
+@pytest.mark.parametrize(
+    "engine",
+    [
+        pytest.param(False, id="date-time with CSV source"),
+        pytest.param(True, id="date-time with SQL source"),
+    ],
+)
+def test_dateimes_in_measurement(tmp_path: Path, engine: bool):
+    (result, output, person_id_source2target, person_id_target2source) = (
+        click_tools.click_test(
+            tmp_path=tmp_path,
+            person_file="/examples/test/inputs/Demographics.csv",
+            rules_file="/examples/test/rules/rules_14June2021.json",
+            engine=engine,
+        )
+    )
 
     #
     # check the measurement.tsv created by the above steps
-    measurements = list(csvrow.csv_rows(tmp_path / "out/measurement.tsv", "\t"))
+    measurements = list(csvrow.csv_rows(output / "measurement.tsv", "\t"))
     assert 0 != len(measurements)
     for measurement in measurements:
         assert measurement.measurement_date == measurement.measurement_datetime[:10], (

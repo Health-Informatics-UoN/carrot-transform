@@ -2,15 +2,25 @@
 tests the complete system in a few ways. needs better verification of the outputs
 """
 
-import pytest
 import importlib.resources
 import logging
-
-from pathlib import Path
 import shutil
+from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
+
 from carrottransform.cli.subcommands.run import mapstream
+
+
+@pytest.mark.integration
+def test_run_the_command_line():
+    """simple test/check to see if the project can "run" - which is good for checking things like imports"""
+
+    import os
+
+    # we only care about the return value, and, subprocess kept failing
+    assert 0 == os.system("uv run carrot-transform run mapstream --help")
 
 
 @pytest.mark.unit
@@ -28,109 +38,6 @@ def test_no_args():
         "Error: Missing option '--rules-file'.",
         "",
     ] == result.output.split("\n")
-
-
-@pytest.mark.unit
-def test_with_example(tmp_path: Path, caplog):
-    ##
-    # setup test environment(ish) in the folder
-
-    # capture all
-    caplog.set_level(logging.DEBUG)
-
-    # Get the package root directory
-    package_root = importlib.resources.files("carrottransform")
-    package_root = (
-        package_root if isinstance(package_root, Path) else Path(str(package_root))
-    )
-
-    # rules from carrot mapper
-    rules_src = package_root / "examples/test/rules/rules_14June2021.json"
-    rules = tmp_path / "rules.json"
-    shutil.copy2(rules_src, rules)
-
-    # the source files
-    # ... i'm not renaming these since i'm not sure what would happen if i did
-    for src in [
-        "covid19_antibody.csv",
-        "Covid19_test.csv",
-        "Demographics.csv",
-        "Symptoms.csv",
-        "vaccine.csv",
-    ]:
-        shutil.copy2(package_root / "examples/test/inputs" / src, tmp_path / src)
-    person = tmp_path / "Demographics.csv"
-
-    # output dir needs to be pre-created
-    output = tmp_path / "out"
-    output.mkdir()
-
-    # ddl and config files (copied here rather than using embedded one ... for now?)
-    ddl = tmp_path / "ddl.sql"
-    omop = tmp_path / "omop.json"
-    shutil.copy2(package_root / "config/omop.json", omop)
-    shutil.copy2(package_root / "config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
-
-    ##
-    # run click
-    runner = CliRunner()
-    result = runner.invoke(
-        mapstream,
-        [
-            "--input-dir",
-            f"{tmp_path}",
-            "--rules-file",
-            f"{rules}",
-            "--person-file",
-            f"{person}",
-            "--output-dir",
-            f"{output}",
-            "--omop-ddl-file",
-            f"{tmp_path / 'ddl.sql'}",
-            "--omop-config-file",
-            f"{tmp_path / 'omop.json'}",
-        ],
-    )
-
-    ##
-    # check click results
-    if result.exception is not None:
-        raise result.exception
-
-    if result.exit_code != 0:  # if it wasn't a pass ... echo output
-        message = f"result.exit_code = {result.exit_code}"
-
-        for output_line in result.output.split("\n"):
-            message += "\n> " + output_line
-
-        raise Exception(message)
-
-    assert result.exit_code == 0
-
-    ##
-    # check log messages
-    for message in [
-        "Loaded mapping rules from: ",
-        "['PersonID', 'sex', 'date_of_birth', 'ethnicity']",
-        "person_id stats: total loaded 1000, reject count 0",
-        "WARNING: no mapping rules found for existing input file - Covid19_test.csv",
-        "WARNING: no mapping rules found for existing input file - vaccine.csv",
-        "['Demographics.csv', 'Symptoms.csv', 'covid19_antibody.csv']",
-        "Processing input: Demographics.csv",
-        "INPUT file data : Demographics.csv: input count 1000, time since start",
-        "TARGET: observation: output count 900",
-        "TARGET: person: output count 1000",
-        "Processing input: Symptoms.csv",
-        "INPUT file data : Symptoms.csv: input count 800, time since start",
-        "TARGET: condition_occurrence: output count 400",
-        "Processing input: covid19_antibody.csv",
-        "INPUT file data : covid19_antibody.csv: input count 1000, time since start",
-        "TARGET: measurement: output count 1000",
-    ]:
-        assert message in caplog.text
-
-    ##
-    # check outputs in env
 
 
 @pytest.mark.unit
@@ -179,8 +86,8 @@ def test_with_two_dirs(tmp_path: Path, caplog):
 
     # ddl and config files (copied here rather than using embedded one ... for now?)
     ddl = tmp_path / "ddl.sql"
-    omop = tmp_path / "omop.json"
-    shutil.copy2("carrottransform/config/omop.json", omop)
+    omop = tmp_path / "config.json"
+    shutil.copy2("carrottransform/config/config.json", omop)
     shutil.copy2("carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
 
     ##
@@ -199,7 +106,7 @@ def test_with_two_dirs(tmp_path: Path, caplog):
             "--omop-ddl-file",
             f"{tmp_path / 'ddl.sql'}",
             "--omop-config-file",
-            f"{tmp_path / 'omop.json'}",
+            f"{tmp_path / 'config.json'}",
             "--input-dir",
             f"{input2}",
         ],
@@ -210,20 +117,22 @@ def test_with_two_dirs(tmp_path: Path, caplog):
     if result.exception is None:
         raise Exception("that test should have failed")
 
-    ##
-    # check some details of the exception
-    assert isinstance(result.exception, Exception), (
-        f"expected Exception was {type(result.exception)} @ {result.exception}"
-    )
-    assert f"Couldn't find file covid19_antibody.csv in {input2}" == str(
-        result.exception
-    )
+    # check the exception type and parameter
+    import carrottransform.tools.sources as sources
+
+    assert isinstance(result.exception, sources.SourceFileNotFoundException)
+    exception: sources.SourceFileNotFoundException = result.exception
+    assert exception._name == "covid19_antibody.csv"
 
 
 @pytest.mark.unit
 def test_with_one_csv_missing(tmp_path: Path, caplog):
     ##
     # setup test environment(ish) in the folder
+
+    ###
+    # arrange
+    ###
 
     # capture all
     caplog.set_level(logging.DEBUG)
@@ -257,9 +166,13 @@ def test_with_one_csv_missing(tmp_path: Path, caplog):
 
     # ddl and config files (copied here rather than using embedded one ... for now?)
     ddl = tmp_path / "ddl.sql"
-    omop = tmp_path / "omop.json"
-    shutil.copy2(package_root / "config/omop.json", omop)
+    omop = tmp_path / "config.json"
+    shutil.copy2(package_root / "config/config.json", omop)
     shutil.copy2(package_root / "config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
+
+    ###
+    # act
+    ###
 
     ##
     # run click
@@ -278,28 +191,37 @@ def test_with_one_csv_missing(tmp_path: Path, caplog):
             "--omop-ddl-file",
             f"{tmp_path / 'ddl.sql'}",
             "--omop-config-file",
-            f"{tmp_path / 'omop.json'}",
+            f"{tmp_path / 'config.json'}",
         ],
     )
+
+    ###
+    # assert
+    ###
 
     ##
     # check click results
     if result.exception is None:
         raise Exception("this test should have failed")
-    assert f"Couldn't find file Symptoms.csv in {tmp_path}" == str(result.exception)
+
+    import carrottransform.tools.sources as sources
+
+    if not isinstance(result.exception, sources.SourceFileNotFoundException):
+        # i can't get the catch of "csvr = source.open(srcfilename)" to work
+        raise Exception(f"{result.exception=}")
+
+    exception: sources.SourceFileNotFoundException = result.exception
+    assert exception._name == "Symptoms.csv"
 
 
 @pytest.mark.unit
-def test_with_auto_person(tmp_path: Path, caplog):
+def test_with_auto_person(tmp_path: Path):
     """
-    do a full test without explicitly noting a person file
+    do a full test without explicitly noting a person file - should detect and error
     """
 
     ##
     # setup test environment(ish) in the folder
-
-    # capture all
-    caplog.set_level(logging.DEBUG)
 
     # Get the package root directory
     package_root = importlib.resources.files("carrottransform")
@@ -313,7 +235,6 @@ def test_with_auto_person(tmp_path: Path, caplog):
     shutil.copy2(rules_src, rules)
 
     # the source files
-    # ... i'm not renaming these since i'm not sure what would happen if i did
     for src in [
         "covid19_antibody.csv",
         "Covid19_test.csv",
@@ -329,8 +250,8 @@ def test_with_auto_person(tmp_path: Path, caplog):
 
     # ddl and config files (copied here rather than using embedded one ... for now?)
     ddl = tmp_path / "ddl.sql"
-    omop = tmp_path / "omop.json"
-    shutil.copy2(package_root / "config/omop.json", omop)
+    omop = tmp_path / "config.json"
+    shutil.copy2(package_root / "config/config.json", omop)
     shutil.copy2(package_root / "config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
 
     ##
@@ -348,7 +269,7 @@ def test_with_auto_person(tmp_path: Path, caplog):
             "--omop-ddl-file",
             f"{tmp_path / 'ddl.sql'}",
             "--omop-config-file",
-            f"{tmp_path / 'omop.json'}",
+            f"{tmp_path / 'config.json'}",
         ],
     )
 

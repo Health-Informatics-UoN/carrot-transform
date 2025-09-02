@@ -1,10 +1,12 @@
-import pytest
-import pandas as pd
-from pathlib import Path
 import importlib.resources
-import re
 import json
+import re
 import tempfile
+from pathlib import Path
+
+import pandas as pd
+import pytest
+
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
 
@@ -148,7 +150,7 @@ def omopcdm():
     """Fixture providing OmopCDM instance using the latest available OMOP version."""
     ddl_path = get_latest_omop_ddl()
     with importlib.resources.as_file(
-        importlib.resources.files("carrottransform.config") / "omop.json"
+        importlib.resources.files("carrottransform.config") / "config.json"
     ) as config_path:
         return OmopCDM(ddl_path, config_path)
 

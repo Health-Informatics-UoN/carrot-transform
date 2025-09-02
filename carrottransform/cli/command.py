@@ -1,9 +1,10 @@
 # Package entry point - sets up the "run" subcommand
-from .subcommands.run import run
-from .subcommands.run_v2 import run_v2
+import click
 
 import carrottransform as c
-import click
+
+from .subcommands.run import run
+from .subcommands.run_v2 import run_v2
 
 
 @click.group(invoke_without_command=True)

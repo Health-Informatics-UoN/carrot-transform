@@ -2,6 +2,24 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Debug Current File (uv Pytest)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}"],
+      "justMyCode": false
+    },
+    {
+      "name": "Debug Pytest",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [],
+      "justMyCode": false
+    },
+
+
+    {
       "name": "V1 -Debug Carrot Transform Rules",
       "type": "debugpy",
       "request": "launch",
@@ -20,7 +38,7 @@
         "--omop-ddl-file",
         "carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql",
         "--omop-config-file",
-        "carrottransform/config/omop.json"
+        "carrottransform/config/config.json"
       ],
       "console": "integratedTerminal",
       "justMyCode": false
@@ -44,7 +62,7 @@
         "--omop-ddl-file",
         "carrottransform/config/OMOPCDM_postgresql_5.4_ddl.sql",
         "--omop-config-file",
-        "carrottransform/config/omop.json"
+        "carrottransform/config/config.json"
       ],
       "console": "integratedTerminal",
       "justMyCode": false

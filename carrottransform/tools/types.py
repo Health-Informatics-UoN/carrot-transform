@@ -1,10 +1,11 @@
-from typing import Dict, List, Optional, TextIO
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Dict, List, Optional, TextIO
+
 import carrottransform.tools as tools
-from carrottransform.tools.omopcdm import OmopCDM
 from carrottransform.tools.mapping_types import V2TableMapping
 from carrottransform.tools.mappingrules import MappingRules
+from carrottransform.tools.omopcdm import OmopCDM
 from sqlalchemy.engine import Connection
 
 

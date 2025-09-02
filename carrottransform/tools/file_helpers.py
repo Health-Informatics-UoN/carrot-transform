@@ -1,10 +1,10 @@
-import csv
+import importlib.resources as resources
 import json
 import logging
 import sys
-import importlib.resources as resources
-from typing import IO, Iterator, List, Optional, Dict, TextIO, Tuple, cast
 from pathlib import Path
+from typing import Dict, List, Optional, TextIO, Tuple, cast
+
 from carrottransform.tools.omopcdm import OmopCDM
 
 logger = logging.getLogger(__name__)
@@ -87,18 +87,6 @@ def check_files_in_rules_exist(
             logger.warning(msg)
 
 
-def open_file(file_path: Path) -> tuple[IO[str], Iterator[list[str]]] | None:
-    """opens a file and does something related to CSVs"""
-    try:
-        fh = file_path.open(mode="r", encoding="utf-8-sig")
-        csvr = csv.reader(fh)
-        return fh, csvr
-    except IOError as e:
-        logger.exception("Unable to open: {0}".format(file_path))
-        logger.exception("I/O error({0}): {1}".format(e.errno, e.strerror))
-        return None
-
-
 def set_omop_filenames(
     omop_ddl_file: Optional[Path],
     omop_config_file: Optional[Path],
@@ -130,7 +118,9 @@ def set_omop_filenames(
         logger.info(f"Using default OMOP files for version {omop_version}")
 
         # Set default config file - convert Traversable to Path
-        config_traversable = resources.files("carrottransform") / "config" / "omop.json"
+        config_traversable = (
+            resources.files("carrottransform") / "config" / "config.json"
+        )
         omop_config_file = Path(str(config_traversable))
 
         # Set version-specific DDL file - convert Traversable to Path

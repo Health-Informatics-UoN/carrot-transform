@@ -1,10 +1,15 @@
+from pathlib import Path
+
 import pytest
 
-from pathlib import Path
 from carrottransform.tools.args import (
-    person_rules_check,
-    OnlyOnePersonInputAllowed,
     NoPersonMappings,
+    ObjectQueryError,
+    ObjectStructureError,
+    OnlyOnePersonInputAllowed,
+    WrongInputException,
+    object_query,
+    person_rules_check,
 )
 
 
@@ -13,7 +18,7 @@ from carrottransform.tools.args import (
     [
         pytest.param(
             OnlyOnePersonInputAllowed(
-                person_file=Path("tests/test_data/args/empty-person-file.csv"),
+                person_file=("empty-person-file.csv"),
                 rules_file=Path("tests/test_data/args/reads-from-other-tables.json"),
                 inputs={
                     "demos_m.csv",
@@ -24,16 +29,14 @@ from carrottransform.tools.args import (
         ),
         pytest.param(
             NoPersonMappings(
-                person_file=Path("tests/test_data/args/empty-person-file.csv"),
+                person_file=("empty-person-file.csv"),
                 rules_file=Path("tests/test_data/args/no-person-rules.json"),
             ),
             id="test when no person mappings are defined",
         ),
         pytest.param(
             OnlyOnePersonInputAllowed(
-                person_file=Path(
-                    "tests/test_data/mireda_key_error/demographics_mother_gold.csv"
-                ),
+                person_file="demographics_mother_gold.csv",
                 rules_file=Path("tests/test_data/mireda_key_error/original_rules.json"),
                 inputs={
                     "infant_data_gold.csv",
@@ -54,7 +57,7 @@ def test_person_rules_throws(exception):
     # act
     try:
         person_rules_check(
-            person_file=exception._person_file,
+            person_file_name=exception._person_file,
             rules_file=exception._rules_file,
         )
     except OnlyOnePersonInputAllowed as e:
@@ -79,3 +82,67 @@ def test_person_rules_throws(exception):
 
         if isinstance(caught, OnlyOnePersonInputAllowed):
             assert exception._inputs == caught._inputs
+
+
+def test_person_rules_throws_WrongInputException():
+    """this is a test to trigger the WrongInputException"""
+    person_file = "demographics_mother_gold.csv"
+    rules_file = Path("tests/test_data/wrong-person-table-rules.json")
+    source_table = "src_PERSON.csv"
+
+    # arrange
+    caught: None | WrongInputException = None
+
+    # act
+    try:
+        person_rules_check(
+            person_file_name=person_file,
+            rules_file=rules_file,
+        )
+    except WrongInputException as e:
+        assert caught is None
+        caught = e
+
+    # assert
+    assert caught is not None
+
+    assert caught._rules_file == rules_file
+    assert caught._person_file == person_file
+    assert caught._source_table == source_table
+
+
+def test_object_query_error():
+    """tests the object_query() throws an error when it starts with /"""
+
+    data = {"foo": 9, "bar": {"value": 12}}
+
+    error: None | ObjectQueryError = None
+    try:
+        object_query(data, "/bar/value")
+        raise Exception("that should have thrown an exception")
+    except ObjectQueryError as e:
+        error = e
+
+    assert error is not None
+
+    assert (
+        str(error)
+        == "Invalid path format: '/bar/value' (must not start with '/' and not end with '/')"
+    )
+
+
+def test_object_structure_error():
+    """tests the object_query() throws an error when trying to read a string as a dict"""
+
+    data = {"foo": 9, "bar": {"value": 12}}
+
+    error: None | ObjectStructureError = None
+    try:
+        object_query(data, "foo/value")
+        raise Exception("that should have thrown an exception")
+    except ObjectStructureError as e:
+        error = e
+
+    assert error is not None
+
+    assert str(error) == "Cannot descend into non-dict value at key 'foo'"

@@ -1,14 +1,15 @@
 import json
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import carrottransform.tools as tools
-from typing import Dict, Any, List, Optional
+from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mapping_types import (
-    PersonIdMapping,
-    DateMapping,
     ConceptMapping,
+    DateMapping,
+    PersonIdMapping,
     V2TableMapping,
 )
-from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.omopcdm import OmopCDM
 
 logger = logger_setup()
@@ -353,6 +354,7 @@ class MappingRules:
         Process rules for an infile, outfile combination
         """
         data = {}
+
         ### used for mapping simple fields that are always mapped (e.g., dob)
         plain_key = ""
         term_value_key = ""  ### used for mapping terms (e.g., gender, race, ethnicity)

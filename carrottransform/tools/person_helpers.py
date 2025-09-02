@@ -1,9 +1,11 @@
 import csv
 import sys
 from pathlib import Path
+from typing import Iterable
+
 from carrottransform.tools.logger import logger_setup
-from carrottransform.tools.validation import valid_value, valid_date_value
 from carrottransform.tools.mappingrules import MappingRules
+from carrottransform.tools.validation import valid_date_value, valid_value
 from typing import Optional
 from sqlalchemy.engine import Connection
 from sqlalchemy.schema import Table, MetaData
@@ -34,6 +36,35 @@ def load_person_ids(
     db_connection: Optional[Connection] = None,
     schema: Optional[str] = None,
 ):
+    """`old` loading method that accepts a Path object pointing to the file along witrh a delimeter.
+
+    this is used to preserve the old API for the current v2 testing
+    """
+    return read_person_ids(
+        saved_person_id_file=saved_person_id_file,
+        csvr=csv.reader(
+            person_file.open(mode="r", encoding="utf-8-sig"), delimiter=delim
+        ),
+        mappingrules=mappingrules,
+        use_input_person_ids=use_input_person_ids,
+    )
+
+
+def read_person_ids(
+    saved_person_id_file: Path,
+    csvr: Iterable[list[str]],
+    mappingrules: MappingRules,
+    use_input_person_ids: bool,
+):
+    """revised loading method that accepts an itterator eitehr for a file or for a database connection"""
+
+    if not isinstance(use_input_person_ids, bool):
+        raise Exception(
+            f"use_input_person_ids needs to be bool but it was {type(use_input_person_ids)=}"
+        )
+    if not isinstance(csvr, Iterable):
+        raise Exception(f"csvr needs to be iterable but it was {type(csvr)=}")
+
     person_ids, person_number = _get_person_lookup(saved_person_id_file)
 
     if db_connection and person_table_name:
@@ -80,7 +111,7 @@ def load_person_ids(
         if (
             persondata[person_col] not in person_ids
         ):  # if not already in person_ids dict, add it
-            if use_input_person_ids == "N":
+            if not use_input_person_ids:
                 person_ids[persondata[person_col]] = str(
                     person_number
                 )  # create a new integer person_id
