@@ -42,7 +42,7 @@ def normalise_to8601(item: str) -> str | None:
         )
 
     if not match:
-        logger.warning(f"{item} is not a valid/supported date format")
+        logger.warning(f"{item} couldn't be normalised to ISO 8601 date format")
         return None
     data = match.groupdict()
     year, month, day = data["year"], data["month"], data["day"]
