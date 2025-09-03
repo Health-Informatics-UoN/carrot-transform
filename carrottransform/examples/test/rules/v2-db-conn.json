@@ -1,0 +1,115 @@
+{
+  "metadata": {
+    "date_created": "2025-09-03T10:14:36.150838+00:00",
+    "dataset": "test V2 connection"
+  },
+  "cdm": {
+    "condition_occurrence": {
+      "symptoms": {
+        "person_id_mapping": {
+          "source_field": "personid",
+          "dest_field": "person_id"
+        },
+        "date_mapping": {
+          "source_field": "visit_date",
+          "dest_field": ["condition_end_datetime", "condition_start_datetime"]
+        },
+        "concept_mappings": {
+          "symptom1": {
+            "Y": {
+              "condition_concept_id": [254761],
+              "condition_source_concept_id": [254761]
+            },
+            "original_value": ["condition_source_value"]
+          }
+        }
+      }
+    },
+    "measurement": {
+      "covid19_antibody": {
+        "person_id_mapping": {
+          "source_field": "personid",
+          "dest_field": "person_id"
+        },
+        "date_mapping": {
+          "source_field": "date",
+          "dest_field": ["measurement_datetime"]
+        },
+        "concept_mappings": {
+          "igg": {
+            "*": {
+              "measurement_source_concept_id": [37398191],
+              "measurement_concept_id": [37398191]
+            },
+            "original_value": ["measurement_source_value", "value_as_number"]
+          }
+        }
+      }
+    },
+    "observation": {
+      "demographics": {
+        "person_id_mapping": {
+          "source_field": "personid",
+          "dest_field": "person_id"
+        },
+        "date_mapping": {
+          "source_field": "date_of_birth",
+          "dest_field": ["observation_datetime"]
+        },
+        "concept_mappings": {
+          "ethnicity": {
+            "Asian": {
+              "observation_source_concept_id": [35825508],
+              "observation_concept_id": [35825508]
+            },
+            "White and Asian": {
+              "observation_source_concept_id": [35825531, 35827395],
+              "observation_concept_id": [35825531, 35827395]
+            },
+            "Indian": {
+              "observation_source_concept_id": [35826241],
+              "observation_concept_id": [35826241]
+            },
+            "original_value": ["value_as_string", "observation_source_value"]
+          }
+        }
+      }
+    },
+    "person": {
+      "demographics": {
+        "person_id_mapping": {
+          "source_field": "personid",
+          "dest_field": "person_id"
+        },
+        "date_mapping": {
+          "source_field": "date_of_birth",
+          "dest_field": ["birth_datetime"]
+        },
+        "concept_mappings": {
+          "ethnicity": {
+            "White": {
+              "race_concept_id": [8527],
+              "race_source_concept_id": [8527]
+            },
+            "Black": {
+              "race_source_concept_id": [38003600],
+              "race_concept_id": [38003600]
+            },
+            "original_value": ["race_source_value"]
+          },
+          "sex": {
+            "M": {
+              "gender_source_concept_id": [8507],
+              "gender_concept_id": [8507]
+            },
+            "F": {
+              "gender_concept_id": [8532],
+              "gender_source_concept_id": [8532]
+            },
+            "original_value": ["gender_source_value"]
+          }
+        }
+      }
+    }
+  }
+}
