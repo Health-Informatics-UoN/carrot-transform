@@ -21,7 +21,7 @@ from carrottransform.tools.types import (
     ProcessingResult,
     RecordContext,
 )
-from carrottransform.tools.connection_helpers import EngineConnection
+from carrottransform.tools.db import EngineConnection
 from sqlalchemy.sql.expression import select
 from sqlalchemy.engine import Connection
 from sqlalchemy.schema import Table, MetaData
