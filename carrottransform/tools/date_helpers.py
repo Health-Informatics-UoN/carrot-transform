@@ -27,7 +27,7 @@ def get_datetime_value(item: str) -> datetime.datetime | None:
     return None
 
 
-def normalise_to8601(item: str) -> str:
+def normalise_to8601(item: str) -> str | None:
     """parses, normalises, and formats a date value using regexes
 
     could use just one regex but that seems bad.
@@ -43,7 +43,7 @@ def normalise_to8601(item: str) -> str:
 
     if not match:
         logger.warning(f"{item} is not a valid/supported date format")
-        return ""
+        return None
     data = match.groupdict()
     year, month, day = data["year"], data["month"], data["day"]
     value = str(int(year)).zfill(4)
