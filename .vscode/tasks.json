@@ -37,7 +37,7 @@
     {
       "label": "Coverage Report",
       "type": "shell",
-      "command": "uv run coverage run --omit=tests/* -m pytest && uv run coverage run --omit=tests/* -a -m pytest -m docker && uv run coverage html && uv run coverage erase",
+      "command": "uv run coverage run --omit=tests/* -m pytest && uv run coverage html && uv run coverage erase",
       "group": "build",
       "presentation": {
         "reveal": "always",

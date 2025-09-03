@@ -41,6 +41,117 @@ def test_no_args():
 
 
 @pytest.mark.unit
+def test_no_rules(caplog):
+
+    ###
+    ## arrange
+
+    caplog.set_level(logging.ERROR)
+    runner = CliRunner()
+    args = [
+        "--rules-file",
+        "a-file-that-does-not-exist.json",
+        "--person-file",
+        "whatnot.csv",
+        "--output-dir",
+        "whate4ver/",
+    ]
+
+    ###
+    ## act
+    result = runner.invoke(mapstream, args)
+
+    ###
+    ## assert
+    assert 3 == result.exit_code
+
+    assert [
+        "rules file was set to str(rules_file)='a-file-that-does-not-exist.json' and is missing"
+    ] == (
+        # flatten the logged messages to a string and just compare it
+        list(map(lambda r: str(r.message), caplog.records))
+    )
+
+
+@pytest.mark.unit
+def test_non_exist_person_file(tmp_path: Path, caplog):
+
+    ###
+    ## arrange
+
+    rules = tmp_path / "rules.json"
+    open(rules, "w").write("this won't be used")
+
+    person = tmp_path / "person.csv"
+
+    caplog.set_level(logging.ERROR)
+    runner = CliRunner()
+    args = [
+        "--rules-file",
+        str(rules),
+        "--person-file",
+        str(person),
+        "--output-dir",
+        "whate4ver/",
+    ]
+
+    ###
+    ## act
+    result = runner.invoke(mapstream, args)
+
+    ###
+    ## assert
+    assert 4 == result.exit_code
+
+    for l in list(map(lambda r: str(r.message), caplog.records)):
+        print(">>" + l + "<")
+
+    assert [f"the supplied person file does not exist {str(person)}"] == (
+        # flatten the logged messages to a string and just compare it
+        list(map(lambda r: str(r.message), caplog.records))
+    )
+
+
+@pytest.mark.unit
+def test_person_file_not_in_dir(tmp_path: Path, caplog):
+
+    ###
+    ## arrange
+
+    rules = tmp_path / "rules.json"
+    open(rules, "w").write("this won't be used")
+
+    person = tmp_path / "person.csv"
+    open(person, "w").write("this won't be used")
+
+    caplog.set_level(logging.ERROR)
+    runner = CliRunner()
+    args = [
+        "--output-dir",
+        "whate4ver/",
+        "--rules-file",
+        str(rules),
+        "--person-file",
+        str(person),
+        "--input-dir",
+        str(tmp_path / "inputs"),
+    ]
+
+    ###
+    ## act
+    result = runner.invoke(mapstream, args)
+
+    ###
+    ## assert
+    assert 5 == result.exit_code
+
+    assert ["the supplied person file must be in the input_dir"] == (
+        # flatten the logged messages to a string and just compare it
+        list(map(lambda r: str(r.message), caplog.records))
+    )
+
+
+@pytest.mark.unit
 def test_with_two_dirs(tmp_path: Path, caplog):
     ##
     # setup test environment(ish) in the folder

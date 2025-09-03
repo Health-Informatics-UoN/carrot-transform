@@ -73,9 +73,9 @@ def test_person_rules_throws(exception):
     else:
         assert caught
 
-        assert isinstance(caught, type(exception)), (
-            f"{type(caught)=} != {type(exception)=}"
-        )
+        assert isinstance(
+            caught, type(exception)
+        ), f"{type(caught)=} != {type(exception)=}"
 
         assert exception._person_file == caught._person_file
         assert exception._rules_file == caught._rules_file
@@ -111,6 +111,7 @@ def test_person_rules_throws_WrongInputException():
     assert caught._source_table == source_table
 
 
+@pytest.mark.unit
 def test_object_query_error():
     """tests the object_query() throws an error when it starts with /"""
 
@@ -131,6 +132,7 @@ def test_object_query_error():
     )
 
 
+@pytest.mark.unit
 def test_object_structure_error():
     """tests the object_query() throws an error when trying to read a string as a dict"""
 
@@ -146,3 +148,51 @@ def test_object_structure_error():
     assert error is not None
 
     assert str(error) == "Cannot descend into non-dict value at key 'foo'"
+
+
+@pytest.mark.unit
+def test_blank_person_section(tmp_path: Path):
+    person = tmp_path / "preson.csv"
+    rules = tmp_path / "rules.json"
+
+    open(person, "w")
+    open(rules, "w").write(
+        """{
+        "cdm": {
+            "person": {}}}
+        """.strip()
+    )
+
+    caught: None | NoPersonMappings = None
+
+    try:
+        person_rules_check(person.name, rules)
+    except NoPersonMappings as e:
+        caught = e
+    assert caught._person_file == person.name
+    assert caught._rules_file == rules
+
+
+@pytest.mark.unit
+def test_blank_person_wrong_form(tmp_path: Path):
+    person = tmp_path / "preson.csv"
+    rules = tmp_path / "rules.json"
+
+    open(person, "w")
+    open(rules, "w").write(
+        """{
+        "cdm": {
+            "person": "let q = 6 -> fr()"
+            }
+        }
+        """.strip()
+    )
+
+    caught: None | RuntimeError = None
+
+    try:
+        person_rules_check(person.name, rules)
+    except RuntimeError as e:
+        caught = e
+
+    assert "the person section is not in the expected format" == str(caught)

@@ -315,9 +315,9 @@ class TestV2ProcessingOrchestrator:
         ]
         for filename in expected_files:
             output_file = temp_dirs["output_dir"] / filename
-            assert output_file.exists(), (
-                f"Expected output file {filename} was not created"
-            )
+            assert (
+                output_file.exists()
+            ), f"Expected output file {filename} was not created"
 
         # Verify person.tsv has actual content
         person_output = temp_dirs["output_dir"] / "person.tsv"
@@ -610,9 +610,9 @@ class TestOrchestratorIntegration:
                 ]
                 for filename in expected_files:
                     output_file = output_dir / filename
-                    assert output_file.exists(), (
-                        f"Expected output file {filename} was not created"
-                    )
+                    assert (
+                        output_file.exists()
+                    ), f"Expected output file {filename} was not created"
 
                 # Verify person.tsv has actual content
                 person_output = output_dir / "person.tsv"

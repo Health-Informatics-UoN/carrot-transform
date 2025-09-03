@@ -150,7 +150,7 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
 
     # check the rules file is real
     if not rules_file.is_file():
-        raise Exception(f"person file not found: {rules_file=}")
+        raise Exception(f"rules file not found: {rules_file=}")
 
     # load the rules file
     with open(rules_file) as file:
@@ -160,6 +160,7 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
 
     # to allow prettier error reporting - we collect all names that were used
     seen_inputs: set[str] = set()
+    found_a_rule = False
     try:
         person_rules = object_query(rules_json, "cdm/person")
         if not isinstance(person_rules, dict):
