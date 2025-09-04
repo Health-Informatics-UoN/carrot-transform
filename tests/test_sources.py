@@ -4,7 +4,7 @@ runs some tests on the source reader thing
 
 from pathlib import Path
 
-import click_tools
+import tests.click_tools as click_tools
 import pytest
 import sqlalchemy
 

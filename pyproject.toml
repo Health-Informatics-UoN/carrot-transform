@@ -19,7 +19,6 @@ carrot-transform = "carrottransform.cli.command:transform"
 [dependency-groups]
 test = [
     "pytest>=8.3.4,<9",
-    "pandas>=2.2.3,<3",
     "coverage>=7.10.3",
 ]
 dev = [

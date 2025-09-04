@@ -1,7 +1,12 @@
 import csv
 import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
+
+from sqlalchemy.engine import Connection
+from sqlalchemy.schema import MetaData, Table
+from sqlalchemy.sql.expression import select
 
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
@@ -44,7 +49,7 @@ def load_person_ids(
 
 def read_person_ids(
     saved_person_id_file: Path,
-    csvr: Iterable[list[str]],
+    csvr: Iterator[list[str]],
     mappingrules: MappingRules,
     use_input_person_ids: bool,
 ):

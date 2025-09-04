@@ -3,12 +3,13 @@ import logging
 import shutil
 from pathlib import Path
 
-import csvrow
+import tests.csvrow as csvrow
 import sqlalchemy
 from click.testing import CliRunner
 from sqlalchemy import Column, MetaData, Table, Text, insert
 
 import carrottransform.tools.sources as sources
+import tests.csvrow as csvrow
 from carrottransform.cli.subcommands.run import mapstream
 
 logger = logging.getLogger(__name__)
@@ -100,10 +101,12 @@ def click_test(
     # ... also change enough parameters we know we're not cheating and looking at the .csv files
     if engine:
         connection_string = f"sqlite:///{(tmp_path / 'testing.db').absolute()}"
-        engine: sqlalchemy.engine.Engine = sqlalchemy.create_engine(connection_string)
+        engine_connection: sqlalchemy.engine.Engine = sqlalchemy.create_engine(
+            connection_string
+        )
 
         for csv_file in person_file.parent.glob("*.csv"):
-            load_test_database_table(engine, person_file.parent / csv_file)
+            load_test_database_table(engine_connection, person_file.parent / csv_file)
 
         copied = tmp_path / "rules.json"
         shutil.copy(rules_json_file, copied)
