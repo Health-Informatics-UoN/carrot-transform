@@ -25,10 +25,8 @@ test = [
     "coverage>=7.10.3",
 ]
 dev = [
-    "black>=24.2.0,<25",
     "build>=1.2.2.post1",
     "ruff>=0.12.0",
-    "isort>=6.0.1",
 ]
 
 [tool.uv]

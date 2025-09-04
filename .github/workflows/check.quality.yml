@@ -10,6 +10,7 @@ on:
       - '**/*.py'
 
 jobs:
+
   ruff:
     name: Run Ruff
     runs-on: ubuntu-latest
@@ -19,14 +20,20 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
-      
-      - name: Run Ruff
+
+      - name: Run Ruff Checks
         uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1
+        with:
+          args: "check --select I ."
+      
+      - name: Run Ruff Format
+        uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1
+        with:
+          args: "format --check --diff"
+
   coverage:
-    name: set coverage comment
+    name: carrot-transform coverage
     runs-on: ubuntu-latest
-    needs:
-      - test
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -36,6 +43,7 @@ jobs:
 
       - name: Run tests
         # run the coverage check, but, don't worry about coverage of the tests themselves
+        # ... or the docker tests ...
         run: |
           uv run coverage run --omit=tests/* -m pytest --junitxml=pytest.xml
           uv run coverage xml
