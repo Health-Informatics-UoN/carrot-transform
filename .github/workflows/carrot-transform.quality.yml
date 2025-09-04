@@ -1,5 +1,4 @@
-name: Check Code Quality
-
+name: carrot-transform.quality
 permissions:
   contents: read
   pull-requests: write
@@ -13,12 +12,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Install uv
         uses: astral-sh/setup-uv@v6
       
       - name: Run mypy with GitHub annotations
+        # This format is optimized for GitHub's annotation system
         run: |
-          # This format is optimized for GitHub's annotation system
           uv run mypy \
             --show-error-codes \
             --hide-error-context \
@@ -30,6 +30,7 @@ jobs:
         # Continue on error to see all results, not just the first failure
         continue-on-error: true
       
+
       - name: Fail if mypy found errors
         if: failure() && steps.mypy.outcome == 'failure'
         run: |
@@ -47,11 +48,10 @@ jobs:
       
       - name: Run Ruff
         uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1
+
   coverage:
     name: set coverage comment
     runs-on: ubuntu-latest
-    needs:
-      - test
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -59,8 +59,8 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
+      # run the coverage check, but, don't worry about coverage of the tests themselves
       - name: Run tests
-        # run the coverage check, but, don't worry about coverage of the tests themselves
         run: |
           uv run coverage run --omit=tests/* -m pytest --junitxml=pytest.xml
           uv run coverage xml
