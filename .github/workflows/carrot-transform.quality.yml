@@ -16,26 +16,9 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
       
-      - name: Run mypy with GitHub annotations
-        # This format is optimized for GitHub's annotation system
+      - name: run mypy
         run: |
-          uv run mypy \
-            --show-error-codes \
-            --hide-error-context \
-            --no-error-summary \
-            --no-pretty \
-            --soft-error-limit=-1 \
-            .
-        
-        # Continue on error to see all results, not just the first failure
-        continue-on-error: true
-      
-
-      - name: Fail if mypy found errors
-        if: failure() && steps.mypy.outcome == 'failure'
-        run: |
-          echo "MyPy found type errors. Check the annotations above."
-          exit 1
+          uv run mypy .
   ruff:
     name: Run Ruff
     runs-on: ubuntu-latest
