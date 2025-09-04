@@ -191,8 +191,8 @@ def mapstream(
 
     # check on the rules file
     if (rules_file is None) or (not rules_file.is_file()):
-        logger.error(f"rules file was set to {rules_file=} and is missing")
-        sys.exit()
+        logger.error(f"rules file was set to {str(rules_file)=} and is missing")
+        sys.exit(3)
 
     ## set omop filenames
     omop_config_file, omop_ddl_file = set_omop_filenames(
@@ -205,13 +205,11 @@ def mapstream(
         logger.info(f"Input data will be taken from {input_db_url=}")
     else:
         if not person_file.is_file():
-            raise click.BadArgumentUsage(
-                f"the supplied person file does not exist {person_file}"
-            )
+            logger.error(f"the supplied person file does not exist {str(person_file)}")
+            sys.exit(4)
         if (input_dir is not None) and person_file.parent != input_dir:
-            raise click.BadArgumentUsage(
-                "the supplied person file must be in the input_dir"
-            )
+            logger.error("the supplied person file must be in the input_dir")
+            sys.exit(5)
 
         source = sources.SourceOpener(folder=person_file.parent)
 

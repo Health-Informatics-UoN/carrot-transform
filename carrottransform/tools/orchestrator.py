@@ -2,9 +2,14 @@ import csv
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from sqlalchemy.engine import Connection
+from sqlalchemy.schema import MetaData, Table
+from sqlalchemy.sql.expression import select
+
 import carrottransform.tools as tools
 from carrottransform.tools.args import person_rules_check_v2
 from carrottransform.tools.date_helpers import normalise_to8601
+from carrottransform.tools.db import EngineConnection
 from carrottransform.tools.file_helpers import OutputFileManager
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
@@ -21,11 +26,6 @@ from carrottransform.tools.types import (
     ProcessingResult,
     RecordContext,
 )
-from carrottransform.tools.db import EngineConnection
-from sqlalchemy.sql.expression import select
-from sqlalchemy.engine import Connection
-from sqlalchemy.schema import Table, MetaData
-
 
 logger = logger_setup()
 
