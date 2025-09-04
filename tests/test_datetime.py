@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-import csvrow
+import tests.csvrow as csvrow
 import pytest
 
 import carrottransform.cli.subcommands.run as run

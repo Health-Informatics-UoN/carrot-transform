@@ -3,7 +3,7 @@ import logging
 import shutil
 from pathlib import Path
 
-import csvrow
+import tests.csvrow as csvrow
 import sqlalchemy
 from click.testing import CliRunner
 from sqlalchemy import Column, MetaData, Table, Text, insert

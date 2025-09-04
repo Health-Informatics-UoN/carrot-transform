@@ -7,7 +7,7 @@ import logging
 import re
 from pathlib import Path
 
-import csvrow
+import tests.csvrow as csvrow
 import pytest
 
 import tests.click_tools as click_tools
@@ -739,7 +739,6 @@ def test_mireda_key_error(tmp_path: Path, caplog):
         Path(__file__).parent
         / "test_data/mireda_key_error/demographics_mother_gold.csv"
     )
-    import tests.click_tools as click_tools
 
     (result, output) = click_tools.click_test(
         tmp_path,

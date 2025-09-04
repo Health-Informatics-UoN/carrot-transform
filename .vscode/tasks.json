@@ -24,9 +24,9 @@
       "problemMatcher": []
     },
     {
-      "label": "Ruff the project",
+      "label": "run mypy checks",
       "type": "shell",
-      "command": "uv run isort . && uv run black . && uv run ruff check --fix . && uv run ruff format .",
+      "command": "uv run mypy .",
       "group": "build",
       "presentation": {
         "reveal": "always",
