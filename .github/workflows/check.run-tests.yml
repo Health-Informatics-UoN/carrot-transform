@@ -1,0 +1,47 @@
+name: carrot-transform.run-tests
+permissions:
+  contents: read
+  pull-requests: write
+
+on:
+  push: # always run on push
+  pull_request: # always run on pull request
+
+jobs:
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version:
+          - "3.10"
+          - "3.11"
+          - "3.12"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run tests
+        run: |
+          uv run pytest
+
+  docker_tests:
+    name: Docker Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+          
+      - name: Run tests (docker)
+        run: uv run pytest -m docker

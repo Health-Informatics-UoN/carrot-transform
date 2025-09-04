@@ -1,10 +1,12 @@
-from typing import Dict, List, Optional, TextIO
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Dict, List, Optional, TextIO
+
 import carrottransform.tools as tools
-from carrottransform.tools.omopcdm import OmopCDM
 from carrottransform.tools.mapping_types import V2TableMapping
 from carrottransform.tools.mappingrules import MappingRules
+from carrottransform.tools.omopcdm import OmopCDM
+from sqlalchemy.engine import Connection
 
 
 @dataclass
@@ -13,12 +15,14 @@ class ProcessingContext:
 
     mappingrules: MappingRules
     omopcdm: OmopCDM
-    input_dir: Path
     person_lookup: Dict[str, str]
     record_numbers: Dict[str, int]
     file_handles: Dict[str, TextIO]
     target_column_maps: Dict[str, Dict[str, int]]
     metrics: tools.metrics.Metrics
+    input_dir: Optional[Path] = None
+    db_connection: Optional[Connection] = None
+    schema: Optional[str] = None
 
     @property
     def input_files(self) -> List[str]:
@@ -69,3 +73,16 @@ class ProcessingResult:
     rejected_id_counts: Dict[str, int]
     success: bool = True
     error_message: Optional[str] = None
+
+
+@dataclass
+class DBConnParams:
+    """Parameters for connecting to an engine"""
+
+    db_type: str
+    username: str
+    password: str
+    host: str
+    port: int
+    db_name: str
+    schema: str

@@ -1,29 +1,31 @@
-import carrottransform.tools.sources as sources
-
 import sys
 import time
 from pathlib import Path
+
 import click
 from sqlalchemy.engine import Engine
+
 import carrottransform.tools as tools
-from carrottransform.tools.args import PathArg, AlchemyConnectionArg
+import carrottransform.tools.sources as sources
+from carrottransform.tools.args import (
+    AlchemyConnectionArg,
+    OnlyOnePersonInputAllowed,
+    PathArg,
+    person_rules_check,
+)
+from carrottransform.tools.core import get_target_records
+from carrottransform.tools.date_helpers import normalise_to8601
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
     resolve_paths,
     set_omop_filenames,
 )
 from carrottransform.tools.logger import logger_setup
-from carrottransform.tools.core import (
-    get_target_records,
-)
-from carrottransform.tools.date_helpers import normalise_to8601
 from carrottransform.tools.person_helpers import (
     load_last_used_ids,
     read_person_ids,
     set_saved_person_id_file,
 )
-from carrottransform.tools.args import person_rules_check, OnlyOnePersonInputAllowed
-
 
 logger = logger_setup()
 
@@ -31,12 +33,14 @@ logger = logger_setup()
 @click.command()
 @click.option(
     "--rules-file",
+    envvar="RULES_FILE",
     type=PathArg,
     required=True,
     help="json file containing mapping rules",
 )
 @click.option(
     "--output-dir",
+    envvar="OUTPUT_DIR",
     type=PathArg,
     default=None,
     required=True,
@@ -50,18 +54,21 @@ logger = logger_setup()
 )
 @click.option(
     "--person-file",
+    envvar="PERSON_FILE",
     type=PathArg,
     required=True,
     help="File containing person_ids in the first column",
 )
 @click.option(
     "--omop-ddl-file",
+    envvar="OMOP_DDL_FILE",
     type=PathArg,
     required=False,
     help="File containing OHDSI ddl statements for OMOP tables",
 )
 @click.option(
     "--omop-config-file",
+    envvar="OMOP_CONFIG_FILE",
     type=PathArg,
     required=False,
     help="File containing additional / override json config for omop outputs",
@@ -97,9 +104,16 @@ logger = logger_setup()
     default=0,
     help="Lower outcount limit for logfile output",
 )
-@click.option("--input-dir", type=PathArg, required=False, help="Input directories")
+@click.option(
+    "--input-dir",
+    envvar="INPUT_DIR",
+    type=PathArg,
+    required=False,
+    help="Input directories",
+)
 @click.option(
     "--input-db-url",
+    envvar="INPUT_DB_URL",
     type=AlchemyConnectionArg,
     required=False,
     help="connection string to read data from a database",

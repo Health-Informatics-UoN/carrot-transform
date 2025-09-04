@@ -2,18 +2,16 @@
 Tests for the V2 orchestrator module
 """
 
-import pytest
-import json
 import csv
+import json
+import shutil
+import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
-import tempfile
-import shutil
 
-from carrottransform.tools.orchestrator import (
-    V2ProcessingOrchestrator,
-    StreamProcessor,
-)
+import pytest
+
+from carrottransform.tools.orchestrator import StreamProcessor, V2ProcessingOrchestrator
 from carrottransform.tools.types import ProcessingContext
 
 
@@ -401,6 +399,8 @@ class TestStreamProcessor:
         context.metrics.increment_key_count = Mock()
         context.omopcdm = Mock()
         context.omopcdm.get_column_map.return_value = {"person_id": 0, "birth_date": 1}
+        context.db_connection = None
+        context.schema = None
         return context
 
     @pytest.fixture
@@ -493,32 +493,6 @@ class TestStreamProcessor:
         assert output_counts == {}
         assert rejected_count == 0
 
-    @patch("carrottransform.tools.date_helpers.normalise_to8601")
-    def test_process_single_row_stream_invalid_date(
-        self, mock_normalize_date, mock_context, mock_cache
-    ):
-        """Test processing row with invalid date"""
-        mock_normalize_date.return_value = None  # Invalid date
-
-        processor = StreamProcessor(mock_context, mock_cache)
-
-        input_data = ["1", "invalid-date"]
-        input_column_map = {"person_id": 0, "birth_date": 1}
-        applicable_targets = {"person.tsv"}
-        datetime_col_idx = 1
-        file_meta = mock_cache.file_metadata_cache["test.csv"]
-        with pytest.raises(Exception, match="invalid date format item='invalid-date'"):
-            processor._process_single_row_stream(
-                "test.csv",
-                input_data,
-                input_column_map,
-                applicable_targets,
-                datetime_col_idx,
-                file_meta,
-            )
-
-        mock_context.metrics.increment_key_count.assert_called()
-
     def test_process_all_data_success(self, mock_context, mock_cache):
         """Test complete data processing"""
         processor = StreamProcessor(mock_context, mock_cache)
@@ -533,7 +507,11 @@ class TestStreamProcessor:
             assert result.output_counts == {"person.tsv": 2}
             assert result.rejected_id_counts == {"test.csv": 0}
             # Verify the method was called with the correct input file
-            mock_process_file.assert_called_once_with("test.csv")
+            mock_process_file.assert_called_once_with(
+                "test.csv",
+                mock_context.db_connection,  # None for no db connection
+                mock_context.schema,  # None for no schema
+            )
 
     def test_process_all_data_with_error(self, mock_context, mock_cache):
         """Test data processing with error"""

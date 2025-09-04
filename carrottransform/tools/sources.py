@@ -1,9 +1,9 @@
-from pathlib import Path
 import csv
 import logging
-from sqlalchemy import MetaData, select
+from pathlib import Path
 
 import sqlalchemy
+from sqlalchemy import MetaData, select
 
 logger = logging.getLogger(__name__)
 

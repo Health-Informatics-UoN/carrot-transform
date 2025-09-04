@@ -13,3 +13,4 @@ temp
 
 *.orig
 .mypy_cache/
+.venv/*

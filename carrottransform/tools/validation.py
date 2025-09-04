@@ -1,4 +1,5 @@
 import datetime
+
 from carrottransform.tools.logger import logger_setup
 
 logger = logger_setup()
@@ -21,7 +22,7 @@ def valid_date_value(item: str) -> bool:
         and not _valid_reverse_iso_date(item)
         and not _valid_uk_date(item)
     ):
-        logger.warning("Bad date : `{0}`".format(item))
+        logger.warning(f"{item} is not a valid/supported date format")
         return False
     return True
 

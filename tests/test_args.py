@@ -1,14 +1,15 @@
+from pathlib import Path
+
 import pytest
 
-from pathlib import Path
 from carrottransform.tools.args import (
-    ObjectQueryError,
-    person_rules_check,
-    OnlyOnePersonInputAllowed,
     NoPersonMappings,
+    ObjectQueryError,
     ObjectStructureError,
+    OnlyOnePersonInputAllowed,
     WrongInputException,
     object_query,
+    person_rules_check,
 )
 
 
