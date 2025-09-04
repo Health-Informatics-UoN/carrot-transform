@@ -3,7 +3,6 @@ import logging
 import shutil
 from pathlib import Path
 
-import tests.csvrow as csvrow
 import sqlalchemy
 from click.testing import CliRunner
 from sqlalchemy import Column, MetaData, Table, Text, insert
@@ -274,19 +273,19 @@ def click_test(
                 concept = assert_to_int(measurement.measurement_concept_id)
                 value = assert_to_int(measurement.value_as_number)
 
-                assert (
-                    src_person_id in measurements
-                ), f"{src_person_id=} {measurement=} "
-                assert (
-                    date in measurements[src_person_id]
-                ), f"{src_person_id=} {date=} {measurement=}"
-                assert (
-                    concept in measurements[src_person_id][date]
-                ), f"{src_person_id=} {date=} {concept=} {measurement=}"
+                assert src_person_id in measurements, (
+                    f"{src_person_id=} {measurement=} "
+                )
+                assert date in measurements[src_person_id], (
+                    f"{src_person_id=} {date=} {measurement=}"
+                )
+                assert concept in measurements[src_person_id][date], (
+                    f"{src_person_id=} {date=} {concept=} {measurement=}"
+                )
 
-                assert (
-                    measurements[src_person_id][date][concept] == value
-                ), f"{date=} {concept=} {measurement=}"
+                assert measurements[src_person_id][date][concept] == value, (
+                    f"{date=} {concept=} {measurement=}"
+                )
             expected_measurement_count = record_count(measurements)
             assert measurements_seen == expected_measurement_count
 

@@ -7,7 +7,6 @@ import logging
 import re
 from pathlib import Path
 
-import tests.csvrow as csvrow
 import pytest
 
 import tests.click_tools as click_tools
@@ -106,8 +105,7 @@ def check__integration_test1(
         elif person.gender_source_value == "female" or (
             # this misspelling is intentional. the misspelling is in the test-data, and test-rules; not the shipped code.
             # carrot doesn't do any spell checking
-            "femail"
-            == person.gender_source_value
+            "femail" == person.gender_source_value
         ):
             assert 8532 == int(person.gender_concept_id)
         else:
@@ -304,8 +302,7 @@ def check__duplications(
         elif person.gender_source_value == "female" or (
             # this misspelling is intentional. the misspelling is in the test-data, and test-rules; not the shipped code.
             # carrot doesn't do any spell checking
-            "femail"
-            == person.gender_source_value
+            "femail" == person.gender_source_value
         ):
             assert 8532 == int(person.gender_concept_id)
         else:
@@ -524,13 +521,13 @@ def test_sql_read(tmp_path: Path):
 
         assert src_person_id in expect, f"{src_person_id=} {measurement=} "
         assert date in expect[src_person_id], f"{src_person_id=} {date=} {measurement=}"
-        assert (
-            concept in expect[src_person_id][date]
-        ), f"{src_person_id=} {date=} {concept=} {measurement=}"
+        assert concept in expect[src_person_id][date], (
+            f"{src_person_id=} {date=} {concept=} {measurement=}"
+        )
 
-        assert (
-            value == expect[src_person_id][date][concept]
-        ), f"{date=} {concept=} {measurement=}"
+        assert value == expect[src_person_id][date][concept], (
+            f"{date=} {concept=} {measurement=}"
+        )
 
     # the given example should have 13 measurments
     assert 13 == measurements
@@ -767,12 +764,12 @@ def assert_datetimes(onlydate: str, datetime: str, expected: str):
 
     i would preffer new tests do somethign else
     """
-    assert re.fullmatch(
-        r"\d{4}-\d{2}-\d{2}", onlydate
-    ), f"onlydate {onlydate=} is the wrong format"
-    assert re.fullmatch(
-        r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", datetime
-    ), f"datetime {datetime=} is the wrong format"
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", onlydate), (
+        f"onlydate {onlydate=} is the wrong format"
+    )
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", datetime), (
+        f"datetime {datetime=} is the wrong format"
+    )
 
     assert datetime[:10] == onlydate
 
@@ -785,7 +782,7 @@ def assert_datetimes(onlydate: str, datetime: str, expected: str):
         assert datetime == f"{expected}:00"
 
     else:
-        assert re.fullmatch(
-            r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", expected
-        ), f"the source data {expected=} is in the wrong format"
+        assert re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", expected), (
+            f"the source data {expected=} is in the wrong format"
+        )
         assert expected == datetime

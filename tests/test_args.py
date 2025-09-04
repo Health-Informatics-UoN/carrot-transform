@@ -73,9 +73,9 @@ def test_person_rules_throws(exception):
     else:
         assert caught
 
-        assert isinstance(
-            caught, type(exception)
-        ), f"{type(caught)=} != {type(exception)=}"
+        assert isinstance(caught, type(exception)), (
+            f"{type(caught)=} != {type(exception)=}"
+        )
 
         assert exception._person_file == caught._person_file
         assert exception._rules_file == caught._rules_file

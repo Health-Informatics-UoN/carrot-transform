@@ -379,9 +379,9 @@ class MappingRules:
                                         ### like this: {'F': ['gender_concept_id~8532', 'gender_source_concept_id~8532', 'gender_source_value']}
                                         temp_data_list = data[source_field].copy()
                                         data[source_field] = {}
-                                        data[source_field][
-                                            str(inputvalue)
-                                        ] = temp_data_list
+                                        data[source_field][str(inputvalue)] = (
+                                            temp_data_list
+                                        )
 
                                 data[source_field][str(inputvalue)].append(
                                     outfield + "~" + str(term)

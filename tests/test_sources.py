@@ -4,11 +4,11 @@ runs some tests on the source reader thing
 
 from pathlib import Path
 
-import tests.click_tools as click_tools
 import pytest
 import sqlalchemy
 
 import carrottransform.tools.sources as sources
+import tests.click_tools as click_tools
 
 
 @pytest.mark.unit

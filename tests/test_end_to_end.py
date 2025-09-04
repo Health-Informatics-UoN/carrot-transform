@@ -42,7 +42,6 @@ def test_no_args():
 
 @pytest.mark.unit
 def test_no_rules(caplog):
-
     ###
     ## arrange
 
@@ -75,7 +74,6 @@ def test_no_rules(caplog):
 
 @pytest.mark.unit
 def test_non_exist_person_file(tmp_path: Path, caplog):
-
     ###
     ## arrange
 
@@ -114,7 +112,6 @@ def test_non_exist_person_file(tmp_path: Path, caplog):
 
 @pytest.mark.unit
 def test_person_file_not_in_dir(tmp_path: Path, caplog):
-
     ###
     ## arrange
 

@@ -15,12 +15,13 @@ from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
 from carrottransform.tools.person_helpers import (
-    load_person_ids,
+    load_person_ids_v2,
     set_saved_person_id_file,
 )
 from carrottransform.tools.record_builder import RecordBuilderFactory
 from carrottransform.tools.stream_helpers import StreamingLookupCache
 from carrottransform.tools.types import (
+    DBConnParams,
     ProcessingContext,
     ProcessingResult,
     RecordContext,
@@ -39,7 +40,6 @@ class StreamProcessor:
     def process_all_data(self) -> ProcessingResult:
         """Process all data with single-pass streaming approach"""
         logger.info("Processing data...")
-
         total_output_counts = {outfile: 0 for outfile in self.context.output_files}
         total_rejected_counts = {infile: 0 for infile in self.context.input_files}
 
@@ -47,7 +47,9 @@ class StreamProcessor:
         for source_filename in self.context.input_files:
             try:
                 output_counts, rejected_count = self._process_input_file_stream(
-                    source_filename
+                    source_filename,
+                    self.context.db_connection,
+                    self.context.schema,
                 )
 
                 # Update totals
@@ -67,15 +69,25 @@ class StreamProcessor:
         return ProcessingResult(total_output_counts, total_rejected_counts)
 
     def _process_input_file_stream(
-        self, source_filename: str
+        self,
+        source_filename: str,
+        db_connection: Optional[Connection] = None,
+        schema: Optional[str] = None,
     ) -> Tuple[Dict[str, int], int]:
         """Stream process a single input file with direct output writing"""
         logger.info(f"Streaming input file: {source_filename}")
+        if db_connection is None:
+            # Ensure we have a valid input directory in folder mode
+            if self.context.input_dir is None:
+                logger.warning(
+                    "No input_dir provided; skipping file streaming for folder mode"
+                )
+                return {}, 0
 
-        file_path = self.context.input_dir / source_filename
-        if not file_path.exists():
-            logger.warning(f"Input file not found: {source_filename}")
-            return {}, 0
+            file_path = self.context.input_dir / source_filename
+            if not file_path.exists():
+                logger.warning(f"Input file not found: {source_filename}")
+                return {}, 0
 
         # Get which output tables this input file can map to
         applicable_targets = self.cache.input_to_outputs.get(source_filename, set())
@@ -93,26 +105,68 @@ class StreamProcessor:
             return output_counts, rejected_count
 
         try:
-            with file_path.open(mode="r", encoding="utf-8-sig") as fh:
-                csv_reader = csv.reader(fh)
-                csv_column_headers = next(csv_reader)
+            # TODO: refactor this logic to be more efficient
+            if db_connection is None:
+                with file_path.open(mode="r", encoding="utf-8-sig") as fh:
+                    csv_reader = csv.reader(fh)
+                    csv_column_headers = next(csv_reader)
+                    input_column_map = self.context.omopcdm.get_column_map(
+                        csv_column_headers
+                    )
+
+                    # Validate required columns exist
+                    datetime_col_idx = input_column_map.get(
+                        file_meta["datetime_source"]
+                    )
+                    if datetime_col_idx is None:
+                        logger.warning(
+                            f"Date field {file_meta['datetime_source']} not found in {source_filename}"
+                        )
+                        return output_counts, rejected_count
+
+                    # Stream process each row
+                    for input_data in csv_reader:
+                        row_counts, row_rejected = self._process_single_row_stream(
+                            source_filename,
+                            input_data,
+                            input_column_map,
+                            applicable_targets,
+                            datetime_col_idx,
+                            file_meta,
+                        )
+
+                        for target, count in row_counts.items():
+                            output_counts[target] += count
+                        rejected_count += row_rejected
+            else:
+                source_table_model = Table(
+                    source_filename.split(".")[0],
+                    MetaData(schema=schema),
+                    autoload_with=db_connection,
+                )
+                source_table_headers = source_table_model.columns.keys()
+                source_table_data = db_connection.execute(
+                    select(source_table_model)
+                ).fetchall()
                 input_column_map = self.context.omopcdm.get_column_map(
-                    csv_column_headers
+                    source_table_headers
                 )
 
                 # Validate required columns exist
                 datetime_col_idx = input_column_map.get(file_meta["datetime_source"])
                 if datetime_col_idx is None:
                     logger.warning(
-                        f"Date field {file_meta['datetime_source']} not found in {source_filename}"
+                        f"Date field {file_meta['datetime_source']} not found in table {source_filename.split('.')[0]}"
                     )
                     return output_counts, rejected_count
 
                 # Stream process each row
-                for input_data in csv_reader:
+                for row in source_table_data:
+                    # Convert DB row to a mutable list of strings
+                    input_row = ["" if v is None else str(v) for v in row]
                     row_counts, row_rejected = self._process_single_row_stream(
                         source_filename,
-                        input_data,
+                        input_row,
                         input_column_map,
                         applicable_targets,
                         datetime_col_idx,
@@ -289,19 +343,23 @@ class V2ProcessingOrchestrator:
         self,
         rules_file: Path,
         output_dir: Path,
-        input_dir: Path,
-        person_file: Path,
+        input_dir: Optional[Path],
         omop_ddl_file: Optional[Path],
         omop_config_file: Optional[Path],
         write_mode: str = "w",
+        person_file: Optional[Path] = None,
+        person_table: Optional[str] = None,
+        db_conn_params: Optional[DBConnParams] = None,
     ):
         self.rules_file = rules_file
         self.output_dir = output_dir
         self.input_dir = input_dir
         self.person_file = person_file
+        self.person_table = person_table
         self.omop_ddl_file = omop_ddl_file
         self.omop_config_file = omop_config_file
         self.write_mode = write_mode
+        self.db_conn_params = db_conn_params
 
         # Initialize components immediately
         self.initialize_components()
@@ -315,7 +373,9 @@ class V2ProcessingOrchestrator:
             raise ValueError("Rules file is not in v2 format!")
         else:
             try:
-                person_rules_check_v2(self.person_file, self.mappingrules)
+                person_rules_check_v2(
+                    self.person_file, self.person_table, self.mappingrules
+                )
             except Exception as e:
                 logger.exception(f"Validation for person rules failed: {e}")
                 raise e
@@ -326,15 +386,26 @@ class V2ProcessingOrchestrator:
         # Pre-compute lookup cache for efficient streaming
         self.lookup_cache = StreamingLookupCache(self.mappingrules, self.omopcdm)
 
+        if self.db_conn_params:
+            self.engine_connection = EngineConnection(self.db_conn_params)
+
     def setup_person_lookup(self) -> Tuple[Dict[str, str], int]:
         """Setup person ID lookup and save mapping"""
         saved_person_id_file = set_saved_person_id_file(None, self.output_dir)
+        connection = None
+        schema = None
+        if self.db_conn_params:
+            connection = self.engine_connection.connect()
+            schema = self.db_conn_params.schema
 
-        person_lookup, rejected_person_count = load_person_ids(
+        person_lookup, rejected_person_count = load_person_ids_v2(
             saved_person_id_file,
-            self.person_file,
-            self.mappingrules,
-            use_input_person_ids=False,
+            person_file=self.person_file,
+            person_table_name=self.person_table,
+            mappingrules=self.mappingrules,
+            use_input_person_ids="N",
+            db_connection=connection,
+            schema=schema,
         )
 
         # Save person IDs
@@ -351,7 +422,10 @@ class V2ProcessingOrchestrator:
         try:
             # Setup person lookup
             person_lookup, rejected_person_count = self.setup_person_lookup()
-
+            # Log results of person lookup
+            logger.info(
+                f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
+            )
             # Setup output files - keep all open for streaming
             output_files = self.mappingrules.get_all_outfile_names()
             file_handles, target_column_maps = self.output_manager.setup_output_files(
@@ -368,16 +442,16 @@ class V2ProcessingOrchestrator:
                 file_handles=file_handles,
                 target_column_maps=target_column_maps,
                 metrics=self.metrics,
+                db_connection=self.engine_connection.connect()
+                if self.db_conn_params
+                else None,
+                schema=self.db_conn_params.schema if self.db_conn_params else None,
             )
 
             # Process data using efficient streaming approach
             processor = StreamProcessor(context, self.lookup_cache)
             result = processor.process_all_data()
 
-            # Log results
-            logger.info(
-                f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
-            )
             for target_file, count in result.output_counts.items():
                 logger.info(f"TARGET: {target_file}: output count {count}")
 

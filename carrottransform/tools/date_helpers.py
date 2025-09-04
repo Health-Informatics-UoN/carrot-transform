@@ -3,6 +3,10 @@ import re
 
 from carrottransform.tools.logger import logger_setup
 
+logger = logger_setup()
+
+from carrottransform.tools.logger import logger_setup
+
 
 def get_datetime_value(item: str) -> datetime.datetime | None:
     """
@@ -26,7 +30,7 @@ def get_datetime_value(item: str) -> datetime.datetime | None:
     return None
 
 
-def normalise_to8601(item: str) -> str:
+def normalise_to8601(item: str) -> str | None:
     """parses, normalises, and formats a date value using regexes
 
     could use just one regex but that seems bad.
@@ -41,8 +45,8 @@ def normalise_to8601(item: str) -> str:
         )
 
     if not match:
-        raise Exception(f"invalid date format {item=}")
-
+        logger.warning(f"{item} couldn't be normalised to ISO 8601 date format")
+        return None
     data = match.groupdict()
     year, month, day = data["year"], data["month"], data["day"]
     value = str(int(year)).zfill(4)
@@ -64,7 +68,6 @@ def normalise_to8601(item: str) -> str:
 
         # concat the time_suffix
         if hour is not None and minute is not None:
-
             value += str(int(hour)).zfill(2)
             value += ":"
             value += str(int(minute)).zfill(2)

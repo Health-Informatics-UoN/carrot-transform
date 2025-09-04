@@ -2,8 +2,6 @@ import datetime
 import re
 from pathlib import Path
 
-
-import tests.csvrow as csvrow
 import pytest
 
 import carrottransform.tools.date_helpers as date_helpers
@@ -28,20 +26,18 @@ import tests.csvrow as csvrow
     ],
 )
 def test_normalise_to8601(expected: str | Exception, source: str) -> None:
-
     if isinstance(expected, str):
-
         # first - do a sanity check to be sure that the value can pass through without being wrecked
         sanity = date_helpers.normalise_to8601(expected)
-        assert (
-            expected == sanity
-        ), f"normalise_to8601() {expected=}) can't be loaded to itself"
+        assert expected == sanity, (
+            f"normalise_to8601() {expected=}) can't be loaded to itself"
+        )
 
         # now, check that the RHS value normalises to the LHS
         actual = date_helpers.normalise_to8601(source)
-        assert (
-            expected == actual
-        ), f"normalise_to8601({source=}) -> {actual=} != {expected=}"
+        assert expected == actual, (
+            f"normalise_to8601({source=}) -> {actual=} != {expected=}"
+        )
     else:
         assert isinstance(expected, Exception)
 
@@ -94,12 +90,14 @@ def test_dateimes_in_persons(tmp_path: Path, engine):
         concat_birthdate += "-"
         concat_birthdate += str(person.day_of_birth).rjust(2, "0")
 
-        assert person.birth_datetime.startswith(
-            concat_birthdate
-        ), f"{person.birth_datetime=} shoudl start with {concat_birthdate=}"
+        assert person.birth_datetime.startswith(concat_birthdate), (
+            f"{person.birth_datetime=} shoudl start with {concat_birthdate=}"
+        )
         assert re.fullmatch(
             r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", person.birth_datetime
-        ), f"{person.birth_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
+        ), (
+            f"{person.birth_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
+        )
 
         s_person_id = t2s[person.person_id]
         s_person = s_people[s_person_id]
@@ -132,17 +130,19 @@ def test_dateimes_in_observation(tmp_path: Path, engine: bool):
     observations = list(csvrow.csv_rows(output / "observation.tsv", "\t"))
     assert 0 != len(observations)
     for observation in observations:
-        assert (
-            observation.observation_date == observation.observation_datetime[:10]
-        ), f"expected {observation.observation_datetime[:10]=} to be {observation.observation_date=}"
+        assert observation.observation_date == observation.observation_datetime[:10], (
+            f"expected {observation.observation_datetime[:10]=} to be {observation.observation_date=}"
+        )
 
-        assert re.fullmatch(
-            r"\d{4}-\d{2}-\d{2}", observation.observation_date
-        ), f"{observation.observation_date=} is the wrong format, it should be `YYYY-MM-DD` {tmp_path=}"
+        assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", observation.observation_date), (
+            f"{observation.observation_date=} is the wrong format, it should be `YYYY-MM-DD` {tmp_path=}"
+        )
 
         assert re.fullmatch(
             r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", observation.observation_datetime
-        ), f"{observation.observation_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
+        ), (
+            f"{observation.observation_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
+        )
 
 
 @pytest.mark.unit
@@ -168,17 +168,19 @@ def test_dateimes_in_measurement(tmp_path: Path, engine: bool):
     measurements = list(csvrow.csv_rows(output / "measurement.tsv", "\t"))
     assert 0 != len(measurements)
     for measurement in measurements:
-        assert (
-            measurement.measurement_date == measurement.measurement_datetime[:10]
-        ), f"expected {measurement.measurement_date[:10]=} to be {measurement.measurement_datetime=}"
+        assert measurement.measurement_date == measurement.measurement_datetime[:10], (
+            f"expected {measurement.measurement_date[:10]=} to be {measurement.measurement_datetime=}"
+        )
 
-        assert re.fullmatch(
-            r"\d{4}-\d{2}-\d{2}", measurement.measurement_date
-        ), f"{measurement.measurement_date=} is the wrong format, it should be `YYYY-MM-DD` {tmp_path=}"
+        assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", measurement.measurement_date), (
+            f"{measurement.measurement_date=} is the wrong format, it should be `YYYY-MM-DD` {tmp_path=}"
+        )
 
         assert re.fullmatch(
             r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", measurement.measurement_datetime
-        ), f"{measurement.measurement_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
+        ), (
+            f"{measurement.measurement_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
+        )
 
 
 @pytest.mark.unit
