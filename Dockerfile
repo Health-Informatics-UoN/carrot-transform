@@ -11,5 +11,5 @@ COPY README.md ./
 
 COPY carrottransform/ ./carrottransform/
 
-# run help to pull stuff in and be sure it's all working
-RUN uv run python -m carrottransform.cli.command run mapstream --help
+# run the syn command to pull in the dependencies during container creation
+RUN uv sync
