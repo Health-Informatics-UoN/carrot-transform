@@ -1,6 +1,7 @@
-from carrottransform.tools.types import DBConnParams
 from sqlalchemy import create_engine, select
+
 from carrottransform.tools.logger import logger_setup
+from carrottransform.tools.types import DBConnParams
 
 logger = logger_setup()
 
