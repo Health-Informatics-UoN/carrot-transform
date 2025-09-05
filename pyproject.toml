@@ -53,8 +53,15 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 markers = [
     "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
-    "integration: marks integration tests"
+    "integration: marks integration tests",
+    "docker: marks tests to run against the docker container",
 ]
+
+# not all platforms have docker, so, don't run the docker tests by default
+# ... you can run them with `λ uv run pytest -m docker`
+addopts = "-m 'not docker'"
+
+
 
 [[tool.mypy.overrides]]
 module = "trino.*"
