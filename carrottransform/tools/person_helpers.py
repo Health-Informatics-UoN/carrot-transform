@@ -1,16 +1,15 @@
 import csv
 import sys
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
+
+from sqlalchemy.engine import Connection
+from sqlalchemy.schema import MetaData, Table
+from sqlalchemy.sql.expression import select
 
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.validation import valid_date_value, valid_value
-from typing import Optional
-from sqlalchemy.engine import Connection
-from sqlalchemy.schema import Table, MetaData
-from sqlalchemy.sql.expression import select
-
 
 logger = logger_setup()
 
