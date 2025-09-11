@@ -116,9 +116,6 @@ class MappingRules:
 
         return v2_mappings
 
-    def dump_parsed_rules(self):
-        return json.dumps(self.parsed_rules, indent=2)
-
     def get_dsname_from_rules(self):
         dsname = "Unknown"
 

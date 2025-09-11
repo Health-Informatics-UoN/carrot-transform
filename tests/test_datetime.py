@@ -1,10 +1,12 @@
 import datetime
+import logging
 import re
 from pathlib import Path
 
 import pytest
 
 import carrottransform.tools.date_helpers as date_helpers
+import carrottransform.tools.validation as validation
 import tests.click_tools as click_tools
 import tests.csvrow as csvrow
 
@@ -22,34 +24,34 @@ import tests.csvrow as csvrow
         ("2024-07-05 08:45:30", "05-07-2024 08:45:30"),  # DD-MM-YYYY hh:mm:ss
         ("1999-11-30 14:22:10", "30/11/1999 14:22:10"),  # DD/MM/YYYY hh:mm:ss
         ("2030-02-14 20:05:45", "2030/02/14 20:05:45"),  # YYYY/MM/DD hh:mm:ss
-        (Exception("invalid date format item='christmas 2024'"), "christmas 2024"),  #
+        (
+            Exception("christmas 2024 couldn't be normalised to ISO 8601 date format"),
+            "christmas 2024",
+        ),  #
     ],
 )
-def test_normalise_to8601(expected: str | Exception, source: str) -> None:
+def test_normalise_to8601(caplog, expected: str | Exception, source: str) -> None:
+    caplog.set_level(logging.WARNING)
+    try:
+        actual = date_helpers.normalise_to8601(source)
+    except Exception as e:
+        raise Exception("Exceptions are not allowed")
+
     if isinstance(expected, str):
         # first - do a sanity check to be sure that the value can pass through without being wrecked
         sanity = date_helpers.normalise_to8601(expected)
         assert expected == sanity, (
             f"normalise_to8601() {expected=}) can't be loaded to itself"
         )
-
-        # now, check that the RHS value normalises to the LHS
-        actual = date_helpers.normalise_to8601(source)
         assert expected == actual, (
             f"normalise_to8601({source=}) -> {actual=} != {expected=}"
         )
     else:
-        assert isinstance(expected, Exception)
+        assert actual == None
 
-        caught: None | Exception = None
-        try:
-            date_helpers.normalise_to8601(source)
-        except Exception as e:
-            caught = e
-
-        assert caught is not None
-
-        assert str(caught) == str(expected)
+        records = list(caplog.records)
+        assert 1 == len(records)
+        assert str(expected) == records[0].msg
 
 
 @pytest.mark.unit

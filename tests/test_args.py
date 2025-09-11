@@ -1,7 +1,9 @@
 from pathlib import Path
 
+import click.exceptions
 import pytest
 
+import carrottransform.tools.args as args
 from carrottransform.tools.args import (
     NoPersonMappings,
     ObjectQueryError,
@@ -11,6 +13,32 @@ from carrottransform.tools.args import (
     object_query,
     person_rules_check,
 )
+
+
+@pytest.mark.unit
+def test_PathArgumentType():
+    # after extensive testing; the only thing that seemed to kill this was None. pathlib.Path is super tolerant
+    with pytest.raises(click.exceptions.BadParameter) as e:
+        args.PathArgumentType().convert(value=None, param=None, ctx=None)
+
+    assert (
+        "Invalid path: None (argument should be a str or an os.PathLike object where __fspath__ returns a str, not 'NoneType')"
+        == e.value.message
+    )
+
+
+@pytest.mark.unit
+def test_EngineArgumentType():
+    # after extensive testing; the only thing that seemed to kill this was None. pathlib.Path is super tolerant
+    with pytest.raises(click.exceptions.BadParameter) as e:
+        args.AlchemyConnectionArgumentType().convert(
+            value="all my buckets", param=None, ctx=None
+        )
+
+    assert (
+        "invalid connection string: all my buckets (Could not parse SQLAlchemy URL from given URL string)"
+        == e.value.message
+    )
 
 
 @pytest.mark.parametrize(
@@ -84,6 +112,7 @@ def test_person_rules_throws(exception):
             assert exception._inputs == caught._inputs
 
 
+@pytest.mark.unit
 def test_person_rules_throws_WrongInputException():
     """this is a test to trigger the WrongInputException"""
     person_file = "demographics_mother_gold.csv"
