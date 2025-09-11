@@ -1,11 +1,11 @@
 import re
 from pathlib import Path
 
-import tests.csvrow as csvrow
 import pytest
 
 import carrottransform.cli.subcommands.run as run
 import tests.click_tools as click_tools
+import tests.csvrow as csvrow
 
 
 @pytest.mark.unit

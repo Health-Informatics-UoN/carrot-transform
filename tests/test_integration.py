@@ -7,10 +7,10 @@ import logging
 import re
 from pathlib import Path
 
-import tests.csvrow as csvrow
 import pytest
 
 import tests.click_tools as click_tools
+import tests.csvrow as csvrow
 
 ##
 # concept constants

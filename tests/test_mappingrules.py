@@ -4,7 +4,6 @@ import re
 import tempfile
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 from carrottransform.tools.mappingrules import MappingRules
@@ -126,15 +125,27 @@ def test_rules():
 
 @pytest.fixture
 def input_data():
-    """Fixture providing test input data"""
-    return pd.DataFrame(
+    """Fixture providing test input data as list of dicts"""
+    return [
         {
-            "person_id": [1, 2, 3],
-            "sex": ["M", "F", "M"],
-            "ethnicity": ["white", "asian", "black"],
-            "date_of_birth": ["2023-01-01", "2023-01-02", "2023-01-03"],
-        }
-    )
+            "person_id": 1,
+            "sex": "M",
+            "ethnicity": "white",
+            "date_of_birth": "2023-01-01",
+        },
+        {
+            "person_id": 2,
+            "sex": "F",
+            "ethnicity": "asian",
+            "date_of_birth": "2023-01-02",
+        },
+        {
+            "person_id": 3,
+            "sex": "M",
+            "ethnicity": "black",
+            "date_of_birth": "2023-01-03",
+        },
+    ]
 
 
 @pytest.fixture

@@ -1,16 +1,15 @@
 import csv
 import sys
 from pathlib import Path
-from typing import Iterable
+from typing import Iterator, Optional
+
+from sqlalchemy.engine import Connection
+from sqlalchemy.schema import MetaData, Table
+from sqlalchemy.sql.expression import select
 
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.validation import valid_date_value, valid_value
-from typing import Optional
-from sqlalchemy.engine import Connection
-from sqlalchemy.schema import Table, MetaData
-from sqlalchemy.sql.expression import select
-
 
 logger = logger_setup()
 
@@ -120,7 +119,7 @@ def load_person_ids(
 
 def read_person_ids(
     saved_person_id_file: Path,
-    csvr: Iterable[list[str]],
+    csvr: Iterator[list[str]],
     mappingrules: MappingRules,
     use_input_person_ids: bool,
 ):
@@ -130,7 +129,7 @@ def read_person_ids(
         raise Exception(
             f"use_input_person_ids needs to be bool but it was {type(use_input_person_ids)=}"
         )
-    if not isinstance(csvr, Iterable):
+    if not isinstance(csvr, Iterator):
         raise Exception(f"csvr needs to be iterable but it was {type(csvr)=}")
 
     person_ids, person_number = _get_person_lookup(saved_person_id_file)

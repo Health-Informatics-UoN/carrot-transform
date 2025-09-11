@@ -4,7 +4,7 @@
     {
       "label": "Ruff the whole project",
       "type": "shell",
-      "command": "uv run isort . && uv run black . && uv run ruff check --fix . && uv run ruff format .",
+      "command": "uv run ruff check --select I --fix . && uv run ruff format .",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -15,7 +15,7 @@
     {
       "label": "Ruff the current file",
       "type": "shell",
-      "command": "uv run isort \"${file}\" && uv run black \"${file}\" && uv run ruff check --fix \"${file}\" && uv run ruff format \"${file}\" ",
+      "command": "uv run ruff check --fix \"${file}\" && uv run ruff format \"${file}\" ",
       "group": "build",
       "presentation": {
         "reveal": "always",
