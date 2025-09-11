@@ -7,7 +7,14 @@ from pathlib import Path
 import click
 from sqlalchemy import create_engine
 
+import carrottransform.tools.file_helpers as helpers
 from carrottransform.tools.mappingrules import MappingRules
+
+# should have a examples/ folder
+carrot: Path = Path(__file__).parent.parent
+# assert (mine/'examples/').is_dir()
+# assert (mine/'cli/').is_dir()
+# assert (mine/'config/').is_dir()
 
 
 def object_query(data: dict[str, dict | str], path: str) -> dict | str:
@@ -78,9 +85,16 @@ class PathArgumentType(click.ParamType):
 
     name = "filepath"
 
-    def convert(self, value, param, ctx):
+    def convert(self, value: str, param, ctx) -> Path:
         try:
-            return Path(value)
+            # switch to posix separators
+            value = value.replace("\\", "/")
+
+            prefix: str = "@carrot/"
+            if value.startswith(prefix):
+                return carrot / value[len(prefix) :]
+            else:
+                return Path(value)
         except Exception as e:
             self.fail(f"Invalid path: {value} ({e})", param, ctx)
 

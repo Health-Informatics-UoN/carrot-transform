@@ -11,7 +11,6 @@ import click
 from carrottransform.tools.args import PathArg
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
-    resolve_paths,
     set_omop_filenames,
 )
 from carrottransform.tools.logger import logger_setup
@@ -89,7 +88,9 @@ def process_common_logic(
         if input_dir:
             paths_to_resolve.append(input_dir)
 
-        resolved_paths = resolve_paths(paths_to_resolve)
+        # they're resolved by click now
+        resolved_paths = paths_to_resolve
+        # resolved_paths = resolve_paths(paths_to_resolve)
 
         # Update variables with resolved paths
         if resolved_paths[0] is None:
