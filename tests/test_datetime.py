@@ -6,7 +6,6 @@ from pathlib import Path
 import pytest
 
 import carrottransform.tools.date_helpers as date_helpers
-import carrottransform.tools.validation as validation
 import tests.click_tools as click_tools
 import tests.csvrow as csvrow
 

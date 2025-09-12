@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Set, Tuple
 
-from carrottransform.tools.concept_helpers import (
-    generate_combinations,
-    get_value_mapping,
-)
+from carrottransform.tools.concept_helpers import (generate_combinations,
+                                                   get_value_mapping)
 from carrottransform.tools.date_helpers import get_datetime_value
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mapping_types import ConceptMapping

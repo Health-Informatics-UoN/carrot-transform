@@ -14,18 +14,12 @@ from carrottransform.tools.file_helpers import OutputFileManager
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
-from carrottransform.tools.person_helpers import (
-    load_person_ids_v2,
-    set_saved_person_id_file,
-)
+from carrottransform.tools.person_helpers import (load_person_ids_v2,
+                                                  set_saved_person_id_file)
 from carrottransform.tools.record_builder import RecordBuilderFactory
 from carrottransform.tools.stream_helpers import StreamingLookupCache
-from carrottransform.tools.types import (
-    DBConnParams,
-    ProcessingContext,
-    ProcessingResult,
-    RecordContext,
-)
+from carrottransform.tools.types import (DBConnParams, ProcessingContext,
+                                         ProcessingResult, RecordContext)
 
 logger = logger_setup()
 

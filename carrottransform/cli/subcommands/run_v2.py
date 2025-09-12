@@ -9,11 +9,9 @@ from typing import Optional
 import click
 
 from carrottransform.tools.args import PathArg
-from carrottransform.tools.file_helpers import (
-    check_dir_isvalid,
-    resolve_paths,
-    set_omop_filenames,
-)
+from carrottransform.tools.file_helpers import (check_dir_isvalid,
+                                                resolve_paths,
+                                                set_omop_filenames)
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.orchestrator import V2ProcessingOrchestrator
 from carrottransform.tools.types import DBConnParams

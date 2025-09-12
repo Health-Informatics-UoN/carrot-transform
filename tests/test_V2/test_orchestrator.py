@@ -11,7 +11,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from carrottransform.tools.orchestrator import StreamProcessor, V2ProcessingOrchestrator
+from carrottransform.tools.orchestrator import (StreamProcessor,
+                                                V2ProcessingOrchestrator)
 from carrottransform.tools.types import ProcessingContext
 
 
