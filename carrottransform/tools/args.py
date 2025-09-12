@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 import carrottransform.tools.file_helpers as helpers
 from carrottransform.tools.mappingrules import MappingRules
 
-# should have a examples/ folder
+# need this for substition. this should be the folder iwth an "examples/" sub" folder
 carrot: Path = Path(__file__).parent.parent
 # assert (mine/'examples/').is_dir()
 # assert (mine/'cli/').is_dir()

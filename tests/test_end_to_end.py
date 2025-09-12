@@ -13,7 +13,7 @@ from click.testing import CliRunner
 from carrottransform.cli.subcommands.run import mapstream
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_run_the_command_line():
     """simple test/check to see if the project can "run" - which is good for checking things like imports"""
 

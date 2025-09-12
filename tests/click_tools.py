@@ -3,12 +3,12 @@ import logging
 import shutil
 from pathlib import Path
 
-import csvrow
 import sqlalchemy
 from click.testing import CliRunner
 from sqlalchemy import Column, MetaData, Table, Text, insert
 
 import carrottransform.tools.sources as sources
+import tests.csvrow as csvrow
 from carrottransform.cli.subcommands.run import mapstream
 
 logger = logging.getLogger(__name__)

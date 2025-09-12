@@ -30,7 +30,12 @@ import carrottransform.tools.args as args
     ],
 )
 def test_resolve_paths(input: str, expected: Path):
-    """this used to test the resolve_paths() function but now ... it does the same tests to the path-arg object"""
+    """
+    this used to test the resolve_paths() function but now ... it does the same tests to the path-arg object.
+
+    the multiple tests have been rewritten to be parameters for this one test case
+
+    """
 
     actual: Path = args.PathArg.convert(input, None, None)
 
