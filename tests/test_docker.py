@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+import tests.csvrow as csvrow
 from tests.click_tools import package_root
 
 project_root: Path = package_root.parent
@@ -164,8 +165,6 @@ def validate(
 
     TODO; merge this with the other validation logic
     """
-
-    import csvrow
 
     # get the person_ids table
     [person_id_source2target, person_id_target2source] = csvrow.back_get(
