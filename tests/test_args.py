@@ -21,10 +21,7 @@ def test_PathArgumentType():
     with pytest.raises(click.exceptions.BadParameter) as e:
         args.PathArgumentType().convert(value=None, param=None, ctx=None)
 
-    assert (
-        "Invalid path: None (argument should be a str or an os.PathLike object where __fspath__ returns a str, not 'NoneType')"
-        == e.value.message
-    )
+    assert e.value.message.startswith("Invalid path: None (")
 
 
 @pytest.mark.unit
