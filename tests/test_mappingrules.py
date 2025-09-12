@@ -166,6 +166,7 @@ def omopcdm():
         return OmopCDM(ddl_path, config_path)
 
 
+@pytest.mark.unit
 def test_person_table_no_duplicates(omopcdm, test_rules_file, input_data):
     """Test that person table doesn't create duplicate rows for multiple mappings"""
     mapping_rules = MappingRules(test_rules_file, omopcdm)
@@ -191,6 +192,7 @@ def test_person_table_no_duplicates(omopcdm, test_rules_file, input_data):
     assert set(sex_mappings["M"]) == {"gender_concept_id~8507", "gender_source_value"}
 
 
+@pytest.mark.unit
 def test_observation_table_multiple_rows(omopcdm, test_rules_file, input_data):
     """Test that observation table creates multiple rows for multiple mappings"""
     mapping_rules = MappingRules(test_rules_file, omopcdm)
@@ -227,6 +229,7 @@ def test_observation_table_multiple_rows(omopcdm, test_rules_file, input_data):
                 }
 
 
+@pytest.mark.unit
 def test_mixed_person_and_observation(omopcdm, test_rules_file, input_data):
     """Test that person and observation tables handle multiple mappings correctly"""
     mapping_rules = MappingRules(test_rules_file, omopcdm)
@@ -246,6 +249,7 @@ def test_mixed_person_and_observation(omopcdm, test_rules_file, input_data):
     assert len(obs_keys) > 1
 
 
+@pytest.mark.unit
 def test_person_data_correctness(omopcdm, test_rules_file, input_data):
     """Test that person data is mapped correctly without duplication"""
     mapping_rules = MappingRules(test_rules_file, omopcdm)
@@ -279,6 +283,7 @@ def test_person_data_correctness(omopcdm, test_rules_file, input_data):
     }
 
 
+@pytest.mark.unit
 def test_output_data_writing(omopcdm, test_rules_file, input_data):
     """Test that data is written correctly to output files without duplication"""
     mapping_rules = MappingRules(test_rules_file, omopcdm)
@@ -297,7 +302,8 @@ def test_output_data_writing(omopcdm, test_rules_file, input_data):
     assert len(person_ids) == 1  # Should only have one person_id mapping
 
     # Verify individual field mappings for person table
-    for person_id, row in input_data.iterrows():
+    for row in input_data:
+        person_id = row["person_id"]
         # Check sex mappings
         sex_value = row["sex"]
         if sex_value == "M":
@@ -341,7 +347,8 @@ def test_output_data_writing(omopcdm, test_rules_file, input_data):
         )  # Should only have one person_id mapping per observation type
 
         # Verify individual field mappings for observations
-        for person_id, row in input_data.iterrows():
+        for row in input_data:
+            person_id = row["person_id"]
             sex_value = row["sex"]
             ethnicity_value = row["ethnicity"]
 

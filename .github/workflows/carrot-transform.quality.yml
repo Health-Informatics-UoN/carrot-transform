@@ -18,7 +18,6 @@ jobs:
       
       - name: run mypy
         run: uv run mypy .
-        # run: uv run mypy --check-untyped-defs .
   ruff:
     name: Run Ruff
     runs-on: ubuntu-latest
