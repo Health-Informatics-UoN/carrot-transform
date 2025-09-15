@@ -9,7 +9,6 @@ import sqlalchemy
 
 import carrottransform.tools.sources as sources
 import tests.click_tools as click_tools
-import tests.csvrow as csvrow
 
 
 @pytest.mark.unit

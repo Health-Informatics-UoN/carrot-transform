@@ -107,7 +107,7 @@ class TestEngineConnection:
             mock_connection = MagicMock()
             mock_engine.connect.return_value = mock_connection
             # Initialize the connection
-            connection = EngineConnection(db_params)
+            EngineConnection(db_params)
 
             # Verify success log was called
             mock_logger.info.assert_called_with(

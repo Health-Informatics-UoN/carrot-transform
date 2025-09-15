@@ -7,7 +7,6 @@ from pathlib import Path
 import click
 from sqlalchemy import create_engine
 
-import carrottransform.tools.file_helpers as helpers
 from carrottransform.tools.mappingrules import MappingRules
 
 # need this for substition. this should be the folder iwth an "examples/" sub" folder
@@ -217,4 +216,3 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
 
     if person_file_name != seen_table:
         raise WrongInputException(rules_file, person_file_name, seen_table)
-
