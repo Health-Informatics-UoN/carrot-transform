@@ -12,9 +12,6 @@ from carrottransform.tools.mappingrules import MappingRules
 
 # need this for substition. this should be the folder iwth an "examples/" sub" folder
 carrot: Path = Path(__file__).parent.parent
-# assert (mine/'examples/').is_dir()
-# assert (mine/'cli/').is_dir()
-# assert (mine/'config/').is_dir()
 
 
 def object_query(data: dict[str, dict | str], path: str) -> dict | str:
@@ -220,3 +217,4 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
 
     if person_file_name != seen_table:
         raise WrongInputException(rules_file, person_file_name, seen_table)
+
