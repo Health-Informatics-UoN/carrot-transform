@@ -4,11 +4,15 @@ import click.exceptions
 import pytest
 
 import carrottransform.tools.args as args
-from carrottransform.tools.args import (NoPersonMappings, ObjectQueryError,
-                                        ObjectStructureError,
-                                        OnlyOnePersonInputAllowed,
-                                        WrongInputException, object_query,
-                                        person_rules_check)
+from carrottransform.tools.args import (
+    NoPersonMappings,
+    ObjectQueryError,
+    ObjectStructureError,
+    OnlyOnePersonInputAllowed,
+    WrongInputException,
+    object_query,
+    person_rules_check,
+)
 
 
 @pytest.mark.unit

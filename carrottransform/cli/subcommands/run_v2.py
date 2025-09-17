@@ -9,9 +9,10 @@ from typing import Optional
 import click
 
 from carrottransform.tools.args import PathArg
-from carrottransform.tools.file_helpers import (check_dir_isvalid,
-                                                resolve_paths,
-                                                set_omop_filenames)
+from carrottransform.tools.file_helpers import (
+    check_dir_isvalid,
+    set_omop_filenames,
+)
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.orchestrator import V2ProcessingOrchestrator
 from carrottransform.tools.types import DBConnParams
@@ -87,22 +88,13 @@ def process_common_logic(
         if input_dir:
             paths_to_resolve.append(input_dir)
 
-        resolved_paths = resolve_paths(paths_to_resolve)
+        # the paths are resolved by the click framework now, but, still need to check for None
 
         # Update variables with resolved paths
-        if resolved_paths[0] is None:
+        if rules_file is None:
             raise ValueError("rules_file is required")
-        if resolved_paths[1] is None:
+        if output_dir is None:
             raise ValueError("output_dir is required")
-
-        rules_file = resolved_paths[0]
-        output_dir = resolved_paths[1]
-        person_file = resolved_paths[2]
-        omop_ddl_file = resolved_paths[3]
-        omop_config_file = resolved_paths[4]
-
-        if input_dir:
-            input_dir = resolved_paths[5]
 
         # validate directories
         if input_dir:

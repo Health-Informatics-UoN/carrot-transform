@@ -3,9 +3,12 @@ from typing import Any, Dict, List, Optional
 
 import carrottransform.tools as tools
 from carrottransform.tools.logger import logger_setup
-from carrottransform.tools.mapping_types import (ConceptMapping, DateMapping,
-                                                 PersonIdMapping,
-                                                 V2TableMapping)
+from carrottransform.tools.mapping_types import (
+    ConceptMapping,
+    DateMapping,
+    PersonIdMapping,
+    V2TableMapping,
+)
 from carrottransform.tools.omopcdm import OmopCDM
 
 logger = logger_setup()

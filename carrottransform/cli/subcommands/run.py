@@ -7,18 +7,24 @@ from sqlalchemy.engine import Engine
 
 import carrottransform.tools as tools
 import carrottransform.tools.sources as sources
-from carrottransform.tools.args import (AlchemyConnectionArg,
-                                        OnlyOnePersonInputAllowed, PathArg,
-                                        person_rules_check)
+from carrottransform.tools.args import (
+    AlchemyConnectionArg,
+    OnlyOnePersonInputAllowed,
+    PathArg,
+    person_rules_check,
+)
 from carrottransform.tools.core import get_target_records
 from carrottransform.tools.date_helpers import normalise_to8601
-from carrottransform.tools.file_helpers import (check_dir_isvalid,
-                                                resolve_paths,
-                                                set_omop_filenames)
+from carrottransform.tools.file_helpers import (
+    check_dir_isvalid,
+    set_omop_filenames,
+)
 from carrottransform.tools.logger import logger_setup
-from carrottransform.tools.person_helpers import (load_last_used_ids,
-                                                  read_person_ids,
-                                                  set_saved_person_id_file)
+from carrottransform.tools.person_helpers import (
+    load_last_used_ids,
+    read_person_ids,
+    set_saved_person_id_file,
+)
 
 logger = logger_setup()
 
@@ -129,29 +135,6 @@ def mapstream(
     """
     Map to output using input streams
     """
-
-    # Resolve any @package paths in the arguments
-    [
-        rules_file,
-        output_dir,
-        person_file,
-        omop_ddl_file,
-        omop_config_file,
-        saved_person_id_file,
-        last_used_ids_file,
-        input_dir,
-    ] = resolve_paths(
-        [
-            rules_file,
-            output_dir,
-            person_file,
-            omop_ddl_file,
-            omop_config_file,
-            saved_person_id_file,
-            last_used_ids_file,
-            input_dir,
-        ]
-    )
 
     # Initialisation
     # - check for values in optional arguments
