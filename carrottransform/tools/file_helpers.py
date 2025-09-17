@@ -23,31 +23,6 @@ def load_json(f_in: Path):
     return data
 
 
-def resolve_paths(args: List[Optional[Path]]) -> List[Optional[Path]]:
-    """Resolve special path syntaxes in command line arguments."""
-    try:
-        # Fix for Traversable parent issue - convert to Path first
-        package_files = resources.files("carrottransform")
-        package_path = Path(str(package_files)).resolve()
-    except Exception:
-        # Fallback for development environment
-        import carrottransform
-
-        package_path = Path(carrottransform.__file__).resolve().parent
-
-    # Handle None values and replace @carrot with the actual package path
-    prefix = "@carrot"
-    return [
-        (
-            package_path
-            / Path(str(arg).replace(prefix, "").replace("\\", "/").lstrip("/"))
-            if arg is not None and str(arg).startswith(prefix)
-            else arg
-        )
-        for arg in args
-    ]
-
-
 def check_dir_isvalid(directory: Path, create_if_missing: bool = False) -> None:
     """Check if directory is valid, optionally create it if missing.
 
