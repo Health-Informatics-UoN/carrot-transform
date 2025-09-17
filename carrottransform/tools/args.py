@@ -9,6 +9,9 @@ from sqlalchemy import create_engine
 
 from carrottransform.tools.mappingrules import MappingRules
 
+# need this for substition. this should be the folder iwth an "examples/" sub" folder
+carrot: Path = Path(__file__).parent.parent
+
 
 def object_query(data: dict[str, dict | str], path: str) -> dict | str:
     """
@@ -78,9 +81,16 @@ class PathArgumentType(click.ParamType):
 
     name = "filepath"
 
-    def convert(self, value, param, ctx):
+    def convert(self, value: str, param, ctx) -> Path:
         try:
-            return Path(value)
+            # switch to posix separators
+            value = value.replace("\\", "/")
+
+            prefix: str = "@carrot/"
+            if value.startswith(prefix):
+                return carrot / value[len(prefix) :]
+            else:
+                return Path(value)
         except Exception as e:
             self.fail(f"Invalid path: {value} ({e})", param, ctx)
 
