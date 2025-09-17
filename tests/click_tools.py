@@ -100,10 +100,12 @@ def click_test(
     # ... also change enough parameters we know we're not cheating and looking at the .csv files
     if engine:
         connection_string = f"sqlite:///{(tmp_path / 'testing.db').absolute()}"
-        engine: sqlalchemy.engine.Engine = sqlalchemy.create_engine(connection_string)
+        connection: sqlalchemy.engine.Engine = sqlalchemy.create_engine(
+            connection_string
+        )
 
         for csv_file in person_file.parent.glob("*.csv"):
-            load_test_database_table(engine, person_file.parent / csv_file)
+            load_test_database_table(connection, person_file.parent / csv_file)
 
         copied = tmp_path / "rules.json"
         shutil.copy(rules_json_file, copied)
