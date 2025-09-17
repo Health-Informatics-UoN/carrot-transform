@@ -5,6 +5,8 @@ from carrottransform.tools.logger import logger_setup
 
 logger = logger_setup()
 
+from carrottransform.tools.logger import logger_setup
+
 
 def get_datetime_value(item: str) -> datetime.datetime | None:
     """
@@ -65,12 +67,7 @@ def normalise_to8601(item: str) -> str | None:
             hour, minute, second = None, None, None
 
         # concat the time_suffix
-        if hour is not None:
-            if minute is None:
-                raise Exception(
-                    f"unrecognized format seems to have 'hours' but not 'minutes' {item=}"
-                )
-
+        if hour is not None and minute is not None:
             value += str(int(hour)).zfill(2)
             value += ":"
             value += str(int(minute)).zfill(2)

@@ -1,7 +1,9 @@
 from pathlib import Path
 
+import click.exceptions
 import pytest
 
+import carrottransform.tools.args as args
 from carrottransform.tools.args import (
     NoPersonMappings,
     ObjectQueryError,
@@ -11,6 +13,29 @@ from carrottransform.tools.args import (
     object_query,
     person_rules_check,
 )
+
+
+@pytest.mark.unit
+def test_PathArgumentType():
+    # after extensive testing; the only thing that seemed to kill this was None. pathlib.Path is super tolerant
+    with pytest.raises(click.exceptions.BadParameter) as e:
+        args.PathArgumentType().convert(value=None, param=None, ctx=None)
+
+    assert e.value.message.startswith("Invalid path: None (")
+
+
+@pytest.mark.unit
+def test_EngineArgumentType():
+    # after extensive testing; the only thing that seemed to kill this was None. pathlib.Path is super tolerant
+    with pytest.raises(click.exceptions.BadParameter) as e:
+        args.AlchemyConnectionArgumentType().convert(
+            value="all my buckets", param=None, ctx=None
+        )
+
+    assert (
+        "invalid connection string: all my buckets (Could not parse SQLAlchemy URL from given URL string)"
+        == e.value.message
+    )
 
 
 @pytest.mark.parametrize(
@@ -84,6 +109,7 @@ def test_person_rules_throws(exception):
             assert exception._inputs == caught._inputs
 
 
+@pytest.mark.unit
 def test_person_rules_throws_WrongInputException():
     """this is a test to trigger the WrongInputException"""
     person_file = "demographics_mother_gold.csv"
@@ -111,6 +137,7 @@ def test_person_rules_throws_WrongInputException():
     assert caught._source_table == source_table
 
 
+@pytest.mark.unit
 def test_object_query_error():
     """tests the object_query() throws an error when it starts with /"""
 
@@ -131,6 +158,7 @@ def test_object_query_error():
     )
 
 
+@pytest.mark.unit
 def test_object_structure_error():
     """tests the object_query() throws an error when trying to read a string as a dict"""
 
@@ -146,3 +174,51 @@ def test_object_structure_error():
     assert error is not None
 
     assert str(error) == "Cannot descend into non-dict value at key 'foo'"
+
+
+@pytest.mark.unit
+def test_blank_person_section(tmp_path: Path):
+    person = tmp_path / "preson.csv"
+    rules = tmp_path / "rules.json"
+
+    open(person, "w")
+    open(rules, "w").write(
+        """{
+        "cdm": {
+            "person": {}}}
+        """.strip()
+    )
+
+    caught: None | NoPersonMappings = None
+
+    try:
+        person_rules_check(person.name, rules)
+    except NoPersonMappings as e:
+        caught = e
+    assert caught._person_file == person.name
+    assert caught._rules_file == rules
+
+
+@pytest.mark.unit
+def test_blank_person_wrong_form(tmp_path: Path):
+    person = tmp_path / "preson.csv"
+    rules = tmp_path / "rules.json"
+
+    open(person, "w")
+    open(rules, "w").write(
+        """{
+        "cdm": {
+            "person": "let q = 6 -> fr()"
+            }
+        }
+        """.strip()
+    )
+
+    caught: None | RuntimeError = None
+
+    try:
+        person_rules_check(person.name, rules)
+    except RuntimeError as e:
+        caught = e
+
+    assert "the person section is not in the expected format" == str(caught)

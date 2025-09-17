@@ -1,5 +1,6 @@
 import csv
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -119,7 +120,7 @@ def load_person_ids(
 
 def read_person_ids(
     saved_person_id_file: Path,
-    csvr: Iterable[list[str]],
+    csvr: Iterator[list[str]],
     mappingrules: MappingRules,
     use_input_person_ids: bool,
 ):

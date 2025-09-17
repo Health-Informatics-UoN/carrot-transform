@@ -1,9 +1,11 @@
+import datetime
+import logging
 import re
 from pathlib import Path
 
 import pytest
 
-import carrottransform.cli.subcommands.run as run
+import carrottransform.tools.date_helpers as date_helpers
 import tests.click_tools as click_tools
 import tests.csvrow as csvrow
 
@@ -21,20 +23,34 @@ import tests.csvrow as csvrow
         ("2024-07-05 08:45:30", "05-07-2024 08:45:30"),  # DD-MM-YYYY hh:mm:ss
         ("1999-11-30 14:22:10", "30/11/1999 14:22:10"),  # DD/MM/YYYY hh:mm:ss
         ("2030-02-14 20:05:45", "2030/02/14 20:05:45"),  # YYYY/MM/DD hh:mm:ss
+        (
+            Exception("christmas 2024 couldn't be normalised to ISO 8601 date format"),
+            "christmas 2024",
+        ),  #
     ],
 )
-def test_normalise_to8601(expected, source):
-    # first - do a sanity check to be sure that the value can pass through without being wrecked
-    sanity = run.normalise_to8601(expected)
-    assert expected == sanity, (
-        f"normalise_to8601() {expected=}) can't be loaded to itself"
-    )
+def test_normalise_to8601(caplog, expected: str | Exception, source: str) -> None:
+    caplog.set_level(logging.WARNING)
+    try:
+        actual = date_helpers.normalise_to8601(source)
+    except Exception as e:
+        raise Exception("Exceptions are not allowed")
 
-    # now, check that the RHS value normalises to the LHS
-    actual = run.normalise_to8601(source)
-    assert expected == actual, (
-        f"normalise_to8601({source=}) -> {actual=} != {expected=}"
-    )
+    if isinstance(expected, str):
+        # first - do a sanity check to be sure that the value can pass through without being wrecked
+        sanity = date_helpers.normalise_to8601(expected)
+        assert expected == sanity, (
+            f"normalise_to8601() {expected=}) can't be loaded to itself"
+        )
+        assert expected == actual, (
+            f"normalise_to8601({source=}) -> {actual=} != {expected=}"
+        )
+    else:
+        assert actual == None
+
+        records = list(caplog.records)
+        assert 1 == len(records)
+        assert str(expected) == records[0].msg
 
 
 @pytest.mark.unit
@@ -87,7 +103,7 @@ def test_dateimes_in_persons(tmp_path: Path, engine):
         s_person_id = t2s[person.person_id]
         s_person = s_people[s_person_id]
 
-        n_s_date_of_birth = run.normalise_to8601(s_person.date_of_birth)
+        n_s_date_of_birth = date_helpers.normalise_to8601(s_person.date_of_birth)
 
         assert n_s_date_of_birth == person.birth_datetime
 
@@ -166,3 +182,64 @@ def test_dateimes_in_measurement(tmp_path: Path, engine: bool):
         ), (
             f"{measurement.measurement_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
         )
+
+
+@pytest.mark.unit
+def test_rever_iso():
+    source = "15-06-1987"
+
+    expected = datetime.datetime.strptime(source, "%d-%m-%Y")
+
+    ###
+    ## act
+
+    actual = date_helpers.get_datetime_value(source)
+
+    ###
+    ## assert
+
+    assert actual == expected
+
+
+@pytest.mark.unit
+def test_non_fotrmate():
+    source = "15 of august 1985"
+
+    ###
+    ## act
+    actual = date_helpers.get_datetime_value(source)
+
+    ###
+    ## assert
+
+    assert actual is None
+
+
+@pytest.mark.unit
+def test_normalise_junk_time():
+    source = "2023-09-27 the_morning"
+
+    ###
+    ## act
+
+    actual = date_helpers.normalise_to8601(source)
+
+    ###
+    ## assert
+
+    assert actual == "2023-09-27 00:00:00"
+
+
+@pytest.mark.unit
+def test_normalise_only_hours():
+    source = "2023-09-27 12:12"
+
+    ###
+    ## act
+
+    actual = date_helpers.normalise_to8601(source)
+
+    ###
+    ## assert
+
+    assert actual == "2023-09-27 12:12:00"

@@ -84,9 +84,9 @@ class SourceOpener:
 
             src = open_sql(self, name)
         else:
-            path: Path = self._folder / name
-            if not path.is_file():
-                raise SourceFileNotFoundException(self, path)
+            # path: Path = self._folder / name
+            # if not path.is_file():
+            #     raise SourceFileNotFoundException(self, path)
 
             def open_csv_rows(src: SourceOpener, path: Path):
                 if not path.is_file():
@@ -96,7 +96,7 @@ class SourceOpener:
                     for row in csv.reader(file):
                         yield row
 
-            src = open_csv_rows(self, path)
+            src = open_csv_rows(self, self._folder / name)
 
         # Force the generator to run until first yield
         import itertools
@@ -105,6 +105,4 @@ class SourceOpener:
             first = next(src)
         except StopIteration:
             return src  # empty generator
-        except Exception as e:
-            raise e
         return itertools.chain([first], src)
