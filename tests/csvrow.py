@@ -14,8 +14,8 @@ def back_get(person_ids):
 
         expected_id = 0
 
-        for line in lines:
-            line = line.strip().split("\t")
+        for line_full in lines:
+            line = line_full.strip().split("\t")
 
             source_id = line[0]
             target_id = line[1]

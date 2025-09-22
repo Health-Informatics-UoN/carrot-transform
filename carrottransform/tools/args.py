@@ -130,7 +130,16 @@ def person_rules_check_v2(
             raise Exception("Person file not found.")
         person_file_name = person_file.name
 
-    person_rules = object_query(mappingrules.rules_data, "cdm/person")
+    person__rules: dict | str = object_query(mappingrules.rules_data, "cdm/person")
+
+    if isinstance(person__rules, str):
+        # this is unlikely, but, mypy flags it.
+        # ... will probably write a test at some point to cover this exception
+        raise Exception(
+            f"the entry cdm/person needs to be an object but it was a scalar/string/leaf {person__rules=}"
+        )
+    person_rules: dict = person__rules
+
     if not person_rules:
         raise Exception("Mapping rules to Person table not found")
     if len(person_rules) > 1:
