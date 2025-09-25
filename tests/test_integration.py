@@ -473,7 +473,7 @@ def check__mapping_person(
             raise Exception(f"unexpected {src_person_id=} in {observation=}")
 
 
-@pytest.mark.integration
+@pytest.mark.unit  # it's an integration test ... but i need/want one that i can check quickly
 def test_sql_read(tmp_path: Path):
     """
     this test checks to be sure that two measurements (width and height) don't "collide" or interfere with eachother
@@ -624,7 +624,7 @@ def test_sql_read(tmp_path: Path):
             # conditions
             None,
             None,  # no extra post-test checks
-            id="check if observatiosn work as expected",
+            id="check if observations work as expected",
         ),
         pytest.param(
             # patient_csv

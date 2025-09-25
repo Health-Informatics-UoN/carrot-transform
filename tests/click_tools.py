@@ -255,9 +255,7 @@ def click_test(
             # check to be sure we saw all the observations
             expected_observation_count = record_count(observations)
             assert expected_observation_count == observations_seen, (
-                "expected %d observations, got %d"
-                % expected_observation_count
-                % observations_seen
+                f"expected {expected_observation_count} observations, got {observations_seen}"
             )
 
         # check measurements
