@@ -45,12 +45,12 @@ logger = logger_setup()
     required=True,
     help="define the output directory for OMOP-format tsv files",
 )
-@click.option(
-    "--write-mode",
-    default="w",
-    type=click.Choice(["w", "a"]),
-    help="force write-mode on output files",
-)
+# @click.option(
+#     "--write-mode",
+#     default="w",
+#     type=click.Choice(["w", "a"]),
+#     help="force write-mode on output files",
+# )
 @click.option(
     "--person-file",
     envvar="PERSON_FILE",
@@ -120,7 +120,6 @@ logger = logger_setup()
 def mapstream(
     rules_file: Path,
     output_dir: Path,
-    write_mode: str | None,
     person_file: Path,
     omop_ddl_file: Path | None,
     omop_config_file: Path | None,
@@ -132,6 +131,9 @@ def mapstream(
     input_dir: Path | None,
     input_db_url: Engine | None,
 ):
+    # this doesn't make a lot of sense with s3 (or the eventual database)
+    write_mode: str = 'w'
+
     """
     Map to output using input streams
     """
