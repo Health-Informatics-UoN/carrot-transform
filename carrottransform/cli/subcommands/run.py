@@ -77,13 +77,13 @@ logger = logger_setup()
     required=False,
     help="Quoted string containing omop version - eg '5.3'",
 )
-@click.option(
-    "--saved-person-id-file",
-    type=PathArg,
-    default=None,
-    required=False,
-    help="Full path to person id file used to save person_id state and share person_ids between data sets",
-)
+# @click.option(
+#     "--saved-person-id-file",
+#     type=PathArg,
+#     default=None,
+#     required=False,
+#     help="Full path to person id file used to save person_id state and share person_ids between data sets",
+# )
 @click.option(
     "--use-input-person-ids",
     required=False,
@@ -124,7 +124,6 @@ def mapstream(
     omop_ddl_file: Path | None,
     omop_config_file: Path | None,
     omop_version,
-    saved_person_id_file: Path | None,
     use_input_person_ids,
     last_used_ids_file: Path | None,
     log_file_threshold,
@@ -156,7 +155,6 @@ def mapstream(
                     omop_ddl_file,
                     omop_config_file,
                     omop_version,
-                    saved_person_id_file,
                     use_input_person_ids,
                     last_used_ids_file,
                     log_file_threshold,
@@ -166,6 +164,7 @@ def mapstream(
             )
         )
     )
+
 
     # check on the rules file
     if (rules_file is None) or (not rules_file.is_file()):
@@ -201,7 +200,6 @@ def mapstream(
         output_dir, create_if_missing=True
     )  # Create output directory if needed
 
-    saved_person_id_file = set_saved_person_id_file(saved_person_id_file, output_dir)
 
     ## check on the person_file_rules
     try:
@@ -248,14 +246,15 @@ def mapstream(
     try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
         person_lookup, rejected_person_count = read_person_ids(
-            saved_person_id_file,
+            # this is a little horrible; i'm not ready to rewrite/replace `read_person_ids()` so we just do this pointeing to a fake file
+            Path(__file__) / "this-should-not-exist.txt",
             source.open(person_file.name),
             mappingrules,
             use_input_person_ids != "N",
         )
 
         ## open person_ids output file
-        with saved_person_id_file.open(mode="w") as fhpout:
+        with (output_dir / "person_ids.tsv").open(mode="w") as fhpout:
             ## write the header to the file
             fhpout.write("SOURCE_SUBJECT\tTARGET_SUBJECT\n")
             ##iterate through the ids and write them to the file.
