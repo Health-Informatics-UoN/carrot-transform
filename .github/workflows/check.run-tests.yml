@@ -31,7 +31,7 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run pytest
+          uv run pytest -m 'not docker and not s3tests'
 
   docker_tests:
     name: Docker Tests

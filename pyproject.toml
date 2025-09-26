@@ -6,6 +6,8 @@ authors = [{ name = "anwarfg", email = "913028+anwarfg@users.noreply.github.com"
 requires-python = ">=3.10"
 readme = "README.md"
 dependencies = [
+    "awscli>=1.42.38",
+    "boto3>=1.40.38",
     "click>=8.1.7,<9",
     "psycopg2-binary>=2.9.10",
     "sqlalchemy>=2.0.42",
@@ -24,6 +26,7 @@ test = [
     "coverage>=7.10.3",
 ]
 dev = [
+    "boto3-stubs>=1.40.39",
     "build>=1.2.2.post1",
     "mypy>=1.18.1",
     "ruff>=0.12.0",
@@ -55,11 +58,12 @@ markers = [
     "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
     "integration: marks integration tests",
     "docker: marks tests to run against the docker container",
+    "s3tests: marks tests that require s3 credentials and quotas",
 ]
 
-# not all platforms have docker, so, don't run the docker tests by default
-# ... you can run them with `λ uv run pytest -m docker`
-addopts = "-m 'not docker'"
+# not all platforms have docker and s3, so, don't run the docker tests by default
+# ... you can run them with `λ uv run pytest -m 'not docker and not s3tests'`
+addopts = "-m 'not docker and not s3tests'"
 
 
 

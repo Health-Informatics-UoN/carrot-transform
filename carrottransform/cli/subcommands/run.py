@@ -7,6 +7,7 @@ from sqlalchemy.engine import Engine
 
 import carrottransform.tools as tools
 import carrottransform.tools.sources as sources
+from carrottransform.tools import outputs
 from carrottransform.tools.args import (
     AlchemyConnectionArg,
     OnlyOnePersonInputAllowed,
@@ -40,17 +41,17 @@ logger = logger_setup()
 @click.option(
     "--output-dir",
     envvar="OUTPUT_DIR",
-    type=PathArg,
+    type=outputs.TargetArgument,
     default=None,
     required=True,
     help="define the output directory for OMOP-format tsv files",
 )
-@click.option(
-    "--write-mode",
-    default="w",
-    type=click.Choice(["w", "a"]),
-    help="force write-mode on output files",
-)
+# @click.option(
+#     "--write-mode",
+#     default="w",
+#     type=click.Choice(["w", "a"]),
+#     help="force write-mode on output files",
+# )
 @click.option(
     "--person-file",
     envvar="PERSON_FILE",
@@ -77,13 +78,13 @@ logger = logger_setup()
     required=False,
     help="Quoted string containing omop version - eg '5.3'",
 )
-@click.option(
-    "--saved-person-id-file",
-    type=PathArg,
-    default=None,
-    required=False,
-    help="Full path to person id file used to save person_id state and share person_ids between data sets",
-)
+# @click.option(
+#     "--saved-person-id-file",
+#     type=PathArg,
+#     default=None,
+#     required=False,
+#     help="Full path to person id file used to save person_id state and share person_ids between data sets",
+# )
 @click.option(
     "--use-input-person-ids",
     required=False,
@@ -119,19 +120,24 @@ logger = logger_setup()
 )
 def mapstream(
     rules_file: Path,
-    output_dir: Path,
-    write_mode: str | None,
+    output_dir,
     person_file: Path,
     omop_ddl_file: Path | None,
     omop_config_file: Path | None,
     omop_version,
-    saved_person_id_file: Path | None,
     use_input_person_ids,
     last_used_ids_file: Path | None,
     log_file_threshold,
     input_dir: Path | None,
     input_db_url: Engine | None,
 ):
+    # this doesn't make a lot of sense with s3 (or the eventual database)
+    write_mode: str = "w"
+
+    # rebind this
+    output_target: outputs.OutputTarget = output_dir
+    output_dir = None
+
     """
     Map to output using input streams
     """
@@ -148,13 +154,11 @@ def mapstream(
                 str,
                 [
                     rules_file,
-                    output_dir,
                     write_mode,
                     person_file,
                     omop_ddl_file,
                     omop_config_file,
                     omop_version,
-                    saved_person_id_file,
                     use_input_person_ids,
                     last_used_ids_file,
                     log_file_threshold,
@@ -193,13 +197,6 @@ def mapstream(
 
     # TODO; this (and the fact that the `person_rules_check()` has to happen) means that the input_dir parameter is redundant - it can be inferred from the person_file parameter
     input_dir = person_file.parent
-
-    # ## check directories are valid
-    check_dir_isvalid(
-        output_dir, create_if_missing=True
-    )  # Create output directory if needed
-
-    saved_person_id_file = set_saved_person_id_file(saved_person_id_file, output_dir)
 
     ## check on the person_file_rules
     try:
@@ -246,32 +243,31 @@ def mapstream(
     try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
         person_lookup, rejected_person_count = read_person_ids(
-            saved_person_id_file,
+            # this is a little horrible; i'm not ready to rewrite/replace `read_person_ids()` so we just do this pointeing to a fake file
+            Path(__file__) / "this-should-not-exist.txt",
             source.open(person_file.name),
             mappingrules,
             use_input_person_ids != "N",
         )
 
-        ## open person_ids output file
-        with saved_person_id_file.open(mode="w") as fhpout:
-            ## write the header to the file
-            fhpout.write("SOURCE_SUBJECT\tTARGET_SUBJECT\n")
-            ##iterate through the ids and write them to the file.
-            for person_id, person_assigned_id in person_lookup.items():
-                fhpout.write(f"{str(person_id)}\t{str(person_assigned_id)}\n")
+        ## open person_ids output file with a header
+        fhpout = output_target.start("person_ids", ["SOURCE_SUBJECT", "TARGET_SUBJECT"])
+        ##iterate through the id pairts and write them to the file.
+        for person_id, person_assigned_id in person_lookup.items():
+            fhpout.write([str(person_id), str(person_assigned_id)])
+        fhpout.close()
 
         ## Initialise output files (adding them to a dict), output a header for each
         ## these aren't being closed deliberately
-        for tgtfile in output_files:
-            fhd[tgtfile] = (
-                (output_dir / tgtfile).with_suffix(".tsv").open(mode=write_mode)
-            )
-            if write_mode == "w":
-                outhdr = omopcdm.get_omop_column_list(tgtfile)
-                fhd[tgtfile].write("\t".join(outhdr) + "\n")
+        for target_file in output_files:
+            # if write_mode == "w":
+            out_header = omopcdm.get_omop_column_list(target_file)
+
+            fhd[target_file] = output_target.start(target_file, out_header)
+
             ## maps all omop columns for each file into a dict containing the column name and the index
             ## so tgtcolmaps is a dict of dicts.
-            tgtcolmaps[tgtfile] = omopcdm.get_omop_column_map(tgtfile)
+            tgtcolmaps[target_file] = omopcdm.get_omop_column_map(target_file)
 
     except IOError as e:
         logger.exception(f"I/O - error({e.errno}): {e.strerror} -> {str(e)}")
@@ -397,7 +393,7 @@ def mapstream(
                                 )
 
                                 # write the line to the file
-                                fhd[tgtfile].write("\t".join(outrecord) + "\n")
+                                fhd[tgtfile].write(outrecord)
                             else:
                                 metrics.increment_key_count(
                                     source=srcfilename,
@@ -413,11 +409,13 @@ def mapstream(
                         break
 
         logger.info(
-            f"INPUT file data : {srcfilename}: input count {str(rcount)}, time since start {time.time() - start_time:.5} secs"
+            f"INPUT file data : {srcfilename}: input count {rcount}, time since start {time.time() - start_time:.5} secs"
         )
         for outtablename, count in outcounts.items():
-            logger.info(f"TARGET: {outtablename}: output count {str(count)}")
+            logger.info(f"TARGET: {outtablename}: output count {count}")
     # END main processing loop
+
+    output_target.close()
 
     logger.info(
         "--------------------------------------------------------------------------------"
@@ -425,8 +423,17 @@ def mapstream(
 
     data_summary = metrics.get_mapstream_summary()
     try:
-        with (output_dir / "summary_mapstream.tsv").open(mode="w") as dsfh:
-            dsfh.write(data_summary)
+        summary: None | outputs.OutputTarget.Handle = None
+        for line in map(lambda x: x.split("\t"), data_summary.split("\n")[:-1]):
+            if summary is None:
+                summary = output_target.start("summary_mapstream", line)
+            else:
+                summary.write(line)
+
+        assert (
+            summary is not None
+        )  # need SOME sort of check here to appease mypy BUT we do want to crash badly when summary is still none ... right?
+        summary.close()
     except IOError as e:
         logger.exception(f"I/O error({e.errno}): {e.strerror}")
         logger.exception("Unable to write file")

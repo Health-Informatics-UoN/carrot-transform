@@ -96,27 +96,6 @@ def load_person_ids_v2(
     return person_ids, reject_count
 
 
-def load_person_ids(
-    saved_person_id_file: Path,
-    person_file: Path,
-    mappingrules: MappingRules,
-    use_input_person_ids: bool,
-    delim: str = ",",
-):
-    """`old` loading method that accepts a Path object pointing to the file along witrh a delimeter.
-
-    this is used to preserve the old API for the current v2 testing
-    """
-    return read_person_ids(
-        saved_person_id_file=saved_person_id_file,
-        csvr=csv.reader(
-            person_file.open(mode="r", encoding="utf-8-sig"), delimiter=delim
-        ),
-        mappingrules=mappingrules,
-        use_input_person_ids=use_input_person_ids,
-    )
-
-
 def read_person_ids(
     saved_person_id_file: Path,
     csvr: Iterator[list[str]],
