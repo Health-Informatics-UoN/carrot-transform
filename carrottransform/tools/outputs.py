@@ -1,4 +1,7 @@
-import csv
+"""
+this file contains several "output target" classes. each class is used to write carrot-transform output data in a different way. all classes are operated the same way - so - which output is in use can be selected by the CLICK argument type - also defined in this file.
+"""
+
 import io
 import logging
 from pathlib import Path
@@ -6,7 +9,7 @@ from pathlib import Path
 import boto3
 import click
 import sqlalchemy
-from sqlalchemy import MetaData, select
+from sqlalchemy import MetaData
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +78,7 @@ def sqlOutputTarget(connection: sqlalchemy.engine.Engine) -> OutputTarget:
     """creates an instance of the OutputTarget that points at simple .csv files"""
 
     def start(name: str, header: list[str]):
-        from sqlalchemy import Column, MetaData, Table, Text, insert
+        from sqlalchemy import Column, Table, Text, insert
 
         # if you're adapting this to a non-dumb database; probably best to read teh DDL or something and check/match the column types
         columns = [Column(name, Text()) for name in header]
@@ -205,9 +208,12 @@ class OutputTargetArgumentType(click.ParamType):
 
     name = "a connection to the/a target (whatever that may be)"
 
-    def convert(self, value, param, ctx):
+    def convert(self, value: str, param, ctx):
+        value = str(value)
         if value.startswith("s3:"):
-            raise Exception("flork the write-to-s3")
+            resource = value[len("s3:") :]
+            s3tool = S3Tool(boto3.client("s3"), resource)
+            return s3OutputTarget(s3tool)
         else:
             return csvOutputTarget(Path(value))
 

@@ -91,9 +91,8 @@ def click_test(
     ##
     #
 
-    # output dir needs to be pre-created
+    # output dir doesn't need to be created by us; the arg will handle that
     output = tmp_path / "out"
-    output.mkdir(exist_ok=True)
 
     ##
     # create the sqlite database
@@ -137,7 +136,7 @@ def click_test(
         pass_as_arg(pass__input__as_arg, "--input-db-url", connection_string)
     pass_as_arg(pass__rules_file__as_arg, "--rules-file", rules_json_file)
     pass_as_arg(pass__person_file__as_arg, "--person-file", person_file)
-    pass_as_arg(pass__output_dir__as_arg, "--output-dir", output)
+    pass_as_arg(pass__output_dir__as_arg, "--output-dir", str(output))
     pass_as_arg(
         pass__omop_ddl_file__as_arg,
         "--omop-ddl-file",

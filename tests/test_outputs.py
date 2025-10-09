@@ -12,9 +12,12 @@ from pathlib import Path
 import boto3
 import pytest
 import sqlalchemy
+from click.testing import CliRunner
 from sqlalchemy import Column, MetaData, Table, Text, insert
 
+from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
+from tests.click_tools import package_root
 
 
 @pytest.mark.unit
@@ -230,6 +233,9 @@ def test_listing_a_folder():
 
 @pytest.mark.s3tests
 def test_with_the_writer():
+    """
+    tests my adapter's ability to write to s3 buckets as if they're files
+    """
     s3tool = outputs.S3Tool(boto3.client("s3"), "carrot-transform-testtt")
 
     outputTarget = outputs.s3OutputTarget(s3tool)
@@ -270,22 +276,100 @@ def test_with_the_writer():
     assert test_name not in names_seen
 
 
-"""
+@pytest.mark.s3tests
+def test_s3run(
+    tmp_path: Path,
+):
+    output = "s3:carrot-transform-testtt"
 
-                                # write the line to the file
-                                fhd[tgtfile].write("\t".join(outrecord) + "\n")
+    # this file is the only real parameter
+    person_file: Path = (
+        package_root.parent / "tests/test_data/observe_smoking/demos.csv"
+    )
 
+    # cool; we fine the .json file and use it as rules
+    rules1_file: Path | None = None
+    for f in person_file.parent.glob("*.json"):
+        if f.is_file():
+            assert rules1_file is None
+            rules1_file = f
+    assert rules1_file is not None
 
-        ## Initialise output files (adding them to a dict), output a header for each
-        ## these aren't being closed deliberately
-        for tgtfile in output_files:
-            fhd[tgtfile] = (
-                (output_dir / tgtfile).with_suffix(".tsv").open(mode=write_mode)
-            )
-            if write_mode == "w":
-                outhdr = omopcdm.get_omop_column_list(tgtfile)
-                fhd[tgtfile].write("\t".join(outhdr) + "\n")
-            ## maps all omop columns for each file into a dict containing the column name and the index
-            ## so tgtcolmaps is a dict of dicts.
-            tgtcolmaps[tgtfile] = omopcdm.get_omop_column_map(tgtfile)
-    """
+    ##
+    # run click
+    runner = CliRunner()
+    result = runner.invoke(
+        mapstream,
+        [
+            "--input-dir",
+            str(person_file.parent),
+            "--rules-file",
+            str(rules1_file),
+            "--person-file",
+            str(person_file),
+            "--output-dir",
+            output,
+            "--omop-ddl-file",
+            f"{package_root / 'config/OMOPCDM_postgresql_5.3_ddl.sql'}",
+            "--omop-config-file",
+            f"{package_root / 'config/config.json'}",
+        ],
+    )
+
+    if result.exception is not None:
+        raise (result.exception)
+
+    message = "did that work?"
+    message += f"\n\t{result.exit_code=}"
+
+    raise Exception(message)
+
+    # (patient_csv, persons, observations, measurements, conditions, post_check) = (
+    #     # patient_csv
+    #     "observe_smoking/demos.csv",
+    #     # persons
+    #     4,
+    #     # observations
+    #     {
+    #         123: {
+    #             "2018-01-01": {"3959110": "active"},
+    #             "2018-02-01": {"3959110": "active"},
+    #             "2018-03-01": {"3957361": "quit"},
+    #             "2018-04-01": {"3959110": "active"},
+    #             "2018-05-01": {"35821355": "never"},
+    #         },
+    #         456: {
+    #             "2009-01-01": {"35821355": "never"},
+    #             "2009-02-01": {"35821355": "never"},
+    #             "2009-03-01": {"3957361": "quit"},
+    #         },
+    #     },
+    #     # measurements
+    #     None,
+    #     # conditions
+    #     None,
+    #     None,  # no extra post-test checks
+    # )
+
+    # from tests import test_integration
+
+    # s3tool = outputs.S3Tool(boto3.client("s3"), "carrot-transform-testtt")
+    # outputTarget = outputs.s3OutputTarget(s3tool)
+
+    # test_integration.test_fixture(
+    #     # output = 's3://carrot-transform-testtt',
+    #     engine=True,
+    #     pass__input__as_arg=True,
+    #     pass__rules_file__as_arg=True,
+    #     pass__person_file__as_arg=True,
+    #     pass__output_dir__as_arg=True,
+    #     pass__omop_ddl_file__as_arg=True,
+    #     pass__omop_config_file__as_arg=True,
+    #     tmp_path=tmp_path,
+    #     patient_csv=patient_csv,
+    #     persons=persons,
+    #     observations=observations,
+    #     measurements=measurements,
+    #     conditions=conditions,
+    #     post_check=post_check,
+    # )

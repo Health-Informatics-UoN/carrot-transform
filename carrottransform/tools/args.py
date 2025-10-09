@@ -84,7 +84,7 @@ class PathArgumentType(click.ParamType):
     def convert(self, value: str, param, ctx) -> Path:
         try:
             # switch to posix separators
-            value = value.replace("\\", "/")
+            value = str(value).replace("\\", "/")
 
             prefix: str = "@carrot/"
             if value.startswith(prefix):
