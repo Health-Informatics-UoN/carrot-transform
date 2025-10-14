@@ -1,6 +1,7 @@
 import csv
 import logging
 from pathlib import Path
+from typing import Iterator
 
 import sqlalchemy
 from sqlalchemy import MetaData, select
@@ -108,3 +109,77 @@ class SourceOpener:
         except Exception as e:
             raise e
         return itertools.chain([first], src)
+
+
+class SourceObject:
+    def __init__(self):
+        pass
+
+    def open(self, table: str) -> Iterator[list[str]]:
+        assert not table.endswith(".csv")  # debugging check
+        raise NotImplemented("virtual method called")
+
+    def close(self):
+        raise NotImplemented("virtual method called")
+
+
+def csvSourceObject(path: Path, sep: str) -> SourceObject:
+    ext: str = (
+        {
+            "\t": ".tsv",
+            ",": ".csv",
+        }
+    )[sep]
+
+    class SO(SourceObject):
+        def __init__(self):
+            pass
+
+        def close(self):
+            pass
+
+        def open(self, table: str) -> Iterator[list[str]]:
+            assert not table.endswith(".csv")
+            file = (path / (table + ext)).open("r", encoding="utf-8")
+            reader = csv.reader(file, delimiter=sep)
+
+            for row in reader:
+                yield row
+
+            file.close()
+
+    return SO()
+
+
+def s3SourceObject(bucket: str, sep: str) -> SourceObject:
+    class SO(SourceObject):
+        def __init__(self, bucket):
+            import boto3
+
+            self._bucket = boto3.resource("s3").Bucket(bucket)
+
+        def close(self):
+            self._bucket = None
+
+        def open(self, table: str) -> Iterator[list[str]]:
+            assert not table.endswith(".csv")
+
+            import csv
+            import io
+
+            # Example: read CSV from S3
+            try:
+                obj = self._bucket.Object(table)
+
+                # Stream the content without loading everything into memory
+                stream = obj.get()["Body"]
+                text_stream = io.TextIOWrapper(stream, encoding="utf-8")
+                reader = csv.reader(text_stream, delimiter=sep)
+
+                for row in reader:
+                    yield row
+                stream.close()
+            except Exception as e:
+                raise RuntimeError(f"Failed to read {table=} from S3: {e=}")
+
+    return SO(bucket)

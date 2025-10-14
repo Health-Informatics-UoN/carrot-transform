@@ -6,6 +6,7 @@ runs tests for the target writer
 """
 
 import io
+import logging
 import textwrap
 from pathlib import Path
 
@@ -18,6 +19,8 @@ from sqlalchemy import Column, MetaData, Table, Text, insert
 from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
 from tests.click_tools import package_root
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.mark.unit
@@ -276,10 +279,80 @@ def test_with_the_writer():
     assert test_name not in names_seen
 
 
+def compare_to_tsvs(subpath: str, so):
+    """scan all tsv files in a folder.
+
+    open each .tsv in the tests subpath and compare it to the open'ed from the named SO.
+
+    if the SO is missing a tsv? fail!
+    if the SO has different rows? fail!
+    if the SO has extra/too few rows? fail!
+    if the SO has .tsv files we don't ... pass ...
+
+    """
+
+    test: Path = package_root.parent / "tests/test_data" / subpath
+
+    # open the saved .tsv file
+    so_ex = sources.csvSourceObject(test, sep="\t")
+
+    for item in test.glob("*.tsv"):
+        name: str = item.name[:-4]
+
+        import itertools
+
+        for e, a in itertools.zip_longest(so_ex.open(name), so.open(name)):
+            assert e is not None
+            assert a is not None
+
+            assert e == a
+        logger.info(f"matching {subpath=} for {name=}")
+
+    # it matches!
+    logger.info(f"all match in {subpath=}")
+
+
+import carrottransform.tools.sources
+
+
+@pytest.mark.s3tests
+def test_s3read():
+    # compare_to_tsv(
+    #     'observe_smoking',
+    #     None # ... so far ...
+    # )
+
+    # open the saved .tsv file
+    so_expected = sources.csvSourceObject(
+        package_root.parent / "tests/test_data/observe_smoking/", sep="\t"
+    )
+
+    # open the computed s3 file
+    # https://signin.aws.amazon.com/signin?redirect_uri=https%3A%2F%2Feu-west-2.console.aws.amazon.com%2Fs3%2Fbuckets%2Fcarrot-transform-testtt%3FbucketType%3Dgeneral%26hashArgs%3D%2523%26isauthcode%3Dtrue%26oauthStart%3D1760127248281%26region%3Deu-west-2%26state%3DhashArgsFromTB_eu-west-2_046fc5458fe464a1%26tab%3Dobjects&client_id=arn%3Aaws%3Asignin%3A%3A%3Aconsole%2Fs3tb&forceMobileApp=0&code_challenge=M8oQyzNBHlAsVLKU1kuH9lJj16_QN7mmL81UXB7cVo8&code_challenge_method=SHA-256
+    so_actual = sources.s3SourceObject("carrot-transform-testtt", sep="\t")
+
+    import itertools
+
+    for e, a in itertools.zip_longest(
+        so_expected.open("observation"), so_actual.open("observation")
+    ):
+        assert e is not None
+        assert a is not None
+
+        assert e == a
+
+    compare_to_tsvs(
+        "observe_smoking", sources.s3SourceObject("carrot-transform-testtt", sep="\t")
+    )
+
+
 @pytest.mark.s3tests
 def test_s3run(
     tmp_path: Path,
+    caplog,
 ):
+    caplog.set_level(logging.INFO)
+
     output = "s3:carrot-transform-testtt"
 
     # this file is the only real parameter
@@ -307,69 +380,20 @@ def test_s3run(
             str(rules1_file),
             "--person-file",
             str(person_file),
-            "--output-dir",
+            "--output",
             output,
             "--omop-ddl-file",
-            f"{package_root / 'config/OMOPCDM_postgresql_5.3_ddl.sql'}",
+            "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
             "--omop-config-file",
-            f"{package_root / 'config/config.json'}",
+            "@carrot/config/config.json",
         ],
     )
 
     if result.exception is not None:
         raise (result.exception)
 
-    message = "did that work?"
-    message += f"\n\t{result.exit_code=}"
-
-    raise Exception(message)
-
-    # (patient_csv, persons, observations, measurements, conditions, post_check) = (
-    #     # patient_csv
-    #     "observe_smoking/demos.csv",
-    #     # persons
-    #     4,
-    #     # observations
-    #     {
-    #         123: {
-    #             "2018-01-01": {"3959110": "active"},
-    #             "2018-02-01": {"3959110": "active"},
-    #             "2018-03-01": {"3957361": "quit"},
-    #             "2018-04-01": {"3959110": "active"},
-    #             "2018-05-01": {"35821355": "never"},
-    #         },
-    #         456: {
-    #             "2009-01-01": {"35821355": "never"},
-    #             "2009-02-01": {"35821355": "never"},
-    #             "2009-03-01": {"3957361": "quit"},
-    #         },
-    #     },
-    #     # measurements
-    #     None,
-    #     # conditions
-    #     None,
-    #     None,  # no extra post-test checks
-    # )
-
-    # from tests import test_integration
-
-    # s3tool = outputs.S3Tool(boto3.client("s3"), "carrot-transform-testtt")
-    # outputTarget = outputs.s3OutputTarget(s3tool)
-
-    # test_integration.test_fixture(
-    #     # output = 's3://carrot-transform-testtt',
-    #     engine=True,
-    #     pass__input__as_arg=True,
-    #     pass__rules_file__as_arg=True,
-    #     pass__person_file__as_arg=True,
-    #     pass__output_dir__as_arg=True,
-    #     pass__omop_ddl_file__as_arg=True,
-    #     pass__omop_config_file__as_arg=True,
-    #     tmp_path=tmp_path,
-    #     patient_csv=patient_csv,
-    #     persons=persons,
-    #     observations=observations,
-    #     measurements=measurements,
-    #     conditions=conditions,
-    #     post_check=post_check,
-    # )
+    ##
+    # verify / assert
+    compare_to_tsvs(
+        "observe_smoking", sources.s3SourceObject("carrot-transform-testtt", sep="\t")
+    )

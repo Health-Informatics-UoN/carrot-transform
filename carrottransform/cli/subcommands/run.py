@@ -39,8 +39,8 @@ logger = logger_setup()
     help="json file containing mapping rules",
 )
 @click.option(
-    "--output-dir",
-    envvar="OUTPUT_DIR",
+    "--output",
+    envvar="OUTPUT",
     type=outputs.TargetArgument,
     default=None,
     required=True,
@@ -120,7 +120,7 @@ logger = logger_setup()
 )
 def mapstream(
     rules_file: Path,
-    output_dir,
+    output: outputs.OutputTarget,
     person_file: Path,
     omop_ddl_file: Path | None,
     omop_config_file: Path | None,
@@ -133,10 +133,6 @@ def mapstream(
 ):
     # this doesn't make a lot of sense with s3 (or the eventual database)
     write_mode: str = "w"
-
-    # rebind this
-    output_target: outputs.OutputTarget = output_dir
-    output_dir = None
 
     """
     Map to output using input streams
@@ -251,7 +247,7 @@ def mapstream(
         )
 
         ## open person_ids output file with a header
-        fhpout = output_target.start("person_ids", ["SOURCE_SUBJECT", "TARGET_SUBJECT"])
+        fhpout = output.start("person_ids", ["SOURCE_SUBJECT", "TARGET_SUBJECT"])
         ##iterate through the id pairts and write them to the file.
         for person_id, person_assigned_id in person_lookup.items():
             fhpout.write([str(person_id), str(person_assigned_id)])
@@ -263,7 +259,7 @@ def mapstream(
             # if write_mode == "w":
             out_header = omopcdm.get_omop_column_list(target_file)
 
-            fhd[target_file] = output_target.start(target_file, out_header)
+            fhd[target_file] = output.start(target_file, out_header)
 
             ## maps all omop columns for each file into a dict containing the column name and the index
             ## so tgtcolmaps is a dict of dicts.
@@ -415,8 +411,6 @@ def mapstream(
             logger.info(f"TARGET: {outtablename}: output count {count}")
     # END main processing loop
 
-    output_target.close()
-
     logger.info(
         "--------------------------------------------------------------------------------"
     )
@@ -426,7 +420,7 @@ def mapstream(
         summary: None | outputs.OutputTarget.Handle = None
         for line in map(lambda x: x.split("\t"), data_summary.split("\n")[:-1]):
             if summary is None:
-                summary = output_target.start("summary_mapstream", line)
+                summary = output.start("summary_mapstream", line)
             else:
                 summary.write(line)
 
@@ -438,6 +432,7 @@ def mapstream(
         logger.exception(f"I/O error({e.errno}): {e.strerror}")
         logger.exception("Unable to write file")
         raise e
+    output.close()
 
     # END mapstream
     logger.info(f"Elapsed time = {time.time() - start_time:.5f} secs")
