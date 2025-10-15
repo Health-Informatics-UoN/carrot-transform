@@ -77,6 +77,37 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
 #### ==========================================================================
 ## utility functions
 
+def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names = None):
+
+    assert isinstance(so, Path) == (names is None)
+    if isinstance(so, Path):
+        names = [file.name[:-4] for file in so.glob('*.csv')]
+        so = sources.csvSourceObject(
+            path = so,
+            sep = ','
+        )
+    assert isinstance(so, sources.SourceObject)
+
+    # copy all named ones across
+    for name in names:
+
+        i = so.open(name)
+        o = None
+
+        for r in i:
+            if o is None:
+                o = ot.start(name, r)
+            else:
+                o.write(r)
+        o.close()
+        i.close()
+    
+    #
+    so.close()
+    ot.close()
+
+
+
 def run_v1(
     inputs: str,
     person: str,

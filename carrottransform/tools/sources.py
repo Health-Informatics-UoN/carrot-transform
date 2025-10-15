@@ -112,6 +112,19 @@ class SourceOpener:
             raise e
         return itertools.chain([first], src)
 
+def keen_head(data):
+    """ Force the generator to run until first yield
+    """
+    import itertools
+
+    try:
+        first = next(data)
+    except StopIteration:
+        return data  # empty generator
+    except Exception as e:
+        raise e
+    return itertools.chain([first], data)
+
 
 class SourceObject:
     def __init__(self):
@@ -134,12 +147,45 @@ class SourceObjectArgumentType(click.ParamType):
         if value.startswith("s3:"):
             bucket = value[len("s3:") :]
             return s3SourceObject(bucket, '\t') # TODO; do something else with the separators
-        else:
-            return csvSourceObject(Path(value), sep=',')
+        
+        if value.startswith("sqlite:"):  # TODO; allow other sorts of database connections
+            return sqlSourceObject(
+                sqlalchemy.create_engine(value)
+            )
+
+        return csvSourceObject(Path(value), sep=',')
 
 
 # create a singleton for the Click settings
 SourceArgument = SourceObjectArgumentType()
+
+def sqlSourceObject(connection: sqlalchemy.engine.Engine) -> SourceObject:
+
+    class SO(SourceObject):
+        def __init__(self):
+            pass
+
+        def close(self):
+            pass
+
+        def open(self, table: str) -> Iterator[list[str]]:
+            assert not table.endswith(".csv")
+
+            def sql():
+                metadata = MetaData()
+                metadata.reflect(bind=connection, only=[table])
+                source = metadata.tables[table]
+                with connection.connect() as conn:
+                    result = conn.execute(select(source))
+                    yield result.keys()
+
+                    for row in result:
+                        yield list(row)
+
+            return keen_head(sql())
+
+    return SO()
+
 
 def csvSourceObject(path: Path, sep: str) -> SourceObject:
     ext: str = (
