@@ -20,7 +20,7 @@ from sqlalchemy import Column, MetaData, Table, Text, insert
 from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
 from tests.click_tools import package_root
-
+import tests.testools as testools
 logger = logging.getLogger(__name__)
 
 
@@ -186,17 +186,6 @@ def test_join():
     assert "a\tb\tc\n" == ("\t".join(header) + "\n")
 
 
-def rand_hex(length: int = 16) -> str:
-    """genearttes a random hex string. used for test data"""
-    import random
-
-    out = ""
-    src = "0123456789abcdef"
-
-    for i in range(0, length):
-        out += src[random.randint(0, len(src) - 1)]
-
-    return out
 
 
 @pytest.mark.s3tests
@@ -208,10 +197,10 @@ def test_listing_a_folder():
     names_seen.append("")
     test_name = ""
     while test_name in names_seen:
-        test_name = "yass.test/test-" + rand_hex() + ".txt"
+        test_name = "yass.test/test-" + testools.rand_hex() + ".txt"
 
     # generate some content for the object
-    body = "Hello from Python!\n" + rand_hex()
+    body = "Hello from Python!\n" + testools.rand_hex()
 
     # create the object
     s3tool.new_stream(test_name)  # start the object
@@ -249,7 +238,7 @@ def test_with_the_writer():
     names_seen.append("")
     test_name = ""
     while test_name in names_seen:
-        test_name = "yass.test/test-" + rand_hex() + ".csv"
+        test_name = "yass.test/test-" + testools.rand_hex() + ".csv"
 
     # create the object
     handle = outputTarget.start(test_name, ["a", "b", "id"])
@@ -280,38 +269,6 @@ def test_with_the_writer():
     assert test_name not in names_seen
 
 
-def compare_to_tsvs(subpath: str, so):
-    """scan all tsv files in a folder.
-
-    open each .tsv in the tests subpath and compare it to the open'ed from the named SO.
-
-    if the SO is missing a tsv? fail!
-    if the SO has different rows? fail!
-    if the SO has extra/too few rows? fail!
-    if the SO has .tsv files we don't ... pass ...
-
-    """
-
-    test: Path = package_root.parent / "tests/test_data" / subpath
-
-    # open the saved .tsv file
-    so_ex = sources.csvSourceObject(test, sep="\t")
-
-    for item in test.glob("*.tsv"):
-        name: str = item.name[:-4]
-
-        import itertools
-
-        for e, a in itertools.zip_longest(so_ex.open(name), so.open(name)):
-            assert e is not None
-            assert a is not None
-
-            assert e == a
-        logger.info(f"matching {subpath=} for {name=}")
-
-    # it matches!
-    logger.info(f"all match in {subpath=}")
-
 
 
 
@@ -341,7 +298,7 @@ def test_s3read():
 
         assert e == a
 
-    compare_to_tsvs(
+    testools.compare_to_tsvs(
         "observe_smoking", sources.s3SourceObject("carrot-transform-testtt", sep="\t")
     )
 
@@ -374,7 +331,7 @@ def test_s3run(
     result = runner.invoke(
         mapstream,
         [
-            "--input-dir",
+            "--inputs",
             str(person_file.parent),
             "--rules-file",
             str(rules1_file),
@@ -394,6 +351,6 @@ def test_s3run(
 
     ##
     # verify / assert
-    compare_to_tsvs(
+    testools.compare_to_tsvs(
         "observe_smoking", sources.s3SourceObject("carrot-transform-testtt", sep="\t")
     )

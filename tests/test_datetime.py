@@ -1,11 +1,16 @@
 import re
 from pathlib import Path
 
+from click.testing import CliRunner
+from carrottransform.cli.subcommands.run import mapstream
+import carrottransform.tools.sources as sources
+from sqlalchemy import Column, MetaData, Table, Text
 import pytest
 
 import carrottransform.cli.subcommands.run as run
 import tests.click_tools as click_tools
 import tests.csvrow as csvrow
+import tests.testools as testools
 
 
 @pytest.mark.unit
@@ -166,3 +171,27 @@ def test_dateimes_in_measurement(tmp_path: Path, engine: bool):
         ), (
             f"{measurement.measurement_datetime=} is the wrong format, it should be `YYYY-MM-DD HH:MM:SS` {tmp_path=}"
         )
+
+@pytest.mark.unit
+def test_datetime_in_measurement_csv(tmp_path: Path):
+    
+    from tests.click_tools import package_root
+
+    testools.run_v1(
+        # set the inputs directory
+        inputs = str(package_root / "examples/test/inputs/"),
+
+        # set the person file name
+        person = str(package_root / "examples/test/inputs/" / "Demographics.csv"),
+
+        # set the path to the rules file
+        mapper = str(package_root / "examples/test/rules/rules_14June2021.json"),
+
+        # set/up the output directory
+        output = str(tmp_path / 'out'),
+    )
+
+    testools.compare_to_tsvs(
+        '@carrot/examples/test/output',
+        sources.csvSourceObject(tmp_path / 'out', '\t')        
+    )

@@ -135,7 +135,7 @@ class SourceObjectArgumentType(click.ParamType):
             bucket = value[len("s3:") :]
             return s3SourceObject(bucket, '\t') # TODO; do something else with the separators
         else:
-            return csvSourceObject(Path(value), sep='\t')
+            return csvSourceObject(Path(value), sep=',')
 
 
 # create a singleton for the Click settings

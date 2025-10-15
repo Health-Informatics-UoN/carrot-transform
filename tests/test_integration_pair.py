@@ -3,6 +3,7 @@ copy of the test_integration - but - with only a few cases so it can be run quic
 
 """
 
+import tests.testools as testools
 import logging
 import re
 from pathlib import Path
@@ -16,55 +17,6 @@ from tests.click_tools import package_root
 from carrottransform.tools import outputs, sources
 import tests.csvrow as csvrow
 logger = logging.getLogger(__name__)
-
-#### ==========================================================================
-## unit test cases - for small functionalitt
-
-@pytest.mark.unit
-def test_compare(
-    caplog,
-):
-    """test the validator"""
-
-    caplog.set_level(logging.INFO)
-
-    path: Path = package_root.parent / 'tests/test_data/observe_smoking'
-
-    compare_to_tsvs(
-        "observe_smoking", sources.csvSourceObject(path, sep="\t")
-    )
-
-@pytest.mark.unit
-def test_weird_product():
-    from types import SimpleNamespace
-    
-    
-    
-    def product(**kv):
-        d = vars(SimpleNamespace(**kv))
-        k = list(d)
-        
-        raise Exception(
-            f"{d=}"
-        )
-    
-    full = list(
-        map(
-            lambda a: str((a.test, a.foot)),
-            product(
-                test = ['f'],
-                foot = [1,2,3]
-            )
-        )
-    )
-
-
-
-
-
-
-
-    raise 'okay'
 
 
 #### ==========================================================================
@@ -219,7 +171,7 @@ def run_test(
 
     ##
     # verify / assert
-    compare_to_tsvs(
+    testools.compare_to_tsvs(
         "observe_smoking", sources.s3SourceObject("carrot-transform-testtt", sep="\t")
     )
 
@@ -228,47 +180,6 @@ def run_test(
 ## end (of test cases)
 #### --------------------------------------------------------------------------
 
-
-#### ==========================================================================
-## verification functions
-
-
-def compare_to_tsvs(subpath: str, so):
-    """scan all tsv files in a folder.
-
-    open each .tsv in the tests subpath and compare it to the open'ed from the named SO.
-
-    if the SO is missing a tsv? fail!
-    if the SO has different rows? fail!
-    if the SO has extra/too few rows? fail!
-    if the SO has .tsv files we don't ... pass ...
-
-    """
-
-    test: Path = package_root.parent / "tests/test_data" / subpath
-
-    # open the saved .tsv file
-    so_ex = sources.csvSourceObject(test, sep="\t")
-
-    for item in test.glob("*.tsv"):
-        name: str = item.name[:-4]
-
-        import itertools
-
-        for e, a in itertools.zip_longest(so_ex.open(name), so.open(name)):
-            assert e is not None
-            assert a is not None
-
-            assert e == a
-        logger.info(f"matching {subpath=} for {name=}")
-
-    # it matches!
-    logger.info(f"all match in {subpath=}")
-
-
-
-## end (of verification functions)
-#### --------------------------------------------------------------------------
 
 
 
