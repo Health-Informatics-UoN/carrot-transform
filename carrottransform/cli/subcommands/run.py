@@ -42,7 +42,7 @@ logger = logger_setup()
     "--output",
     envvar="OUTPUT",
     type=outputs.TargetArgument,
-    default=None,
+    # default=None,
     required=True,
     help="define the output directory for OMOP-format tsv files",
 )
@@ -105,18 +105,11 @@ logger = logger_setup()
     help="Lower outcount limit for logfile output",
 )
 @click.option(
-    "--input-dir",
-    envvar="INPUT_DIR",
-    type=PathArg,
-    required=False,
-    help="Input directories",
-)
-@click.option(
-    "--input-db-url",
-    envvar="INPUT_DB_URL",
-    type=AlchemyConnectionArg,
-    required=False,
-    help="connection string to read data from a database",
+    "--inputs",
+    envvar="INPUTS",
+    type=sources.SourceArgument,
+    required=True,
+    help="Input directory or database",
 )
 def mapstream(
     rules_file: Path,
@@ -128,8 +121,7 @@ def mapstream(
     use_input_person_ids,
     last_used_ids_file: Path | None,
     log_file_threshold,
-    input_dir: Path | None,
-    input_db_url: Engine | None,
+    inputs: sources.SourceArgument,
 ):
     # this doesn't make a lot of sense with s3 (or the eventual database)
     write_mode: str = "w"
@@ -158,8 +150,6 @@ def mapstream(
                     use_input_person_ids,
                     last_used_ids_file,
                     log_file_threshold,
-                    input_dir,
-                    input_db_url,
                 ],
             )
         )
@@ -174,25 +164,6 @@ def mapstream(
     omop_config_file, omop_ddl_file = set_omop_filenames(
         omop_ddl_file, omop_config_file, omop_version
     )
-
-    ## create the SourceOpener object we'll use
-    if input_db_url is not None:
-        source = sources.SourceOpener(engine=input_db_url)
-        logger.info(f"Input data will be taken from {input_db_url=}")
-    else:
-        if not person_file.is_file():
-            raise click.BadArgumentUsage(
-                f"the supplied person file does not exist {person_file}"
-            )
-        if (input_dir is not None) and person_file.parent != input_dir:
-            raise click.BadArgumentUsage(
-                "the supplied person file must be in the input_dir"
-            )
-
-        source = sources.SourceOpener(folder=person_file.parent)
-
-    # TODO; this (and the fact that the `person_rules_check()` has to happen) means that the input_dir parameter is redundant - it can be inferred from the person_file parameter
-    input_dir = person_file.parent
 
     ## check on the person_file_rules
     try:
@@ -241,7 +212,7 @@ def mapstream(
         person_lookup, rejected_person_count = read_person_ids(
             # this is a little horrible; i'm not ready to rewrite/replace `read_person_ids()` so we just do this pointeing to a fake file
             Path(__file__) / "this-should-not-exist.txt",
-            source.open(person_file.name),
+            inputs.open(de_csv(person_file.name)),
             mappingrules,
             use_input_person_ids != "N",
         )
@@ -289,7 +260,7 @@ def mapstream(
     for srcfilename in rules_input_files:
         rcount = 0
 
-        csvr = source.open(srcfilename)
+        csvr = inputs.open(de_csv(src_file_name))
 
         ## create dict for input file, giving the data and output file
         tgtfiles, src_to_tgt = mappingrules.parse_rules_src_to_tgt(srcfilename)
@@ -446,3 +417,13 @@ def run():
 run.add_command(mapstream, "mapstream")
 if __name__ == "__main__":
     run()
+
+def de_csv(name: str) -> str:
+    
+    # do an assertion
+    if not name.endswith('.csv'):
+        logger.error(f"{name=} but it was expected to end with .csv")
+        exit(2)
+
+    # strip the extension
+    return name[:-4]

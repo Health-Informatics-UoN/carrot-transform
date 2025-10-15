@@ -9,6 +9,7 @@ import io
 import logging
 import textwrap
 from pathlib import Path
+import carrottransform.tools.sources
 
 import boto3
 import pytest
@@ -312,7 +313,6 @@ def compare_to_tsvs(subpath: str, so):
     logger.info(f"all match in {subpath=}")
 
 
-import carrottransform.tools.sources
 
 
 @pytest.mark.s3tests

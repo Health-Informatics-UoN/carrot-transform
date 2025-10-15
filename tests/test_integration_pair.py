@@ -8,125 +8,273 @@ import re
 from pathlib import Path
 
 import pytest
+from click.testing import CliRunner
 
+from carrottransform.cli.subcommands.run import mapstream
 import tests.click_tools as click_tools
+from tests.click_tools import package_root
+from carrottransform.tools import outputs, sources
 import tests.csvrow as csvrow
+logger = logging.getLogger(__name__)
 
-##
-# concept constants
-# these are concept values that happen to be used in these tests. they're not a universal thing - they're just what is being used here.
+#### ==========================================================================
+## unit test cases - for small functionalitt
 
-#
-concept__height = 903133
-concept__weight = 903121
+@pytest.mark.unit
+def test_compare(
+    caplog,
+):
+    """test the validator"""
 
-#
-concept__mammogram_01 = 4031867
-concept__mammogram_10 = 4031244
-concept__mitoses = 4240068
-concept__pitting = 4227224
+    caplog.set_level(logging.INFO)
 
-# smoking constants
-concept__active = 3959110
-concept__quit = 3957361
-concept__never = 35821355
+    path: Path = package_root.parent / 'tests/test_data/observe_smoking'
 
-# end of concept constants
-##
+    compare_to_tsvs(
+        "observe_smoking", sources.csvSourceObject(path, sep="\t")
+    )
 
+@pytest.mark.unit
+def test_weird_product():
+    from types import SimpleNamespace
+    
+    
+    
+    def product(**kv):
+        d = vars(SimpleNamespace(**kv))
+        k = list(d)
+        
+        raise Exception(
+            f"{d=}"
+        )
+    
+    full = list(
+        map(
+            lambda a: str((a.test, a.foot)),
+            product(
+                test = ['f'],
+                foot = [1,2,3]
+            )
+        )
+    )
+
+
+
+
+
+
+
+    raise 'okay'
+
+
+#### ==========================================================================
+## test case generator
+
+def pair_test_cases(s3: bool = False):
+    
+    from types import SimpleNamespace
+
+
+    class Circular():
+        """indefinietly loops through items, but, has an indicator to check when we've seen all values.
+        
+        should do something more elabourate to cross multiples together
+        """
+
+        def __init__(self, need: int, *data):
+            self._data = data
+            self._need: int = need
+            self._loops: int = 0
+            self._iter = iter(data)
+
+        def more(self):
+            return self._need >= self._loops
+
+        def get_next(self):
+            try:
+                return next(self._iter)
+            except StopIteration:
+                self._loops += 1
+                self._iter = iter(self._data)
+                return self.get_next()
+
+
+    ##
+    # define the circular thigns that're sources of data
+
+    test = Circular(2,
+        # TODO; add more test cases
+        SimpleNamespace(folder= 'observe_smoking', person='demos', rules=''),
+    )
+
+    input_from = Circular(1,
+        'csv',
+    )
+    
+
+    if s3:
+        output_to = Circular(3, 's3')
+    else:
+        output_to = Circular(3, 'csv')
+    
+
+    # TODO; add in the envirnment variable switches
+
+    # TODO: loop differntly. change one var each iteration
+    
+    ##
+    # now loop through them.
+
+    while test.more() or input_from.more() or output_to.more():
+        yield SimpleNamespace(
+            test = test.get_next(),
+            input_from = input_from.get_next(),
+            output_to = output_to.get_next(),
+        )
+
+#### ==========================================================================
+## test front-ends so i don't do s3 tests (and eat my budget) when i don't want
 
 @pytest.mark.integration
-def test_observations(
+@pytest.mark.parametrize("case", list(pair_test_cases(s3=False)))
+def test_local(
     tmp_path: Path,
+    caplog,
+    case,
 ):
-    (patient_csv, persons, observations, measurements, conditions, post_check) = (
-        # patient_csv
-        "observe_smoking/demos.csv",
-        # persons
-        4,
-        # observations
-        {
-            123: {
-                "2018-01-01": {"3959110": "active"},
-                "2018-02-01": {"3959110": "active"},
-                "2018-03-01": {"3957361": "quit"},
-                "2018-04-01": {"3959110": "active"},
-                "2018-05-01": {"35821355": "never"},
-            },
-            456: {
-                "2009-01-01": {"35821355": "never"},
-                "2009-02-01": {"35821355": "never"},
-                "2009-03-01": {"3957361": "quit"},
-            },
-        },
-        # measurements
-        None,
-        # conditions
-        None,
-        None,  # no extra post-test checks
-    )
+    run_test(tmp_path,caplog,case)
 
-    from tests import test_integration
-
-    test_integration.test_fixture(
-        engine=True,
-        pass__input__as_arg=True,
-        pass__rules_file__as_arg=True,
-        pass__person_file__as_arg=True,
-        pass__output_dir__as_arg=True,
-        pass__omop_ddl_file__as_arg=True,
-        pass__omop_config_file__as_arg=True,
-        tmp_path=tmp_path,
-        patient_csv=patient_csv,
-        persons=persons,
-        observations=observations,
-        measurements=measurements,
-        conditions=conditions,
-        post_check=post_check,
-    )
-
-
-@pytest.mark.integration
-def test_conditions(
+@pytest.mark.s3tests
+@pytest.mark.parametrize("case", list(pair_test_cases(s3=True)))
+def test_s3(
     tmp_path: Path,
+    caplog,
+    case,
 ):
-    (patient_csv, persons, observations, measurements, conditions, post_check) = (
-        # patient_csv
-        "condition/persons.csv",
-        # persons
-        4,
-        # observations
-        None,
-        # measurements
-        None,
-        # conditions
-        {
-            81: {
-                "1998-02-01": {concept__pitting: 1},
-                "1998-02-03": {concept__pitting: 13},
-            },
-            91: {
-                "2001-01-03": {concept__pitting: 1},
-                "2001-01-05": {concept__pitting: 7},
-            },
-        },
-        None,  # no post-check
-    )
-    from tests import test_integration
+    run_test(tmp_path,caplog,case)
 
-    test_integration.test_fixture(
-        engine=True,
-        pass__input__as_arg=True,
-        pass__rules_file__as_arg=True,
-        pass__person_file__as_arg=True,
-        pass__output_dir__as_arg=True,
-        pass__omop_ddl_file__as_arg=True,
-        pass__omop_config_file__as_arg=True,
-        tmp_path=tmp_path,
-        patient_csv=patient_csv,
-        persons=persons,
-        observations=observations,
-        measurements=measurements,
-        conditions=conditions,
-        post_check=post_check,
+#### ==========================================================================
+## the test body
+def run_test(
+    tmp_path: Path,
+    caplog,
+    case,
+):
+    caplog.set_level(logging.INFO)
+
+    # setup the output
+    if 's3' == case.output_to:
+        output: str = "s3:carrot-transform-testtt"
+        
+    elif 'csv' == case.output_to:
+        output: str = str(tmp_path / 'out')
+
+    else:
+        raise Exception(f"unknown {case.output_to=}")
+
+    # rules
+    mapper: str = case.test.rules
+    if '' == mapper:
+        for json in (package_root.parent / f"tests/test_data/{case.test.folder}/").glob("*.json"):
+            assert '' == mapper
+            mapper = str(json)
+    assert '' != mapper
+
+    # determine person file and input
+    if 'csv' == case.input_from:
+        person: str = str(
+            package_root.parent / f"tests/test_data/{case.test.folder}/{case.test.person}.csv"
+        )
+        inputs: str = str(
+            package_root.parent / f"tests/test_data/{case.test.folder}/"
+        )
+    else:
+        raise Exception(f"unknown {case.input_from}")
+
+    ##
+    # run click
+    runner = CliRunner()
+    result = runner.invoke(
+        mapstream,
+        [
+            "--inputs",
+            inputs,
+            "--rules-file",
+            mapper,
+            "--person-file",
+            person,
+            "--output",
+            output,
+            "--omop-ddl-file",
+            "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
+            "--omop-config-file",
+            "@carrot/config/config.json",
+        ],
     )
+
+    if result.exception is not None:
+        print(result.exception)
+        raise (result.exception)
+
+
+    ##
+    # verify / assert
+    compare_to_tsvs(
+        "observe_smoking", sources.s3SourceObject("carrot-transform-testtt", sep="\t")
+    )
+
+
+
+## end (of test cases)
+#### --------------------------------------------------------------------------
+
+
+#### ==========================================================================
+## verification functions
+
+
+def compare_to_tsvs(subpath: str, so):
+    """scan all tsv files in a folder.
+
+    open each .tsv in the tests subpath and compare it to the open'ed from the named SO.
+
+    if the SO is missing a tsv? fail!
+    if the SO has different rows? fail!
+    if the SO has extra/too few rows? fail!
+    if the SO has .tsv files we don't ... pass ...
+
+    """
+
+    test: Path = package_root.parent / "tests/test_data" / subpath
+
+    # open the saved .tsv file
+    so_ex = sources.csvSourceObject(test, sep="\t")
+
+    for item in test.glob("*.tsv"):
+        name: str = item.name[:-4]
+
+        import itertools
+
+        for e, a in itertools.zip_longest(so_ex.open(name), so.open(name)):
+            assert e is not None
+            assert a is not None
+
+            assert e == a
+        logger.info(f"matching {subpath=} for {name=}")
+
+    # it matches!
+    logger.info(f"all match in {subpath=}")
+
+
+
+## end (of verification functions)
+#### --------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+

@@ -2,6 +2,8 @@ import csv
 import logging
 from pathlib import Path
 from typing import Iterator
+import click
+import sqlalchemy
 
 import sqlalchemy
 from sqlalchemy import MetaData, select
@@ -122,6 +124,22 @@ class SourceObject:
     def close(self):
         raise NotImplemented("virtual method called")
 
+class SourceObjectArgumentType(click.ParamType):
+    """"""
+
+    name = "a connection to the/a source (whatever that may be)"
+
+    def convert(self, value: str, param, ctx):
+        value: str = str(value)
+        if value.startswith("s3:"):
+            bucket = value[len("s3:") :]
+            return s3SourceObject(bucket, '\t') # TODO; do something else with the separators
+        else:
+            return csvSourceObject(Path(value), sep='\t')
+
+
+# create a singleton for the Click settings
+SourceArgument = SourceObjectArgumentType()
 
 def csvSourceObject(path: Path, sep: str) -> SourceObject:
     ext: str = (
