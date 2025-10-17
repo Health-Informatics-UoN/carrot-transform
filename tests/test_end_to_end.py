@@ -105,8 +105,6 @@ def test_with_two_dirs(tmp_path: Path, caplog):
             f"{output}",
             "--omop-ddl-file",
             f"{tmp_path / 'ddl.sql'}",
-            "--omop-config-file",
-            f"{tmp_path / 'config.json'}",
             "--input-dir",
             f"{input2}",
         ],
@@ -166,8 +164,6 @@ def test_with_one_csv_missing(tmp_path: Path, caplog):
 
     # ddl and config files (copied here rather than using embedded one ... for now?)
     ddl = tmp_path / "ddl.sql"
-    omop = tmp_path / "config.json"
-    shutil.copy2(package_root / "config/config.json", omop)
     shutil.copy2(package_root / "config/OMOPCDM_postgresql_5.3_ddl.sql", ddl)
 
     ###
@@ -190,8 +186,6 @@ def test_with_one_csv_missing(tmp_path: Path, caplog):
             f"{output}",
             "--omop-ddl-file",
             f"{tmp_path / 'ddl.sql'}",
-            "--omop-config-file",
-            f"{tmp_path / 'config.json'}",
         ],
     )
 

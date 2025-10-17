@@ -129,7 +129,7 @@ def mapstream(
     """
 
     # this used to be a parameter; it's hard coded now but otherwise unchanged
-    omop_config_file: Path = PathArg.convert('@carrot/config/config.json', None, None)
+    omop_config_file: Path = PathArg.convert("@carrot/config/config.json", None, None)
 
     # Initialisation
     # - check for values in optional arguments
