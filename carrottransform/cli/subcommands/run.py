@@ -1,3 +1,4 @@
+import importlib.resources as resources
 import sys
 import time
 from pathlib import Path
@@ -17,7 +18,6 @@ from carrottransform.tools.core import get_target_records
 from carrottransform.tools.date_helpers import normalise_to8601
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
-    set_omop_filenames,
 )
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.person_helpers import (
@@ -165,10 +165,14 @@ def mapstream(
         logger.error(f"rules file was set to {rules_file=} and is missing")
         sys.exit()
 
-    ## set omop filenames
-    omop_config_file, omop_ddl_file = set_omop_filenames(
-        omop_ddl_file, omop_config_file, omop_version
-    )
+    ## fallback for the ddl filename
+    if omop_ddl_file is None and omop_version is not None:
+        omop_ddl_name = f"OMOPCDM_postgresql_{omop_version}_ddl.sql"
+        omop_ddl_file = Path(
+            Path(str(resources.files("carrottransform"))) / "config" / omop_ddl_name
+        )
+        if not omop_ddl_file.is_file():
+            logger.warning(f"{omop_ddl_name=} not found")
 
     ## create the SourceOpener object we'll use
     if input_db_url is not None:

@@ -62,58 +62,6 @@ def check_files_in_rules_exist(
             logger.warning(msg)
 
 
-def set_omop_filenames(
-    omop_ddl_file: Optional[Path],
-    omop_config_file: Optional[Path],
-    omop_version: Optional[str],
-) -> tuple[Optional[Path], Optional[Path]]:
-    """
-    Set default OMOP file paths when not explicitly provided.
-
-    This function provides a convenience mechanism where users can specify just
-    an OMOP version instead of providing full paths to both DDL and config files.
-
-    Args:
-        omop_ddl_file: Path to OMOP DDL file (optional)
-        omop_config_file: Path to OMOP config file (optional)
-        omop_version: OMOP version string (e.g., "5.3", "5.4")
-
-    Returns:
-        Tuple of (config_file_path, ddl_file_path) - either provided or defaults
-
-    Example:
-        # User provides version but no files - defaults will be used
-        config, ddl = set_omop_filenames(None, None, "5.3")
-
-        # User provides custom files - they will be returned unchanged
-        config, ddl = set_omop_filenames(custom_ddl, custom_config, "5.3")
-    """
-    # Only set defaults if BOTH files are None AND version is provided
-    if omop_ddl_file is None and omop_config_file is None and omop_version is not None:
-        logger.info(f"Using default OMOP files for version {omop_version}")
-
-        # Set default config file - convert Traversable to Path
-        config_traversable = (
-            resources.files("carrottransform") / "config" / "config.json"
-        )
-        omop_config_file = Path(str(config_traversable))
-
-        # Set version-specific DDL file - convert Traversable to Path
-        omop_ddl_file_name = f"OMOPCDM_postgresql_{omop_version}_ddl.sql"
-        ddl_traversable = (
-            resources.files("carrottransform") / "config" / omop_ddl_file_name
-        )
-        omop_ddl_file = Path(str(ddl_traversable))
-
-        # Validate that the default files exist (now safe since they're Path objects)
-        if not omop_config_file.is_file():
-            logger.warning(f"Default config file not found: {omop_config_file}")
-        if not omop_ddl_file.is_file():
-            logger.warning(f"Default DDL file not found: {omop_ddl_file}")
-
-    return omop_config_file, omop_ddl_file
-
-
 class OutputFileManager:
     """Manages output file creation and cleanup"""
 

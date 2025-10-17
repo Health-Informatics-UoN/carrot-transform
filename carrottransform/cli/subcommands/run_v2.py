@@ -2,6 +2,7 @@
 Entry point for the v2 processing system
 """
 
+import importlib.resources as resources
 import time
 from pathlib import Path
 from typing import Optional
@@ -11,7 +12,6 @@ import click
 from carrottransform.tools.args import PathArg
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
-    set_omop_filenames,
 )
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.orchestrator import V2ProcessingOrchestrator
@@ -97,10 +97,14 @@ def process_common_logic(
             check_dir_isvalid(input_dir)
         check_dir_isvalid(output_dir, create_if_missing=True)
 
-        # Set default OMOP file paths when not explicitly provided
-        omop_config_file, omop_ddl_file = set_omop_filenames(
-            omop_ddl_file, omop_config_file, omop_version
-        )
+        ## fallback for the ddl filename
+        if omop_ddl_file is None and omop_version is not None:
+            omop_ddl_name = f"OMOPCDM_postgresql_{omop_version}_ddl.sql"
+            omop_ddl_file = Path(
+                Path(str(resources.files("carrottransform"))) / "config" / omop_ddl_name
+            )
+            if not omop_ddl_file.is_file():
+                logger.warning(f"{omop_ddl_name=} not found")
 
         # Create orchestrator and execute processing (pass explicit kwargs to satisfy typing)
         orchestrator = V2ProcessingOrchestrator(
@@ -154,7 +158,6 @@ def folder(
     write_mode: str,
     person_file: Path,
     omop_ddl_file: Optional[Path],
-    omop_config_file: Optional[Path],
     omop_version: Optional[str],
 ):
     """Process data from folder input"""
@@ -164,7 +167,6 @@ def folder(
         write_mode=write_mode,
         person_file=person_file,
         omop_ddl_file=omop_ddl_file,
-        omop_config_file=omop_config_file,
         omop_version=omop_version,
         input_dir=input_dir,
     )
@@ -212,7 +214,6 @@ def db(
     write_mode: str,
     person_table: str,
     omop_ddl_file: Optional[Path],
-    omop_config_file: Optional[Path],
     omop_version: Optional[str],
 ):
     """Process data from database input"""
@@ -232,7 +233,6 @@ def db(
         write_mode=write_mode,
         person_table=person_table,
         omop_ddl_file=omop_ddl_file,
-        omop_config_file=omop_config_file,
         omop_version=omop_version,
         db_conn_params=db_conn_params,
     )
