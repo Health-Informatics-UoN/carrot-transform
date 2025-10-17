@@ -77,6 +77,30 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
 #### ==========================================================================
 ## utility functions
 
+def bool_variants(*names):
+    """for a list of names, yields a dict with all true, all false, then a copy with only one tru and a copy with only one false.
+    
+    TODO; use the .something namespace stuff instead of ['something'] and allow "defaults" to the bools in the **kvargs
+    """
+    l = list(names)
+
+    pop_t = {}
+    for n in l:
+        pop_t[n] = True
+    for n in l:
+        pop_f[n] = False
+    yield pop_t.copy()
+    yield pop_f.copy()
+
+    for n in l:
+        t = pop_t.copy()
+        f = pop_f.copy()
+        t[n] = False
+        f[n] = True
+        yield t
+        yield f
+    
+
 def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names = None):
 
     assert isinstance(so, Path) == (names is None)

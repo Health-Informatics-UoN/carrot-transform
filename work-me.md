@@ -22,6 +22,8 @@ from there the arg type (thing) instantiates something to write the tables to.
         - cmd: `λ uv run pytest tests/test_outputs.py::test_s3run --log-cli-level=INFO -m s3tests`
 - open
     - [ ] cleanup the logic between old and new tests
+        - it's becoming a case of rewrite the tests
+        - ... but ... they're verifying the whole results so that's probably better
 
 - for v1
     - [x] change `output-dir` to just `output`

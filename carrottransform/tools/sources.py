@@ -11,33 +11,6 @@ from sqlalchemy import MetaData, select
 logger = logging.getLogger(__name__)
 
 
-class SourceException(Exception):
-    def __init__(self, source, message: str):
-        self._source = source
-        super().__init__(message)
-
-
-class SourceFolderMissingException(SourceException):
-    def __init__(self, source):
-        super().__init__(
-            source, f"Source folder '{str(source._folder)}' does not exist"
-        )
-
-
-class SourceNotFoundException(SourceException):
-    def __init__(self, source, name: str, message: str):
-        super().__init__(source, message)
-        self._name = name
-
-
-class SourceFileNotFoundException(SourceNotFoundException):
-    def __init__(self, source, path: Path):
-        super().__init__(
-            source, path.name, f"Source file '{path.name}' not found by {source}"
-        )
-        self._path = path
-
-
 class SourceOpener:
     def __init__(
         self,
@@ -126,6 +99,12 @@ def keen_head(data):
     return itertools.chain([first], data)
 
 
+class SourceTableNotFound(Exception):
+    def __init__(self, name: str):
+        super.__init__(f"couldn't open table {name=}")
+        self._name = name
+
+
 class SourceObject:
     def __init__(self):
         pass
@@ -204,13 +183,15 @@ def csvSourceObject(path: Path, sep: str) -> SourceObject:
 
         def open(self, table: str) -> Iterator[list[str]]:
             assert not table.endswith(".csv")
-            file = (path / (table + ext)).open("r", encoding="utf-8")
-            reader = csv.reader(file, delimiter=sep)
 
-            for row in reader:
+            
+            file = (path / (table + ext))
+
+            if not file.is_file():
+                raise SourceTableNotFound(table)
+
+            for row in csv.reader(file.open("r", encoding="utf-8"), delimiter=sep):
                 yield row
-
-            file.close()
 
     return SO()
 
