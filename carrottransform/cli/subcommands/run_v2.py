@@ -48,12 +48,6 @@ def common_options(func):
         help="File containing OHDSI ddl statements for OMOP tables",
     )(func)
     func = click.option(
-        "--omop-config-file",
-        type=PathArg,
-        required=False,
-        help="File containing additional / override json config for omop outputs",
-    )(func)
-    func = click.option(
         "--omop-version",
         required=False,
         help="Quoted string containing omop version - eg '5.3'",
@@ -66,7 +60,6 @@ def process_common_logic(
     output_dir: Path,
     write_mode: str,
     omop_ddl_file: Optional[Path],
-    omop_config_file: Optional[Path],
     omop_version: Optional[str],
     person_file: Optional[Path] = None,
     person_table: Optional[str] = None,
@@ -75,6 +68,9 @@ def process_common_logic(
 ):
     """Common processing logic for both modes"""
     start_time = time.time()
+    
+    # this used to be a parameter; it's hard coded now but otherwise unchanged
+    omop_config_file: Path = PathArg.convert('@carrot/config/config.json', None, None)
 
     try:
         # Resolve paths (exclude None values)

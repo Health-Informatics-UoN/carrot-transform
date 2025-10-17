@@ -66,13 +66,6 @@ logger = logger_setup()
     help="File containing OHDSI ddl statements for OMOP tables",
 )
 @click.option(
-    "--omop-config-file",
-    envvar="OMOP_CONFIG_FILE",
-    type=PathArg,
-    required=False,
-    help="File containing additional / override json config for omop outputs",
-)
-@click.option(
     "--omop-version",
     required=False,
     help="Quoted string containing omop version - eg '5.3'",
@@ -123,7 +116,6 @@ def mapstream(
     write_mode: str | None,
     person_file: Path,
     omop_ddl_file: Path | None,
-    omop_config_file: Path | None,
     omop_version,
     saved_person_id_file: Path | None,
     use_input_person_ids,
@@ -135,6 +127,9 @@ def mapstream(
     """
     Map to output using input streams
     """
+
+    # this used to be a parameter; it's hard coded now but otherwise unchanged
+    omop_config_file: Path = PathArg.convert('@carrot/config/config.json', None, None)
 
     # Initialisation
     # - check for values in optional arguments
