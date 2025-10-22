@@ -88,6 +88,8 @@ def test_dock_observations(tmp_path: Path):
             image_name,
             "uv",
             "run",
+            "--python",
+            "3.11",
             "python",
             "-m",
             "carrottransform.cli.command",
