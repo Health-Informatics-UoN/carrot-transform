@@ -533,13 +533,63 @@ def test_sql_read(tmp_path: Path):
     assert 13 == measurements
 
 
+
+def bool_interesting(count: int):
+    """yield each permutation where all values are true or false or only one is true or false
+    
+    used for test case generation
+    """
+
+    def bool_permutations(count: int):
+        """just yield all permutations"""
+        if count <= 0:
+            pass
+        elif count == 1:
+            yield [True]
+            yield [False]
+            return
+        else:
+            for tail in bool_permutations(count - 1):
+                yield ([True] + tail)
+                yield ([False] + tail)
+    
+    d = count - 1
+    for e in bool_permutations(count):
+        a = sum(e)
+
+        if 0 == a:
+            yield e
+        if 1 == a:
+            yield e
+        if count == a:
+            yield e
+        if d == a:
+            yield e
+
+pass__arg_names = [
+    "pass__input__as_arg",
+    "pass__rules_file__as_arg", 
+    "pass__person_file__as_arg",
+    "pass__output_dir__as_arg",
+    "pass__omop_ddl_file__as_arg",
+    "pass__omop_config_file__as_arg"
+]
+
+if __name__ == '__main__':
+    c = len(pass__arg_names)
+    print(f' {len(pass__arg_names)=}')
+    print(f' {len(list(bool_permutations(c)))=}')
+    print(f' {len(list(bool_interesting(c)))=}')
+
+
 @pytest.mark.integration
-@pytest.mark.parametrize("pass__input__as_arg", [True, False])
-@pytest.mark.parametrize("pass__rules_file__as_arg", [True, False])
-@pytest.mark.parametrize("pass__person_file__as_arg", [True, False])
-@pytest.mark.parametrize("pass__output_dir__as_arg", [True, False])
-@pytest.mark.parametrize("pass__omop_ddl_file__as_arg", [True, False])
-@pytest.mark.parametrize("pass__omop_config_file__as_arg", [True, False])
+
+# generate the cases controlling how the parameters are passed
+@pytest.mark.parametrize(
+    ",".join(pass__arg_names),
+    list(bool_interesting(len(pass__arg_names)))
+)
+
 @pytest.mark.parametrize(
     "patient_csv, persons, observations, measurements, conditions, post_check",
     [
