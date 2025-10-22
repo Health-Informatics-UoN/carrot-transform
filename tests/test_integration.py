@@ -590,6 +590,9 @@ if __name__ == '__main__':
     list(bool_interesting(len(pass__arg_names)))
 )
 
+# declares actual test cases ... this could/should be refactored down
+# - 1 - use output TSVs and feed them back in as the expected results
+# - 2 - do this in a declarative generator way (like the bools)
 @pytest.mark.parametrize(
     "patient_csv, persons, observations, measurements, conditions, post_check",
     [
@@ -731,6 +734,8 @@ if __name__ == '__main__':
         ),
     ],
 )
+
+# controls wether we use the SQL or CSV things
 @pytest.mark.parametrize(
     "engine",
     [
