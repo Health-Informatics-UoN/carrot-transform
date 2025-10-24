@@ -77,28 +77,36 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
 #### ==========================================================================
 ## utility functions
 
-def bool_variants(*names):
-    """for a list of names, yields a dict with all true, all false, then a copy with only one tru and a copy with only one false.
+
+
+def bool_interesting(count: int):
+    """yield every permutation where only one is true, and the two cases where all are true or all are false
     
-    TODO; use the .something namespace stuff instead of ['something'] and allow "defaults" to the bools in the **kvargs
+    used for test case generation
     """
-    l = list(names)
 
-    pop_t = {}
-    for n in l:
-        pop_t[n] = True
-    for n in l:
-        pop_f[n] = False
-    yield pop_t.copy()
-    yield pop_f.copy()
+    def bool_permutations(count: int):
+        """just yield all permutations"""
+        if count <= 0:
+            pass
+        elif count == 1:
+            yield [True]
+            yield [False]
+            return
+        else:
+            for tail in bool_permutations(count - 1):
+                yield ([True] + tail)
+                yield ([False] + tail)
+    
+    for e in bool_permutations(count):
+        a = sum(e)
 
-    for n in l:
-        t = pop_t.copy()
-        f = pop_f.copy()
-        t[n] = False
-        f[n] = True
-        yield t
-        yield f
+        if 0 == a:
+            yield e
+        if 1 == a:
+            yield e
+        if count == a:
+            yield e
     
 
 def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names = None):
@@ -123,8 +131,8 @@ def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names
                 o = ot.start(name, r)
             else:
                 o.write(r)
-        o.close()
-        i.close()
+        # o.close()
+        # i.close()
     
     #
     so.close()

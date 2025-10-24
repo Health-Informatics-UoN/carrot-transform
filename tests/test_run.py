@@ -100,16 +100,14 @@ def test_nonexistent_file(tmp_path: Path):
     """Test attempting to open a non-existent file"""
 
     src = tmp_path / "nonexistent.csv"
-    print(src.is_file())
 
-    source = sources.SourceOpener(folder=tmp_path)
+    source = sources.csvSourceObject(tmp_path, ',')
     try:
-        result = source.open("nonexistent.csv")
+        result = source.open("nonexistent")
 
         raise Exception(f"the test shouldn't get this far {result=}")
-    except sources.SourceFileNotFoundException as sourceException:
-        assert sourceException._name == "nonexistent.csv"
-        assert sourceException._path == (tmp_path / "nonexistent.csv")
+    except sources.SourceTableNotFound as sourceTableNotFound:
+        assert sourceTableNotFound._name == "nonexistent"
 
 
 @pytest.mark.unit
@@ -119,12 +117,12 @@ def test_directory_not_found(caplog):
     with caplog.at_level(logging.ERROR):
         folder = Path("/nonexistent/directory")
         try:
-            source = sources.SourceOpener(folder=folder)
+            source = sources.csvSourceObject(folder, ',')
             raise Exception("the test shouldn't get this far")
             result = source.open("test.csv")
             assert result is None, "the result should be None"
-        except sources.SourceFolderMissingException as sourceFolderMissingException:
-            assert sourceFolderMissingException._source._folder == folder
+        except sources.SourceNotFound as sourceNotFound:
+            assert sourceNotFound._path == folder
 
 
 @pytest.mark.unit

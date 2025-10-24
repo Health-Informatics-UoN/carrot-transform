@@ -80,7 +80,7 @@ def sqlOutputTarget(connection: sqlalchemy.engine.Engine) -> OutputTarget:
     def start(name: str, header: list[str]):
         from sqlalchemy import Column, Table, Text, insert
 
-        # if you're adapting this to a non-dumb database; probably best to read teh DDL or something and check/match the column types
+        # if you're adapting this to a non-dumb database; probably best to read the DDL or something and check/match the column types
         columns = [Column(name, Text()) for name in header]
 
         # create the table
