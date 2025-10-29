@@ -1,4 +1,3 @@
-
 import logging
 import re
 from pathlib import Path
@@ -6,11 +5,11 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from carrottransform.cli.subcommands.run import mapstream
 import tests.click_tools as click_tools
-from tests.click_tools import package_root
-from carrottransform.tools import outputs, sources
 import tests.csvrow as csvrow
+from carrottransform.cli.subcommands.run import mapstream
+from carrottransform.tools import outputs, sources
+from tests.click_tools import package_root
 
 #
 logger = logging.getLogger(__name__)
@@ -18,8 +17,12 @@ logger = logging.getLogger(__name__)
 # Get the package root directory
 project_root: Path = Path(__file__).parent.parent
 
+# need/want to define the s3 bucket somewhere, so, let's do it here
+CARROT_TEST_BUCKET = "carrot-transform-testtt"
+
 #### ==========================================================================
 ## unit test cases - test the test functions
+
 
 @pytest.mark.unit
 def test_compare(caplog):
@@ -27,14 +30,14 @@ def test_compare(caplog):
 
     caplog.set_level(logging.INFO)
 
-    path: Path = project_root / 'tests/test_data/observe_smoking'
+    path: Path = project_root / "tests/test_data/observe_smoking"
 
-    compare_to_tsvs(
-        "observe_smoking", sources.csvSourceObject(path, sep="\t")
-    )
+    compare_to_tsvs("observe_smoking", sources.csvSourceObject(path, sep="\t"))
+
 
 #### ==========================================================================
 ## verification functions
+
 
 def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
     """scan all tsv files in a folder.
@@ -50,8 +53,7 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
 
     from carrottransform.tools.args import PathArg
 
-
-    if subpath.startswith('@carrot'):
+    if subpath.startswith("@carrot"):
         test: Path = PathArg.convert(subpath, None, None)
     else:
         test: Path = project_root / "tests/test_data" / subpath
@@ -59,8 +61,14 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
     # open the saved .tsv file
     so_ex = sources.csvSourceObject(test, sep="\t")
 
+    person_ids_seen = False
+    persons_seen = False
+
     for item in test.glob("*.tsv"):
         name: str = item.name[:-4]
+
+        person_ids_seen = person_ids_seen or ("person_ids" == name)
+        persons_seen = persons_seen or ("person" == name)
 
         import itertools
 
@@ -71,17 +79,21 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
             assert e == a
         logger.info(f"matching {subpath=} for {name=}")
 
+    assert person_ids_seen and persons_seen, (
+        "verification data missing from the test case"
+    )
+
     # it matches!
     logger.info(f"all match in {subpath=}")
+
 
 #### ==========================================================================
 ## utility functions
 
 
-
 def bool_interesting(count: int):
     """yield every permutation where only one is true, and the two cases where all are true or all are false
-    
+
     used for test case generation
     """
 
@@ -97,7 +109,7 @@ def bool_interesting(count: int):
             for tail in bool_permutations(count - 1):
                 yield ([True] + tail)
                 yield ([False] + tail)
-    
+
     for e in bool_permutations(count):
         a = sum(e)
 
@@ -107,22 +119,17 @@ def bool_interesting(count: int):
             yield e
         if count == a:
             yield e
-    
 
-def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names = None):
 
+def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names=None):
     assert isinstance(so, Path) == (names is None)
     if isinstance(so, Path):
-        names = [file.name[:-4] for file in so.glob('*.csv')]
-        so = sources.csvSourceObject(
-            path = so,
-            sep = ','
-        )
+        names = [file.name[:-4] for file in so.glob("*.csv")]
+        so = sources.csvSourceObject(path=so, sep=",")
     assert isinstance(so, sources.SourceObject)
 
     # copy all named ones across
     for name in names:
-
         i = so.open(name)
         o = None
 
@@ -133,11 +140,10 @@ def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names
                 o.write(r)
         # o.close()
         # i.close()
-    
+
     #
     so.close()
     ot.close()
-
 
 
 def run_v1(

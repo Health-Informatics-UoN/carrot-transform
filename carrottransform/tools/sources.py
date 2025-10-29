@@ -2,18 +2,18 @@ import csv
 import logging
 from pathlib import Path
 from typing import Iterator
+
 import click
 import sqlalchemy
-
-import sqlalchemy
 from sqlalchemy import MetaData, select
+
+from carrottransform.tools.outputs import s3BucketFolder
 
 logger = logging.getLogger(__name__)
 
 
 def keen_head(data):
-    """ Force the generator to run until first yield
-    """
+    """Force the generator to run until first yield"""
     import itertools
 
     try:
@@ -27,12 +27,13 @@ def keen_head(data):
 
 class SourceNotFound(Exception):
     def __init__(self, path):
-        super().__init__( f"couldn't open the source at {path=}")
+        super().__init__(f"couldn't open the source at {path=}")
         self._path = path
+
 
 class SourceTableNotFound(Exception):
     def __init__(self, name: str):
-        super().__init__( f"couldn't open table {name=}")
+        super().__init__(f"couldn't open table {name=}")
         self._name = name
 
 
@@ -47,29 +48,30 @@ class SourceObject:
     def close(self):
         raise Exception("virtual method called")
 
-class SourceObjectArgumentType(click.ParamType):
 
+class SourceObjectArgumentType(click.ParamType):
     name = "a connection to the/a source (whatever that may be)"
 
     def convert(self, value: str, param, ctx):
         value: str = str(value)
         if value.startswith("s3:"):
-            bucket = value[len("s3:") :]
-            return s3SourceObject(bucket, '\t') # TODO; do something else with the separators
-        
-        if value.startswith("sqlite:"):  # TODO; allow other sorts of database connections
-            return sqlSourceObject(
-                sqlalchemy.create_engine(value)
-            )
+            return s3SourceObject(
+                value, "\t"
+            )  # TODO; do something else with the separators
 
-        return csvSourceObject(Path(value), sep=',')
+        if value.startswith(
+            "sqlite:"
+        ):  # TODO; allow other sorts of database connections
+            return sqlSourceObject(sqlalchemy.create_engine(value))
+
+        return csvSourceObject(Path(value), sep=",")
 
 
 # create a singleton for the Click settings
 SourceArgument = SourceObjectArgumentType()
 
-def sqlSourceObject(connection: sqlalchemy.engine.Engine) -> SourceObject:
 
+def sqlSourceObject(connection: sqlalchemy.engine.Engine) -> SourceObject:
     class SO(SourceObject):
         def __init__(self):
             pass
@@ -116,30 +118,33 @@ def csvSourceObject(path: Path, sep: str) -> SourceObject:
 
         def open(self, table: str) -> Iterator[list[str]]:
             return keen_head(self.open_really(table))
+
         def open_really(self, table: str) -> Iterator[list[str]]:
             assert not table.endswith(".csv")
 
-            
-            file = (path / (table + ext))
+            file = path / (table + ext)
 
             if not file.is_file():
+                logger.error(f"couldn't find {table=} in csvs at path {path=}")
                 raise SourceTableNotFound(table)
 
-            for row in csv.reader(file.open("r", encoding="utf-8"), delimiter=sep):
+            for row in csv.reader(file.open("r", encoding="utf-8-sig"), delimiter=sep):
                 yield row
 
     return SO()
 
 
-def s3SourceObject(bucket: str, sep: str) -> SourceObject:
+def s3SourceObject(coordinate: str, sep: str) -> SourceObject:
     class SO(SourceObject):
-        def __init__(self, bucket):
+        def __init__(self, coordinate: str):
             import boto3
 
-            self._bucket = boto3.resource("s3").Bucket(bucket)
+            [b, f] = s3BucketFolder(coordinate)
+            self._bucket_resource = boto3.resource("s3").Bucket(b)
+            self._bucket_folder = f
 
         def close(self):
-            self._bucket = None
+            self._bucket_resource = None
 
         def open(self, table: str) -> Iterator[list[str]]:
             assert not table.endswith(".csv")
@@ -147,9 +152,11 @@ def s3SourceObject(bucket: str, sep: str) -> SourceObject:
             import csv
             import io
 
+            key = self._bucket_folder + table
+
             # Example: read CSV from S3
             try:
-                obj = self._bucket.Object(table)
+                obj = self._bucket_resource.Object(key)
 
                 # Stream the content without loading everything into memory
                 stream = obj.get()["Body"]
@@ -160,6 +167,6 @@ def s3SourceObject(bucket: str, sep: str) -> SourceObject:
                     yield row
                 stream.close()
             except Exception as e:
-                raise RuntimeError(f"Failed to read {table=} from S3: {e=}")
+                raise RuntimeError(f"Failed to read {table=} from S3: {e=} w/ {key=}")
 
-    return SO(bucket)
+    return SO(coordinate)

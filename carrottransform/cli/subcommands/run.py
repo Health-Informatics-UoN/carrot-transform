@@ -208,7 +208,7 @@ def mapstream(
     tgtcolmaps = {}
 
     if True:
-    # try:
+        # try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
         person_lookup, rejected_person_count = read_person_ids(
             # this is a little horrible; i'm not ready to rewrite/replace `read_person_ids()` so we just do this pointeing to a fake file
@@ -239,8 +239,8 @@ def mapstream(
             tgtcolmaps[target_file] = omopcdm.get_omop_column_map(target_file)
 
     # except IOError as e:
-        # logger.exception(f"I/O - error({e.errno}): {e.strerror} -> {str(e)}")
-        # sys.exit()
+    # logger.exception(f"I/O - error({e.errno}): {e.strerror} -> {str(e)}")
+    # sys.exit()
 
     logger.info(
         f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
@@ -420,10 +420,10 @@ run.add_command(mapstream, "mapstream")
 if __name__ == "__main__":
     run()
 
+
 def de_csv(name: str) -> str:
-    
     # do an assertion
-    if not name.endswith('.csv'):
+    if not name.endswith(".csv"):
         logger.error(f"{name=} but it was expected to end with .csv")
         exit(2)
 

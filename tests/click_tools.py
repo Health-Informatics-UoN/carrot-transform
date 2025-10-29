@@ -329,7 +329,7 @@ def load_test_database_table(connection: sqlalchemy.engine.Engine, csv: Path):
     tablename: str = csv.name[:-4]
 
     # open the csv using a sourceOpener
-    csvr = sources.SourceOpener(folder=csv.parent).open(csv.name)
+    csvr = sources.csvSourceObject(csv.parent, ",").open(tablename)
 
     # if the column names have a blank at the end we need to remove it.
     #   sometimes people (named Peter) write csvs like `user,data,data,value,` which would lead to a blank 5th column name; this removes that

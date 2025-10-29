@@ -3,7 +3,6 @@ copy of the test_integration - but - with only a few cases so it can be run quic
 
 """
 
-import tests.testools as testools
 import logging
 import re
 from pathlib import Path
@@ -11,25 +10,26 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from carrottransform.cli.subcommands.run import mapstream
 import tests.click_tools as click_tools
-from tests.click_tools import package_root
-from carrottransform.tools import outputs, sources
 import tests.csvrow as csvrow
+import tests.testools as testools
+from carrottransform.cli.subcommands.run import mapstream
+from carrottransform.tools import outputs, sources
+from tests.click_tools import package_root
+
 logger = logging.getLogger(__name__)
 
 
 #### ==========================================================================
 ## test case generator
 
+
 def pair_test_cases(s3: bool = False):
-    
     from types import SimpleNamespace
 
-
-    class Circular():
+    class Circular:
         """indefinietly loops through items, but, has an indicator to check when we've seen all values.
-        
+
         should do something more elabourate to cross multiples together
         """
 
@@ -50,42 +50,43 @@ def pair_test_cases(s3: bool = False):
                 self._iter = iter(self._data)
                 return self.get_next()
 
-
     ##
     # define the circular thigns that're sources of data
 
-    test = Circular(2,
+    test = Circular(
+        2,
         # TODO; add more test cases
-        SimpleNamespace(folder= 'observe_smoking', person='demos', rules=''),
+        SimpleNamespace(folder="observe_smoking", person="demos", rules=""),
     )
 
-    input_from = Circular(1,
-        'csv',
+    input_from = Circular(
+        1,
+        "csv",
     )
-    
 
     if s3:
-        output_to = Circular(3, 's3')
+        output_to = Circular(3, "s3")
     else:
-        output_to = Circular(3, 'csv')
-    
+        output_to = Circular(3, "csv")
 
     # TODO; add in the envirnment variable switches
 
     # TODO: loop differntly. change one var each iteration
-    
+
     ##
     # now loop through them.
 
     while test.more() or input_from.more() or output_to.more():
         yield SimpleNamespace(
-            test = test.get_next(),
-            input_from = input_from.get_next(),
-            output_to = output_to.get_next(),
+            test=test.get_next(),
+            input_from=input_from.get_next(),
+            output_to=output_to.get_next(),
         )
+
 
 #### ==========================================================================
 ## test front-ends so i don't do s3 tests (and eat my budget) when i don't want
+
 
 @pytest.mark.integration
 @pytest.mark.parametrize("case", list(pair_test_cases(s3=False)))
@@ -94,7 +95,8 @@ def test_local(
     caplog,
     case,
 ):
-    run_test(tmp_path,caplog,case)
+    run_test(tmp_path, caplog, case)
+
 
 @pytest.mark.s3tests
 @pytest.mark.parametrize("case", list(pair_test_cases(s3=True)))
@@ -103,7 +105,8 @@ def test_s3(
     caplog,
     case,
 ):
-    run_test(tmp_path,caplog,case)
+    run_test(tmp_path, caplog, case)
+
 
 #### ==========================================================================
 ## the test body
@@ -115,31 +118,32 @@ def run_test(
     caplog.set_level(logging.INFO)
 
     # setup the output
-    if 's3' == case.output_to:
-        output: str = "s3:carrot-transform-testtt"
-        
-    elif 'csv' == case.output_to:
-        output: str = str(tmp_path / 'out')
+    if "s3" == case.output_to:
+        output: str = f"s3:{testools.CARROT_TEST_BUCKET}/local"
+
+    elif "csv" == case.output_to:
+        output: str = str(tmp_path / "out")
 
     else:
         raise Exception(f"unknown {case.output_to=}")
 
     # rules
     mapper: str = case.test.rules
-    if '' == mapper:
-        for json in (package_root.parent / f"tests/test_data/{case.test.folder}/").glob("*.json"):
-            assert '' == mapper
+    if "" == mapper:
+        for json in (package_root.parent / f"tests/test_data/{case.test.folder}/").glob(
+            "*.json"
+        ):
+            assert "" == mapper
             mapper = str(json)
-    assert '' != mapper
+    assert "" != mapper
 
     # determine person file and input
-    if 'csv' == case.input_from:
+    if "csv" == case.input_from:
         person: str = str(
-            package_root.parent / f"tests/test_data/{case.test.folder}/{case.test.person}.csv"
+            package_root.parent
+            / f"tests/test_data/{case.test.folder}/{case.test.person}.csv"
         )
-        inputs: str = str(
-            package_root.parent / f"tests/test_data/{case.test.folder}/"
-        )
+        inputs: str = str(package_root.parent / f"tests/test_data/{case.test.folder}/")
     else:
         raise Exception(f"unknown {case.input_from}")
 
@@ -168,24 +172,24 @@ def run_test(
         print(result.exception)
         raise (result.exception)
 
+    ##
+    #
+    readback: sources.SourceObject
+    if "s3" == case.output_to:
+        readback = sources.s3SourceObject(
+            f"s3:{testools.CARROT_TEST_BUCKET}/local", sep="\t"
+        )
+
+    elif "csv" == case.output_to:
+        readback = sources.csvSourceObject(Path(output), "\t")
+
+    else:
+        raise Exception(f"unknown {case.output_to=}")
 
     ##
     # verify / assert
-    testools.compare_to_tsvs(
-        "observe_smoking", sources.s3SourceObject("carrot-transform-testtt", sep="\t")
-    )
-
+    testools.compare_to_tsvs("observe_smoking", readback)
 
 
 ## end (of test cases)
 #### --------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-

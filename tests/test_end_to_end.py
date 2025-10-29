@@ -40,7 +40,6 @@ def test_no_args():
     ] == result.output.split("\n")
 
 
-
 @pytest.mark.unit
 def test_with_auto_person(tmp_path: Path):
     """
