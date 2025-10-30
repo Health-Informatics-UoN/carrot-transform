@@ -28,8 +28,9 @@ class V1TestCase:
 
     def __init__(self, person_name: str):
         self._person_name = "measure_weight_height/persons.csv"
+        self._person_file = test_data / person_name
 
-        self._folder = (test_data / person_name).parent
+        self._folder = self._person_file.parent
 
         # find the rules mapping
         mapper = ""
@@ -60,6 +61,15 @@ class V1TestCase:
     def compare_to_tsvs(self, source):
         testools.compare_to_tsvs(self._label, source)
 
+    def find_mapping(self):
+        found = None
+        for json in self._folder.glob("*.json"):
+            if not json.is_file():
+                continue
+            assert found is None
+            found = json
+        assert found is not None
+        return found
 
 @pytest.mark.unit  # it's an integration test ... but i need/want one that i can check quickly
 def test_sql_read(tmp_path: Path):

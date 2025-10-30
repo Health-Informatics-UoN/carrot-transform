@@ -386,3 +386,39 @@ def test_output_data_writing(omopcdm, test_rules_file, input_data):
 
 if __name__ == "__main__":
     pytest.main([__file__])
+
+
+import tests.test_integration as integration
+import json
+import carrottransform.tools.args as args
+
+
+@pytest.mark.parametrize("test_case", integration.v1TestCases, ids=lambda tc: tc._label)
+def test_v1_detect_person(test_case):
+
+    # test_case._person_name
+        # self._folder = (test_data / person_name).parent?
+
+    print(
+        test_case._person_name
+    )
+
+    # load the mapping rules
+    data = json.load(test_case.find_mapping().open())
+    data = args.object_query(data, 'cdm/person')
+
+    # ensure there's only one person source_table
+    person_table: str | None = None
+    for rule in data:
+        for record in data[rule]:
+            source_table = data[rule][record]['source_table']
+
+            if person_table is None:
+                person_table = source_table
+            assert person_table == source_table
+
+    # check we found one
+    assert person_table is not None
+
+    # check that it's the indicated one
+    assert test_case._person_file.name == person_table
