@@ -84,17 +84,19 @@ def test_sql_read(tmp_path: Path):
     test_case.compare_to_tsvs(sources.csvSourceObject(tmp_path / "out", sep="\t"))
 
 
-v1TestCases = map(
-    V1TestCase,
-    [
-        "integration_test1/src_PERSON.csv",
-        "floats/src_PERSON.csv",
-        "duplications/src_PERSON.csv",
-        "mapping_person/demos.csv",
-        "observe_smoking/demos.csv",
-        "measure_weight_height/persons.csv",
-        "condition/persons.csv",
-    ],
+v1TestCases = list(
+    map(
+        V1TestCase,
+        [
+            "integration_test1/src_PERSON.csv",
+            "floats/src_PERSON.csv",
+            "duplications/src_PERSON.csv",
+            "mapping_person/demos.csv",
+            "observe_smoking/demos.csv",
+            "measure_weight_height/persons.csv",
+            "condition/persons.csv",
+        ],
+    )
 )
 
 pass__arg_names = [

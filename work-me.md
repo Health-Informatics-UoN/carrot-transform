@@ -27,21 +27,46 @@ from there the arg type (thing) instantiates something to write the tables to.
     - [ ] update old tests to pass with the new parameter structure
         - [x] tests/test_run.py::test_nonexistent_file
         - [x] tests/test_run.py::test_directory_not_found
-        - [ ] tests/test_integration.py::test_sql_read
-        - [ ] tests/test_integration.py::test_fixture
-            - this is the scary one
-    - [ ] cleanup the logic between old and new tests
+        - [x] tests/test_integration.py::test_sql_read
+        - [x] tests/test_integration.py::test_fixture
+        - [ ] add the env-arg or cli-param tests
+    - [x] cleanup the logic between old and new tests
         - it's becoming a case of rewrite the tests
         - ... but ... they're verifying the whole results so that's probably better
-
 - for v1
     - [x] change `output-dir` to just `output`
-    - [ ] remove any/all "create dir" stuff for the parameter
-    - [ ] set this up for CI testing on GitHub
-- for merge
+    - [x] remove any/all "create dir" stuff for the parameter
+- for deplyment
     - [ ] determine how the accounring should be done on GH
 - for v2
     - [ ] make it work with v2
     - [ ] check if v2 test(s) can be "normalised" to work like this?
+    - [ ] check if that "is v2" check i saw is usable
 - for fun
     - test and see if we/i can auto-determine the person table
+
+
+
+def permutations(arg_lists)
+    assert 0 != arg_lists
+    if 1 == arg lists len
+        for i in arg_lists[0]
+            yield (i)
+    else
+        for t in permutations(arglists[1:])
+            for h in arglists[0]
+                yield (h) + t
+
+def zipations(arg_lists)
+    assert 0 != arg_lists
+    if 1 == arg lists len
+        for i in arg_lists[0]
+            yield (i)
+    else
+        t = zipations(arg_lists[1:])
+        h = arg_lists[0]
+        x = max(len(t, h))
+        for i in 0, x:
+            yield (h[i % len(h)]) + (t[i % len(t)])
+    
+
