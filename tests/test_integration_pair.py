@@ -163,8 +163,6 @@ def run_test(
             output,
             "--omop-ddl-file",
             "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
-            "--omop-config-file",
-            "@carrot/config/config.json",
         ],
     )
 

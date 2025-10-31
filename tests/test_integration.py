@@ -105,7 +105,6 @@ pass__arg_names = [
     "person-file",
     "output",
     "omop-ddl-file",
-    "omop-config-file",
 ]
 
 
@@ -278,8 +277,6 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
         output,
         "--omop-ddl-file",
         "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
-        "--omop-config-file",
-        "@carrot/config/config.json",
     )
 
     ##
@@ -336,8 +333,6 @@ def test_mireda_key_error(tmp_path: Path, caplog):
             str(tmp_path),
             "--omop-ddl-file",
             "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
-            "--omop-config-file",
-            "@carrot/config/config.json",
         ],
     )
 
