@@ -1,0 +1,3 @@
+observation_id	person_id	observation_concept_id	observation_date	observation_datetime	observation_type_concept_id	value_as_number	value_as_string	value_as_concept_id	qualifier_concept_id	unit_concept_id	provider_id	visit_occurrence_id	visit_detail_id	observation_source_value	observation_source_concept_id	unit_source_value	qualifier_source_value
+1	1	40618782	2020-09-12	2020-09-12 00:00:00	0		green							green	40618782		
+2	2	40637268	2020-09-11	2020-09-11 00:00:00	0		blue							blue	40637268		

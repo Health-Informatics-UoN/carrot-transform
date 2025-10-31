@@ -1,0 +1,14 @@
+measurement_id	person_id	measurement_concept_id	measurement_date	measurement_datetime	measurement_time	measurement_type_concept_id	operator_concept_id	value_as_number	value_as_concept_id	unit_concept_id	range_low	range_high	provider_id	visit_occurrence_id	visit_detail_id	measurement_source_value	measurement_source_concept_id	unit_source_value	value_source_value
+1	1	903121	2021-12-02	2021-12-02 00:00:00		0		31								31	903121		
+2	1	903121	2022-12-01	2022-12-01 00:00:00		0		28								28	903121		
+3	1	903121	2021-12-03	2021-12-03 00:00:00		0		12								12	903121		
+4	3	903121	2022-12-02	2022-12-02 00:00:00		0		27								27	903121		
+5	3	903121	2020-03-01	2020-03-01 00:00:00		0		92								92	903121		
+6	4	903121	2021-02-03	2021-02-03 00:00:00		0		12								12	903121		
+7	4	903121	2021-02-01	2021-02-01 00:00:00		0		1								1	903121		
+8	1	903133	2021-12-02	2021-12-02 00:00:00		0		123								123	903133		
+9	1	903133	2021-12-01	2021-12-01 00:00:00		0		122								122	903133		
+10	1	903133	2021-12-03	2021-12-03 00:00:00		0		12								12	903133		
+11	3	903133	2022-12-02	2022-12-02 00:00:00		0		23								23	903133		
+12	3	903133	2021-03-01	2021-03-01 00:00:00		0		92								92	903133		
+13	4	903133	2021-02-03	2021-02-03 00:00:00		0		72								72	903133		

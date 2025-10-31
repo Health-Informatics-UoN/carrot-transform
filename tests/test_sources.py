@@ -17,9 +17,9 @@ def test_basic_csv():
 
     folder = Path(__file__).parent / "test_data/measure_weight_height/"
 
-    source = sources.SourceOpener(folder=folder)
+    source = sources.csvSourceObject(folder, ",")
 
-    iterator = source.open("heights.csv")
+    iterator = source.open("heights")
 
     # first entry should be the header
     assert next(iterator) == ["pid", "date", "value"]
@@ -44,13 +44,13 @@ def test_basic_sqlite():
     folder = Path(__file__).parent / "test_data/measure_weight_height/"
     engine = sqlalchemy.create_engine("sqlite:///:memory:")
 
-    source = sources.SourceOpener(engine=engine)
+    source = sources.sqlSourceObject(engine)
 
     # load a table with data
     click_tools.load_test_database_table(engine, folder / "heights.csv")
 
     # read that table back
-    iterator = source.open("heights.csv")
+    iterator = source.open("heights")
 
     # first entry should be the header
     assert next(iterator) == ["pid", "date", "value"]

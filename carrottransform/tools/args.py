@@ -71,6 +71,9 @@ class WrongInputException(Exception):
     """Raised when they try to read from the wrong table - and only the wrong table"""
 
     def __init__(self, rules_file: Path, person_file: str, source_table: str):
+        super().__init__(
+            f"scanning {rules_file=} i saw {person_file=} but was told to use {source_table=}"
+        )
         self._rules_file = rules_file
         self._person_file = person_file
         self._source_table = source_table
@@ -84,7 +87,7 @@ class PathArgumentType(click.ParamType):
     def convert(self, value: str, param, ctx) -> Path:
         try:
             # switch to posix separators
-            value = value.replace("\\", "/")
+            value = str(value).replace("\\", "/")
 
             prefix: str = "@carrot/"
             if value.startswith(prefix):

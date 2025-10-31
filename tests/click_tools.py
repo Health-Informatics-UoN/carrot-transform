@@ -90,9 +90,8 @@ def click_test(
     ##
     #
 
-    # output dir needs to be pre-created
+    # output dir doesn't need to be created by us; the arg will handle that
     output = tmp_path / "out"
-    output.mkdir(exist_ok=True)
 
     ##
     # create the sqlite database
@@ -136,7 +135,7 @@ def click_test(
         pass_as_arg(pass__input__as_arg, "--input-db-url", connection_string)
     pass_as_arg(pass__rules_file__as_arg, "--rules-file", rules_json_file)
     pass_as_arg(pass__person_file__as_arg, "--person-file", person_file)
-    pass_as_arg(pass__output_dir__as_arg, "--output-dir", output)
+    pass_as_arg(pass__output_dir__as_arg, "--output-dir", str(output))
     pass_as_arg(
         pass__omop_ddl_file__as_arg,
         "--omop-ddl-file",
@@ -249,9 +248,7 @@ def click_test(
             # check to be sure we saw all the observations
             expected_observation_count = record_count(observations)
             assert expected_observation_count == observations_seen, (
-                "expected %d observations, got %d"
-                % expected_observation_count
-                % observations_seen
+                f"expected {expected_observation_count} observations, got {observations_seen}"
             )
 
         # check measurements
@@ -326,7 +323,7 @@ def load_test_database_table(connection: sqlalchemy.engine.Engine, csv: Path):
     tablename: str = csv.name[:-4]
 
     # open the csv using a sourceOpener
-    csvr = sources.SourceOpener(folder=csv.parent).open(csv.name)
+    csvr = sources.csvSourceObject(csv.parent, ",").open(tablename)
 
     # if the column names have a blank at the end we need to remove it.
     #   sometimes people (named Peter) write csvs like `user,data,data,value,` which would lead to a blank 5th column name; this removes that

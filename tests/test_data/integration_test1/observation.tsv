@@ -1,0 +1,4 @@
+observation_id	person_id	observation_concept_id	observation_date	observation_datetime	observation_type_concept_id	value_as_number	value_as_string	value_as_concept_id	qualifier_concept_id	unit_concept_id	provider_id	visit_occurrence_id	visit_detail_id	observation_source_value	observation_source_concept_id	unit_source_value	qualifier_source_value
+1	2	35810208	2025-05-21	2025-05-21 15:02:00	0		CURRENT_SMOKER							CURRENT_SMOKER	35810208		
+2	3	35810209	2025-05-12	2025-05-12 21:20:00	0		FORMER_SMOKER							FORMER_SMOKER	35810209		
+3	1	35821355	2025-05-22	2025-05-22 03:14:00	0		NEVER_SMOKER							NEVER_SMOKER	35821355		

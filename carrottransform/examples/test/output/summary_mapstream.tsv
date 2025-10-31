@@ -1,0 +1,57 @@
+dsname	source	source_field	target	concept_id	additional	incount	invalid_persid	invalid_date	invalid_source	outcount
+Test	Demographics	all	all	all		1000	0	0	0	1900
+Test	Demographics	all	observation	35825508		0	0	0	0	100
+Test	Demographics	all	observation	35825531		0	0	0	0	100
+Test	Demographics	all	observation	35825567		0	0	0	0	200
+Test	Demographics	all	observation	35826241		0	0	0	0	100
+Test	Demographics	all	observation	35827394		0	0	0	0	300
+Test	Demographics	all	observation	35827395		0	0	0	0	100
+Test	Demographics	all	observation	all		0	0	0	0	900
+Test	Demographics	all	person	8507		0	0	0	0	400
+Test	Demographics	all	person	8507	1951	0	0	0	0	100
+Test	Demographics	all	person	8507	1966	0	0	0	0	100
+Test	Demographics	all	person	8507	1981	0	0	0	0	100
+Test	Demographics	all	person	8507	1985	0	0	0	0	100
+Test	Demographics	all	person	8532		0	0	0	0	600
+Test	Demographics	all	person	8532	1950	0	0	0	0	100
+Test	Demographics	all	person	8532	1956	0	0	0	0	100
+Test	Demographics	all	person	8532	1975	0	0	0	0	100
+Test	Demographics	all	person	8532	1976	0	0	0	0	100
+Test	Demographics	all	person	8532	1993	0	0	0	0	100
+Test	Demographics	all	person	8532	1997	0	0	0	0	100
+Test	Demographics	all	person	all		0	0	0	0	1000
+Test	Demographics	ethnicity	observation	35825508		0	0	0	0	100
+Test	Demographics	ethnicity	observation	35825531		0	0	0	0	100
+Test	Demographics	ethnicity	observation	35825567		0	0	0	0	200
+Test	Demographics	ethnicity	observation	35826241		0	0	0	0	100
+Test	Demographics	ethnicity	observation	35827394		0	0	0	0	300
+Test	Demographics	ethnicity	observation	35827395		0	0	0	0	100
+Test	Demographics	ethnicity	observation	all		0	0	0	100	0
+Test	Symptoms	all	all	all		800	0	0	0	400
+Test	Symptoms	all	condition_occurrence	254761		0	0	0	0	400
+Test	Symptoms	all	condition_occurrence	all		0	0	0	0	400
+Test	Symptoms	symptom1	condition_occurrence	254761		0	0	0	0	400
+Test	all	all	all	254761		0	0	0	0	400
+Test	all	all	all	35825508		0	0	0	0	100
+Test	all	all	all	35825531		0	0	0	0	100
+Test	all	all	all	35825567		0	0	0	0	200
+Test	all	all	all	35826241		0	0	0	0	100
+Test	all	all	all	35827394		0	0	0	0	300
+Test	all	all	all	35827395		0	0	0	0	100
+Test	all	all	all	37398191		0	0	0	0	1000
+Test	all	all	condition_occurrence	254761		0	0	0	0	400
+Test	all	all	condition_occurrence	all		0	0	0	0	400
+Test	all	all	measurement	37398191		0	0	0	0	1000
+Test	all	all	measurement	all		0	0	0	0	1000
+Test	all	all	observation	35825508		0	0	0	0	100
+Test	all	all	observation	35825531		0	0	0	0	100
+Test	all	all	observation	35825567		0	0	0	0	200
+Test	all	all	observation	35826241		0	0	0	0	100
+Test	all	all	observation	35827394		0	0	0	0	300
+Test	all	all	observation	35827395		0	0	0	0	100
+Test	all	all	observation	all		0	0	0	0	900
+Test	all	all	person	all		0	0	0	0	1000
+Test	covid19_antibody	IgG	measurement	37398191		0	0	0	0	1000
+Test	covid19_antibody	all	all	all		1000	0	0	0	1000
+Test	covid19_antibody	all	measurement	37398191		0	0	0	0	1000
+Test	covid19_antibody	all	measurement	all		0	0	0	0	1000

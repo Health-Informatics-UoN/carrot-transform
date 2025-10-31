@@ -1,0 +1,23 @@
+dsname	source	source_field	target	concept_id	additional	incount	invalid_persid	invalid_date	invalid_source	outcount
+test_observe_smoking	all	all	all	35821355		0	0	0	0	3
+test_observe_smoking	all	all	all	3957361		0	0	0	0	2
+test_observe_smoking	all	all	all	3959110		0	0	0	0	3
+test_observe_smoking	all	all	observation	35821355		0	0	0	0	3
+test_observe_smoking	all	all	observation	3957361		0	0	0	0	2
+test_observe_smoking	all	all	observation	3959110		0	0	0	0	3
+test_observe_smoking	all	all	observation	all		0	0	0	0	8
+test_observe_smoking	all	all	person	all		0	0	0	0	4
+test_observe_smoking	demos	all	all	all		4	0	0	0	4
+test_observe_smoking	demos	all	person	8507		0	0	0	0	2
+test_observe_smoking	demos	all	person	8507	2000	0	0	0	0	2
+test_observe_smoking	demos	all	person	8532		0	0	0	0	2
+test_observe_smoking	demos	all	person	8532	2000	0	0	0	0	2
+test_observe_smoking	demos	all	person	all		0	0	0	0	4
+test_observe_smoking	smoke	all	all	all		8	0	0	0	8
+test_observe_smoking	smoke	all	observation	35821355		0	0	0	0	3
+test_observe_smoking	smoke	all	observation	3957361		0	0	0	0	2
+test_observe_smoking	smoke	all	observation	3959110		0	0	0	0	3
+test_observe_smoking	smoke	all	observation	all		0	0	0	0	8
+test_observe_smoking	smoke	smoke	observation	35821355		0	0	0	0	3
+test_observe_smoking	smoke	smoke	observation	3957361		0	0	0	0	2
+test_observe_smoking	smoke	smoke	observation	3959110		0	0	0	0	3
