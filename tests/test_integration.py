@@ -100,12 +100,12 @@ v1TestCases = list(
 )
 
 pass__arg_names = [
-    "pass__input__as_arg",
-    "pass__rules_file__as_arg",
-    "pass__person_file__as_arg",
-    "pass__output_dir__as_arg",
-    "pass__omop_ddl_file__as_arg",
-    "pass__omop_config_file__as_arg",
+    "inputs",
+    "rules-file",
+    "person-file",
+    "output",
+    "omop-ddl-file",
+    "omop-config-file",
 ]
 
 
@@ -113,24 +113,40 @@ connection_types = ["csv", "sqlite"]
 connection_types_w_s3 = connection_types + [f"s3:{testools.CARROT_TEST_BUCKET}"]
 
 
-@pytest.mark.parametrize("input_from", connection_types_w_s3)
-@pytest.mark.parametrize("test_case", v1TestCases, ids=lambda tc: tc._label)
-@pytest.mark.parametrize("output_to", connection_types_w_s3)
+def generate_cases(with_s3: bool):
+    types = connection_types_w_s3 if with_s3 else connection_types
+
+    perts = testools.permutations(
+        input_from=types, test_case=v1TestCases, output_to=types
+    )
+    varts = map(lambda v: {"pass_as": v}, testools.variations(pass__arg_names))
+
+    return [
+        (case["output_to"], case["test_case"], case["input_from"], case["pass_as"])
+        for case in testools.repeating_unions(perts, varts)
+    ]
+
+
+@pytest.mark.parametrize(
+    "output_to, test_case, input_from, pass_as", generate_cases(True)
+)
 @pytest.mark.s3tests
 def test_function_w_s3(
-    request, tmp_path: Path, input_from: str, test_case: V1TestCase, output_to: str
+    request, tmp_path: Path, output_to, test_case, input_from, pass_as
 ):
     """dumb wrapper to make the s3 tests run as well as the integration tests"""
-    test_function(request, tmp_path, input_from, test_case, output_to)
+    body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
 
 
-@pytest.mark.parametrize("input_from", connection_types)
-@pytest.mark.parametrize("test_case", v1TestCases, ids=lambda tc: tc._label)
-@pytest.mark.parametrize("output_to", connection_types)
+@pytest.mark.parametrize(
+    "output_to, test_case, input_from, pass_as", generate_cases(False)
+)
 @pytest.mark.integration
-def test_function(
-    request, tmp_path: Path, input_from: str, test_case: V1TestCase, output_to: str
-):
+def test_function(request, tmp_path: Path, output_to, test_case, input_from, pass_as):
+    body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
+
+
+def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass_as):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
 
     # generat a semi-random slug/name to group test data under
@@ -222,10 +238,60 @@ def test_function(
 
     assert output is not None, f"couldn't use {output_to=}"  # check output was set
 
-    # run the test sourcing that SQLite database but writing to disk
-    testools.run_v1(
-        inputs=inputs, person=test_case._person, mapper=test_case._mapper, output=output
+    ##
+    # build the env and arg parameters
+    def passed_as(*args):
+        args = list(args)
+
+        env = {}
+        i = 0
+
+        while i < len(args):
+            k = args[i][2:]
+
+            if not (k in pass_as):
+                i += 2
+                continue
+
+            # convert eh key
+            k = k.upper().replace("-", "_")
+
+            # get the value
+            v = args[i + 1]
+
+            # save it to the evn vars
+            env[k] = v
+
+            # demove the key and value from teh list
+            args = args[:i] + args[(i + 2) :]
+
+        return (env, args)
+
+    env, args = passed_as(
+        "--inputs",
+        inputs,
+        "--rules-file",
+        test_case._mapper,
+        "--person-file",
+        test_case._person,
+        "--output",
+        output,
+        "--omop-ddl-file",
+        "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
+        "--omop-config-file",
+        "@carrot/config/config.json",
     )
+
+    ##
+    # run click
+    runner = CliRunner()
+    result = runner.invoke(mapstream, args=args, env=env)
+
+    if result.exception is not None:
+        print(result.exception)
+        raise (result.exception)
+
+    assert 0 == result.exit_code
 
     # get the results so we can compare them to the expectations
     results = None
@@ -284,33 +350,3 @@ def test_mireda_key_error(tmp_path: Path, caplog):
     )
 
     assert "-1" == str(result.exception)
-
-
-def assert_datetimes(onlydate: str, datetime: str, expected: str):
-    """
-    this function performs date/time checking accounting for missing time info
-
-    i would preffer new tests do somethign else
-    """
-    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", onlydate), (
-        f"onlydate {onlydate=} is the wrong format"
-    )
-    assert re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", datetime), (
-        f"datetime {datetime=} is the wrong format"
-    )
-
-    assert datetime[:10] == onlydate
-
-    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", expected):
-        assert expected == onlydate
-        assert datetime == f"{onlydate} 00:00:00"
-
-    elif re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", expected):
-        assert expected[:10] == onlydate
-        assert datetime == f"{expected}:00"
-
-    else:
-        assert re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", expected), (
-            f"the source data {expected=} is in the wrong format"
-        )
-        assert expected == datetime

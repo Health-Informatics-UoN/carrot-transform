@@ -89,36 +89,80 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
 
 #### ==========================================================================
 ## utility functions
-
-
-def bool_interesting(count: int):
-    """yield every permutation where only one is true, and the two cases where all are true or all are false
-
-    used for test case generation
+def variations(keys):
+    """
+    computes key -> bool dicts where all, none, or only one value is true or false, then, maps those dicts to simple lists
     """
 
-    def bool_permutations(count: int):
-        """just yield all permutations"""
-        if count <= 0:
-            pass
-        elif count == 1:
-            yield [True]
-            yield [False]
-            return
+    def permutations(keys):
+        c = len(keys)
+        assert c > 0
+        if c == 1:
+            yield {keys[0]: True}
+            yield {keys[0]: False}
         else:
-            for tail in bool_permutations(count - 1):
-                yield ([True] + tail)
-                yield ([False] + tail)
+            k = keys[0]
+            for p in permutations(keys[1:]):
+                p = p.copy()
+                p[k] = True
+                yield p
+                p = p.copy()
+                p[k] = False
+                yield p
 
-    for e in bool_permutations(count):
-        a = sum(e)
+    for p in permutations(list(keys)):
+        values = list(p.values())
+        tc = values.count(True)
+        fc = values.count(False)
 
-        if 0 == a:
-            yield e
-        if 1 == a:
-            yield e
-        if count == a:
-            yield e
+        if (tc in [0, 1]) or (fc in [0, 1]):
+            o = []
+            for k in p:
+                if p[k]:
+                    o += [k]
+            yield o
+
+
+def permutations(**name_to_list):
+    """given a map of lists; yield all permutations of the contents"""
+
+    def loop(listing):
+        c = len(listing)
+
+        if 0 == c:
+            return
+
+        k, l = listing[0]
+
+        if 1 == c:
+            for v in l:
+                yield {k: v}
+
+            return
+
+        for t in loop(listing[1:]):
+            for v in l:
+                t[k] = v
+                yield t.copy()
+
+    for i in loop(list(map(lambda k: (k, name_to_list[k]), name_to_list.keys()))):
+        yield i
+
+
+def repeating_unions(*args: list[list]):
+    height = []
+    column = []
+
+    for a in args:
+        c = list(a)
+        column += [c]
+        height += [len(c)]
+
+    for i in range(0, max(height)):
+        row = {}
+        for c in column:
+            row = row | c[i % len(c)].copy()
+        yield row
 
 
 def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names=None):
