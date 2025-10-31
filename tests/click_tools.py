@@ -43,7 +43,6 @@ def click_test(
     pass__person_file__as_arg: bool = True,
     pass__output_dir__as_arg: bool = True,
     pass__omop_ddl_file__as_arg: bool = True,
-    pass__omop_config_file__as_arg: bool = True,
 ):
     """this function tests carrot transform.
 
@@ -141,11 +140,6 @@ def click_test(
         pass__omop_ddl_file__as_arg,
         "--omop-ddl-file",
         f"{package_root / 'config/OMOPCDM_postgresql_5.3_ddl.sql'}",
-    )
-    pass_as_arg(
-        pass__omop_config_file__as_arg,
-        "--omop-config-file",
-        f"{package_root / 'config/config.json'}",
     )
 
     ##

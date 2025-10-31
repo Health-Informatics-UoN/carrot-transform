@@ -1,3 +1,4 @@
+import importlib.resources as resources
 import sys
 import time
 from pathlib import Path
@@ -18,7 +19,6 @@ from carrottransform.tools.core import get_target_records
 from carrottransform.tools.date_helpers import normalise_to8601
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
-    set_omop_filenames,
 )
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.person_helpers import (
@@ -67,13 +67,6 @@ logger = logger_setup()
     help="File containing OHDSI ddl statements for OMOP tables",
 )
 @click.option(
-    "--omop-config-file",
-    envvar="OMOP_CONFIG_FILE",
-    type=PathArg,
-    required=False,
-    help="File containing additional / override json config for omop outputs",
-)
-@click.option(
     "--omop-version",
     required=False,
     help="Quoted string containing omop version - eg '5.3'",
@@ -116,7 +109,6 @@ def mapstream(
     output: outputs.OutputTarget,
     person_file: Path,
     omop_ddl_file: Path | None,
-    omop_config_file: Path | None,
     omop_version,
     use_input_person_ids,
     last_used_ids_file: Path | None,
@@ -129,6 +121,9 @@ def mapstream(
     """
     Map to output using input streams
     """
+
+    # this used to be a parameter; it's hard coded now but otherwise unchanged
+    omop_config_file: Path = PathArg.convert("@carrot/config/config.json", None, None)
 
     # Initialisation
     # - check for values in optional arguments
@@ -160,10 +155,14 @@ def mapstream(
         logger.error(f"rules file was set to {rules_file=} and is missing")
         sys.exit()
 
-    ## set omop filenames
-    omop_config_file, omop_ddl_file = set_omop_filenames(
-        omop_ddl_file, omop_config_file, omop_version
-    )
+    ## fallback for the ddl filename
+    if omop_ddl_file is None and omop_version is not None:
+        omop_ddl_name = f"OMOPCDM_postgresql_{omop_version}_ddl.sql"
+        omop_ddl_file = Path(
+            Path(str(resources.files("carrottransform"))) / "config" / omop_ddl_name
+        )
+        if not omop_ddl_file.is_file():
+            logger.warning(f"{omop_ddl_name=} not found")
 
     ## check on the person_file_rules
     try:

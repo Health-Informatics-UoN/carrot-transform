@@ -87,6 +87,8 @@ def test_dock_observations(tmp_path: Path):
             image_name,
             "uv",
             "run",
+            "--python",
+            "3.11",
             "python",
             "-m",
             "carrottransform.cli.command",
@@ -98,10 +100,6 @@ def test_dock_observations(tmp_path: Path):
         command += [
             "--omop-ddl-file",
             "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
-        ]
-        command += [
-            "--omop-config-file",
-            "@carrot/config/config.json",
         ]
         command += [
             "--inputs",

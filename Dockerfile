@@ -10,4 +10,4 @@ COPY carrottransform/ ./carrottransform/
 
 
 # run the sync command to pull in the dependencies during container creation
-RUN uv sync --frozen
+RUN uv sync --python 3.10 --frozen
