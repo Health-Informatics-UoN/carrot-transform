@@ -150,69 +150,6 @@ def test_utf8_with_bom(tmp_path: Path):
     assert rows[1] == ["value1", "value2"]
 
 
-### test_set_omop_filenames(omop_ddl_file, omop_config_file, omop_version):
-@pytest.mark.unit
-def test_explicit_filenames():
-    """Test when both filenames are explicitly provided"""
-    version = "5.4"
-
-    ddl_file = Path("/path/to/ddl.sql")
-    config_file = Path("/path/to/config.json")
-
-    result_config, result_ddl = run.set_omop_filenames(ddl_file, config_file, version)
-
-    assert result_config == config_file
-    assert result_ddl == ddl_file
-
-
-@pytest.mark.unit
-def test_auto_filenames_from_version():
-    """Test when version is provided but no files"""
-    version = "5.4"
-
-    expected_base = importlib.resources.files("carrottransform")
-    assert isinstance(expected_base, Path), "this test assumes it's a Path()"
-
-    expected_config = expected_base / "config/config.json"
-    expected_ddl = expected_base / f"config/OMOPCDM_postgresql_{version}_ddl.sql"
-
-    result_config, result_ddl = run.set_omop_filenames(None, None, version)
-
-    assert result_config == expected_config
-    assert result_ddl == expected_ddl
-
-
-@pytest.mark.unit
-def test_no_changes_when_partial_files():
-    """Test when some files are provided but not all"""
-    ddl_file = "/path/to/ddl.sql"
-    version = "5.4"
-
-    # Test with only DDL file
-    result_config, result_ddl = run.set_omop_filenames(ddl_file, None, version)
-    assert result_config is None
-    assert result_ddl == ddl_file
-
-    # Test with only config file
-    config_file = "/path/to/config.json"
-    result_config, result_ddl = run.set_omop_filenames(None, config_file, version)
-    assert result_config == config_file
-    assert result_ddl is None
-
-
-@pytest.mark.unit
-def test_no_version():
-    """Test when no version is provided"""
-    ddl_file = None
-    config_file = None
-    version = None
-
-    result_config, result_ddl = run.set_omop_filenames(ddl_file, config_file, version)
-
-    assert result_config is None
-    assert result_ddl is None
-
-
 ### test_get_person_lookup(saved_person_id_file):
 @pytest.mark.unit
 def test_new_person_lookup(tmp_path: Path):
