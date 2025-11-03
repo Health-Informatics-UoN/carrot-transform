@@ -22,43 +22,7 @@ from carrottransform.cli.subcommands.run import mapstream
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
 
-
-class V1TestCase:
-    """defines a V1 integration test case in terms of the person file"""
-
-    def __init__(self, person_name: str):
-        self._person_name = "measure_weight_height/persons.csv"
-
-        self._folder = (test_data / person_name).parent
-
-        # find the rules mapping
-        mapper = ""
-        for json in self._folder.glob("*.json"):
-            assert "" == mapper
-            mapper = str(json).replace("\\", "/")
-        assert "" != mapper
-        self._mapper = mapper
-
-        assert 1 == person_name.count("/")
-        [label, person] = person_name.split("/")
-        self._label = label
-        self._person = person
-
-    def load_sqlite(self, tmp_path: Path):
-        assert tmp_path.is_dir()
-
-        # create an SQLite database and copy the contents into it
-        sqlite3 = tmp_path / f"{self._label}.sqlite3"
-        testools.copy_across(
-            ot=outputs.sqlOutputTarget(
-                sqlalchemy.create_engine(f"sqlite:///{sqlite3.absolute()}")
-            ),
-            so=self._folder,
-        )
-        return f"sqlite:///{sqlite3.absolute()}"
-
-    def compare_to_tsvs(self, source):
-        testools.compare_to_tsvs(self._label, source)
+V1TestCase = testools.CarrotTestCase
 
 
 @pytest.mark.unit  # it's an integration test ... but i need/want one that i can check quickly
@@ -118,7 +82,7 @@ def generate_cases(with_s3: bool):
     perts = testools.permutations(
         input_from=types, test_case=v1TestCases, output_to=types
     )
-    varts = map(lambda v: {"pass_as": v}, testools.variations(pass__arg_names))
+    varts = list(map(lambda v: {"pass_as": v}, testools.variations(pass__arg_names)))
 
     return [
         (case["output_to"], case["test_case"], case["input_from"], case["pass_as"])
@@ -237,36 +201,8 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
 
     assert output is not None, f"couldn't use {output_to=}"  # check output was set
 
-    ##
-    # build the env and arg parameters
-    def passed_as(*args):
-        args = list(args)
 
-        env = {}
-        i = 0
-
-        while i < len(args):
-            k = args[i][2:]
-
-            if not (k in pass_as):
-                i += 2
-                continue
-
-            # convert eh key
-            k = k.upper().replace("-", "_")
-
-            # get the value
-            v = args[i + 1]
-
-            # save it to the evn vars
-            env[k] = v
-
-            # demove the key and value from teh list
-            args = args[:i] + args[(i + 2) :]
-
-        return (env, args)
-
-    env, args = passed_as(
+    env, args = testools.passed_as(pass_as,
         "--inputs",
         inputs,
         "--rules-file",

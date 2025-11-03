@@ -2,6 +2,7 @@ import logging
 import re
 from pathlib import Path
 
+import sqlalchemy
 import pytest
 from click.testing import CliRunner
 
@@ -233,3 +234,76 @@ def rand_hex(length: int = 16) -> str:
         out += src[random.randint(0, len(src) - 1)]
 
     return out
+
+
+test_data = Path(__file__).parent / "test_data"
+
+class CarrotTestCase:
+    """defines an integration test case in terms of the person file, and the optional mapper rules"""
+
+    def __init__(self, person_name: str, mapper: str = ""):
+        self._person_name = person_name
+
+        self._folder = (test_data / person_name).parent
+
+        # find the rules mapping
+        if mapper == "":
+            for json in self._folder.glob("*.json"):
+                assert "" == mapper
+                mapper = str(json).replace("\\", "/")
+        assert "" != mapper
+        self._mapper = mapper
+
+        assert 1 == person_name.count("/")
+        [label, person] = person_name.split("/")
+        self._label = label
+        self._person = person
+
+    def load_sqlite(self, tmp_path: Path):
+        assert tmp_path.is_dir()
+
+        # create an SQLite database and copy the contents into it
+        sqlite3 = tmp_path / f"{self._label}.sqlite3"
+        copy_across(
+            ot=outputs.sqlOutputTarget(
+                sqlalchemy.create_engine(f"sqlite:///{sqlite3.absolute()}")
+            ),
+            so=self._folder,
+        )
+        return f"sqlite:///{sqlite3.absolute()}"
+
+    def compare_to_tsvs(self, source):
+        compare_to_tsvs(self._label, source)
+
+
+###
+
+
+##
+# build the env and arg parameters
+def passed_as(pass_as, *args):
+    args = list(args)
+
+    env = {}
+    i = 0
+
+    while i < len(args):
+        k = args[i][2:]
+
+        if not (k in pass_as):
+            i += 2
+            continue
+
+        # convert eh key
+        k = k.upper().replace("-", "_")
+
+        # get the value
+        v = args[i + 1]
+
+        # save it to the evn vars
+        env[k] = v
+
+        # demove the key and value from teh list
+        args = args[:i] + args[(i + 2) :]
+
+    return (env, args)
