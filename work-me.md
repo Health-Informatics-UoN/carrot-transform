@@ -2,10 +2,10 @@
 delete this before merging with main
 
 this branch has the functionality to read/write from s3 buckets as if they're `.tsv` or `.csv`
+reading is pretty inefficent (sorry) and really is just used for testing - writing is done via a streaming approach.
+oddly; these are pretty simmilar, so, reading could be improved - likely faster than i was able to inegrate v2.
 
-
-this branch includes the functionality to write data to s3 buckets intest of csv files.
-oddly; these are pretty simmilar.
+it does that by reworkign the input and output to function behind an API instead of the intersections of options they used prior
 
 to switch between the two, we/i change the "output-dir" arg to now specify either a path to where the output should be, or, an `s3:<bucket name>` value.
 from there the arg type (thing) instantiates something to write the tables to.
@@ -29,7 +29,7 @@ from there the arg type (thing) instantiates something to write the tables to.
         - [x] tests/test_run.py::test_directory_not_found
         - [x] tests/test_integration.py::test_sql_read
         - [x] tests/test_integration.py::test_fixture
-        - [ ] add the env-arg or cli-param tests
+        - [x] add the env-arg or cli-param tests
     - [x] cleanup the logic between old and new tests
         - it's becoming a case of rewrite the tests
         - ... but ... they're verifying the whole results so that's probably better
@@ -39,11 +39,17 @@ from there the arg type (thing) instantiates something to write the tables to.
 - for deplyment
     - [ ] determine how the accounring should be done on GH
 - for v2
-    - [ ] make it work with v2
-    - [ ] check if v2 test(s) can be "normalised" to work like this?
-    - [ ] check if that "is v2" check i saw is usable
+    - [x] get an integration test
+        - there's only one option
+    - [ ] make it work with v2's folder variant
+    - [ ] get v2's trino/postgresql variants working with the API interfaces
+    - [x] check if v2 test(s) can be "normalised" to work like this?
+        - yes?
 - for fun
+    - check if that "is v2" check i saw is usable
+        - it is; can i merge all the functionality?
     - test and see if we/i can auto-determine the person table
+        - tests indicate as such (for v1 anyway)
 
 
 

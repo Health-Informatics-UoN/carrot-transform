@@ -334,40 +334,48 @@ class StreamProcessor:
             rejected_count += 1
 
         return result.record_count, rejected_count
-
+import carrottransform.tools.sources as sources
+import carrottransform.tools.outputs as outputs
 
 class V2ProcessingOrchestrator:
     """Main orchestrator for the entire V2 processing pipeline"""
 
     def __init__(
         self,
+        
+        inputs: sources.SourceObject,
+        output: outputs.OutputTarget,
         rules_file: Path,
-        output_dir: Path,
-        input_dir: Optional[Path],
-        omop_ddl_file: Optional[Path],
-        omop_config_file: Optional[Path],
-        write_mode: str = "w",
-        person_file: Optional[Path] = None,
-        person_table: Optional[str] = None,
-        db_conn_params: Optional[DBConnParams] = None,
+        write_mode: str,
+        omop_ddl_file: Path,
+        person: str,
+
+        omop_config_file: Path,
     ):
-        self.rules_file = rules_file
-        self.output_dir = output_dir
-        self.input_dir = input_dir
-        self.person_file = person_file
-        self.person_table = person_table
-        self.omop_ddl_file = omop_ddl_file
-        self.omop_config_file = omop_config_file
-        self.write_mode = write_mode
-        self.db_conn_params = db_conn_params
+        self._inputs: sources.SourceObject = inputs
+        self._output: outputs.OutputTarget = output
+        self._rules_file: Path = rules_file
+        self._write_mode: str = write_mode
+        self._person: str = person
 
-        # Initialize components immediately
-        self.initialize_components()
+        assert omop_ddl_file is not None, "omopddl/omop_ddl_file musn't be null"
 
-    def initialize_components(self):
+        # self.rules_file = rules_file
+        # self.output_dir = output_dir
+        # self.input_dir = input_dir
+        # self.person_file = person_file
+        # self.person_table = person_table
+        # self.omop_ddl_file = omop_ddl_file
+        # self.omop_config_file = omop_config_file
+        # self.write_mode = write_mode
+        # self.db_conn_params = db_conn_params
+
         """Initialize all processing components"""
-        self.omopcdm = OmopCDM(self.omop_ddl_file, self.omop_config_file)
-        self.mappingrules = MappingRules(self.rules_file, self.omopcdm)
+        self.omopcdm = OmopCDM(omop_ddl_file, omop_config_file)
+
+        self.mappingrules = MappingRules(rules_file, self.omopcdm)
+
+        raise Exception('??? hole - keep pushing changed through')
 
         if not self.mappingrules.is_v2_format:
             raise ValueError("Rules file is not in v2 format!")

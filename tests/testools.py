@@ -244,6 +244,8 @@ class CarrotTestCase:
     def __init__(self, person_name: str, mapper: str = ""):
         self._person_name = person_name
 
+        
+
         self._folder = (test_data / person_name).parent
 
         # find the rules mapping
@@ -257,7 +259,8 @@ class CarrotTestCase:
         assert 1 == person_name.count("/")
         [label, person] = person_name.split("/")
         self._label = label
-        self._person = person
+        assert person.endswith('.csv')
+        self._person = person[:-4]
 
     def load_sqlite(self, tmp_path: Path):
         assert tmp_path.is_dir()

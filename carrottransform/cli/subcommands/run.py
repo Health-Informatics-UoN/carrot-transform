@@ -52,12 +52,18 @@ logger = logger_setup()
 #     type=click.Choice(["w", "a"]),
 #     help="force write-mode on output files",
 # )
+# @click.option(
+#     "--person-file",
+#     envvar="PERSON_FILE",
+#     type=PathArg,
+#     required=True,
+#     help="File containing person_ids in the first column",
+# )
 @click.option(
-    "--person-file",
-    envvar="PERSON_FILE",
-    type=PathArg,
+    "--person",
+    envvar="PERSON",
     required=True,
-    help="File containing person_ids in the first column",
+    help="File or table containing person_ids in the first column",
 )
 @click.option(
     "--omop-ddl-file",

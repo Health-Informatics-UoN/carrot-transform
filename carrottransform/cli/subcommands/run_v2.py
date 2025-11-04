@@ -2,6 +2,9 @@
 Entry point for the v2 processing system
 """
 
+from carrottransform import require
+
+import carrottransform.tools.sources as sources
 import importlib.resources as resources
 import time
 from pathlib import Path
@@ -30,18 +33,6 @@ def common_options(func):
         help="v2 json file containing mapping rules",
     )(func)
     func = click.option(
-        "--output-dir",
-        type=PathArg,
-        required=True,
-        help="define the output directory for OMOP-format tsv files",
-    )(func)
-    func = click.option(
-        "--write-mode",
-        default="w",
-        type=click.Choice(["w", "a"]),
-        help="force write-mode on output files",
-    )(func)
-    func = click.option(
         "--omop-ddl-file",
         type=PathArg,
         required=False,
@@ -52,72 +43,73 @@ def common_options(func):
         required=False,
         help="Quoted string containing omop version - eg '5.3'",
     )(func)
+
+    func = click.option(
+        "--person",
+        envvar="PERSON",
+        required=True,
+        help="File or table containing person_ids in the first column",
+    )(func)
     return func
 
 
+import  carrottransform.tools.outputs as outputs
+
 def process_common_logic(
+    inputs: sources.SourceObject,
+    output: outputs.OutputTarget,
     rules_file: Path,
-    output_dir: Path,
     write_mode: str,
     omop_ddl_file: Optional[Path],
     omop_version: Optional[str],
-    person_file: Optional[Path] = None,
-    person_table: Optional[str] = None,
-    input_dir: Optional[Path] = None,
-    db_conn_params: Optional[DBConnParams] = None,
+    person: str,
 ):
+    assert not person.endswith(".csv"), "don't call the thingies .csv - just use thenor name"
+
     """Common processing logic for both modes"""
     start_time = time.time()
 
     # this used to be a parameter; it's hard coded now but otherwise unchanged
     omop_config_file: Path = PathArg.convert("@carrot/config/config.json", None, None)
+    require(omop_config_file.is_file())
+
 
     try:
-        # Resolve paths (exclude None values)
-        paths_to_resolve = [
-            rules_file,
-            output_dir,
-            person_file,
-            omop_ddl_file,
-            omop_config_file,
-        ]
-        if input_dir:
-            paths_to_resolve.append(input_dir)
+        
+        # default to 5.3 - value is onlu used for ddl fallback so nailing it in place
+        if omop_version is None:
+            omop_version = '5.3'
+        
+        #
+        if omop_ddl_file is None: 
+            omop_ddl_file: Path = PathArg.convert(f"@carrot/config/OMOPCDM_postgresql_{omop_version}_ddl.sql", None, None)
 
-        # the paths are resolved by the click framework now, but, still need to check for None
-
-        # Update variables with resolved paths
-        if rules_file is None:
-            raise ValueError("rules_file is required")
-        if output_dir is None:
-            raise ValueError("output_dir is required")
-
-        # validate directories
-        if input_dir:
-            check_dir_isvalid(input_dir)
-        check_dir_isvalid(output_dir, create_if_missing=True)
-
-        ## fallback for the ddl filename
-        if omop_ddl_file is None and omop_version is not None:
-            omop_ddl_name = f"OMOPCDM_postgresql_{omop_version}_ddl.sql"
-            omop_ddl_file = Path(
-                Path(str(resources.files("carrottransform"))) / "config" / omop_ddl_name
-            )
-            if not omop_ddl_file.is_file():
-                logger.warning(f"{omop_ddl_name=} not found")
+        require(omop_ddl_file.is_file())
 
         # Create orchestrator and execute processing (pass explicit kwargs to satisfy typing)
         orchestrator = V2ProcessingOrchestrator(
-            rules_file=rules_file,
-            output_dir=output_dir,
-            input_dir=input_dir,
-            person_file=person_file,
-            person_table=person_table,
-            omop_ddl_file=omop_ddl_file,
+            
+            inputs = inputs,
+            output = output,
+            rules_file = rules_file,
+            write_mode = write_mode,
+            omop_ddl_file = omop_ddl_file,
+            person = person,
+
+            # rules_file=rules_file,
+            # output_dir=output_dir,
+            # input_dir=input_dir,
+            # person_file=person_file,
+            # person_table=person_table,
+            # omop_ddl_file=omop_ddl_file,
             omop_config_file=omop_config_file,
-            write_mode=write_mode,
-            db_conn_params=db_conn_params,
+            # write_mode=write_mode,
+            # db_conn_params=db_conn_params,
         )
+
+        
+        # the revisde args redundate the need for resolving paths
+        raise Exception('? proceed from here with inputs/output')
 
         logger.info(
             f"Loaded v2 mapping rules from: {rules_file} in {time.time() - start_time:.5f} secs"
@@ -133,42 +125,56 @@ def process_common_logic(
             logger.error(f"V2 processing failed: {result.error_message}")
 
     except Exception as e:
-        logger.error(f"V2 processing failed with error: {str(e)}")
+        import traceback
+        import logging
+        # Get the full stack trace as a string
+        stack_trace = traceback.format_exc()
+        # Write stack trace to file
+        trace = Path('trace.txt').absolute()
+        with trace.open('a') as f:
+            f.write(f"Error occurred: {str(e)}\n")
+            f.write("Full stack trace:\n")
+            f.write(stack_trace)
+            f.write("\n" + "="*50 + "\n")  # separator for multiple errors
+
+        logger.error(f"V2 processing failed with error: {str(e)} (added to {trace=})")
         raise
 
 
 @click.command()
 @click.option(
-    "--input-dir",
-    type=PathArg,
+    "--inputs",
+    envvar="INPUTS",
+    type=sources.SourceArgument,
     required=True,
-    help="Input directory",
+    help="Input directory or database",
 )
 @click.option(
-    "--person-file",
-    type=PathArg,
+    "--output",
+    envvar="OUTPUT",
+    type=outputs.TargetArgument,
+    # default=None,
     required=True,
-    help="File containing person_ids in the first column",
+    help="define the output directory for OMOP-format tsv files",
 )
 @common_options
 def folder(
-    input_dir: Path,
+    inputs: sources.SourceObject,
+    output: outputs.OutputTarget,
     rules_file: Path,
-    output_dir: Path,
-    write_mode: str,
-    person_file: Path,
+    person: str,
     omop_ddl_file: Optional[Path],
     omop_version: Optional[str],
 ):
     """Process data from folder input"""
     process_common_logic(
         rules_file=rules_file,
-        output_dir=output_dir,
-        write_mode=write_mode,
-        person_file=person_file,
-        omop_ddl_file=omop_ddl_file,
+        output = output,
         omop_version=omop_version,
-        input_dir=input_dir,
+        inputs=inputs,
+        person = person,
+        write_mode='w',
+        omop_ddl_file=omop_ddl_file,
     )
 
 

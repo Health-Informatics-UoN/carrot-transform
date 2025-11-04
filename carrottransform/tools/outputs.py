@@ -2,6 +2,7 @@
 this file contains several "output target" classes. each class is used to write carrot-transform output data in a different way. all classes are operated the same way - so - which output is in use can be selected by the CLICK argument type - also defined in this file.
 """
 
+from carrottransform import require
 import io
 import logging
 from pathlib import Path
@@ -13,29 +14,6 @@ from sqlalchemy import MetaData
 
 logger = logging.getLogger(__name__)
 
-
-def require(con: bool, msg: str = ""):
-    if "" != msg:
-        msg = "\n\t" + msg
-    import inspect
-
-    if con:
-        return
-    # Get the calling frame and its code context
-    currentframe = inspect.currentframe()
-    frame = currentframe.f_back if currentframe is not None else None
-    frame_info = inspect.getframeinfo(frame) if frame is not None else None
-
-    context = frame_info.code_context if frame_info is not None else None
-    if context:
-        call_line = context[0].strip()
-        raise AssertionError(
-            f"failed {frame_info.filename}:{frame_info.lineno}: {call_line}{msg}"
-        )
-    if frame_info is not None:
-        raise AssertionError(f"failed {frame_info.filename}:{frame_info.lineno}{msg}")
-
-    raise AssertionError(f"failed requirement{msg}")
 
 
 class OutputTarget:

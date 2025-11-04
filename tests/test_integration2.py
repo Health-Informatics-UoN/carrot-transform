@@ -44,7 +44,7 @@ def test_v2(tmp_path:Path, test_case: testools.CarrotTestCase):
         inputs,
         "--rules-file",
         test_case._mapper,
-        "--person-file",
+        "--person",
         test_case._person,
         "--output",
         output,

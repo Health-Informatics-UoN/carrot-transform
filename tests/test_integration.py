@@ -39,7 +39,7 @@ def test_sql_read(tmp_path: Path):
     # run the test sourcing that SQLite database but writing to disk
     testools.run_v1(
         inputs=test_case.load_sqlite(tmp_path),
-        person=test_case._person,
+        person=test_case._person_name,
         mapper=test_case._mapper,
         output=str((tmp_path / "out").absolute()),
     )
