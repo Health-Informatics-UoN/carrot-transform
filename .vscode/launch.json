@@ -17,31 +17,19 @@
       "args": [],
       "justMyCode": false
     },
-
     {
-      "name": "V1 -Debug Carrot Transform Rules",
+      "name": "uv pytest / integration2",
       "type": "debugpy",
       "request": "launch",
-      "module": "carrottransform.cli.command",
-      "args": [
-        "run",
-        "mapstream",
-        "--input-dir",
-        "carrottransform/examples/test/inputs",
-        "--rules-file",
-        "carrottransform/examples/test/rules/v1.json",
-        "--person-file",
-        "carrottransform/examples/test/inputs/Demographics.csv",
-        "--output-dir",
-        "carrottransform/examples/test/outputs",
-        "--omop-ddl-file",
-        "carrottransform/config/OMOPCDM_postgresql_5.3_ddl.sql",
-        "--omop-config-file",
-        "carrottransform/config/config.json"
-      ],
+      "program": "-m",
+      "args": ["pytest", "tests/test_integration2.py", "-v", "-s"],
       "console": "integratedTerminal",
-      "justMyCode": false
-    },
+      "justMyCode": false,
+      "env": {
+          "PYTHONPATH": "${workspaceFolder}"
+      }
+  },
+
     {
       "name": "V2 - Folder - Debug Carrot Transform Rules",
       "type": "debugpy",

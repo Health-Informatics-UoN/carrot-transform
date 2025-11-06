@@ -24,7 +24,6 @@ from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.person_helpers import (
     load_last_used_ids,
     read_person_ids,
-    set_saved_person_id_file,
 )
 
 logger = logger_setup()

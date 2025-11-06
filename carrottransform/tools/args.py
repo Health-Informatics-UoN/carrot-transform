@@ -124,17 +124,19 @@ class ObjectStructureError(Exception):
 
 
 def person_rules_check_v2(
-    person_file: Path | None, person_table: str | None, mappingrules: MappingRules
+    person: str, mappingrules: MappingRules
 ) -> None:
-    """check that the person rules file is correct."""
-    person_file_name = None
-    if person_file:
-        if not person_file.is_file():
-            raise Exception("Person file not found.")
-        person_file_name = person_file.name
+    """ensure that the person rules ONLY reffer to the named table/csv"""
 
-    person__rules: dict | str = object_query(mappingrules.rules_data, "cdm/person")
+    
+    if '.' in person:
+        raise Exception(
+            f"Can't have a table named {person=} (if it's csv, remove the file extension)"
+        )
 
+
+    # grab the indicated section
+    person__rules: dict | str | None = object_query(mappingrules.rules_data, "cdm/person")
     if isinstance(person__rules, str):
         # this is unlikely, but, mypy flags it.
         # ... will probably write a test at some point to cover this exception
@@ -142,29 +144,38 @@ def person_rules_check_v2(
             f"the entry cdm/person needs to be an object but it was a scalar/string/leaf {person__rules=}"
         )
     person_rules: dict = person__rules
-
     if not person_rules:
         raise Exception("Mapping rules to Person table not found")
+
+    # 
     if len(person_rules) > 1:
         raise Exception(
-            f"""The source table for the OMOP table Person can be only one, which is the person file: {person_file_name}. However, there are multiple source tables {list(person_rules.keys())} for the Person table in the mapping rules."""
+            f"""The source table for the OMOP table Person can be only one, which is the person file: {person}. However, there are multiple source tables {list(person_rules.keys())} for the Person table in the mapping rules."""
         )
-    if (
-        len(person_rules) == 1
-        and person_table
-        and person_table != list(person_rules.keys())[0].split(".")[0]
-    ):
+
+    if len(person_rules) == 0:
         raise Exception(
-            f"""The source table for the OMOP table Person should be the person table {person_table}, but the current source table for Person is {list(person_rules.keys())[0].split(".")[0]}."""
+            f"""The source table for the OMOP table Person can be only one, which is the person file: {person}. However, there are NO source tables for the Person table in the mapping rules."""
         )
-    if (
-        len(person_rules) == 1
-        and person_file_name
-        and (person_file_name not in person_rules)
-    ):
+
+    seen: str = list(person_rules.keys())[0]
+
+    # we don't care if the rule's suffix is .csv
+    if seen.endswith('.csv'):
+        named = seen[:-4]
+    else:
+        named = seen
+
+    if '.' in named:
         raise Exception(
-            f"""The source table for the OMOP table Person should be the person file {person_file_name}, but the current source table for Person is {list(person_rules.keys())[0]}."""
+            f"The mapping tries to use {seen=} (whihc i can reduce to {named=}) but that's not going to be {person=}"
         )
+
+    if named != person:
+        raise Exception(
+            f"The source table for the OMOP table's Person data should be {person=}, but the mapping uses {named=}"
+        )
+
 
 
 def person_rules_check(person_file_name: str, rules_file: Path) -> None:

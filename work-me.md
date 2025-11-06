@@ -33,6 +33,7 @@ from there the arg type (thing) instantiates something to write the tables to.
     - [x] cleanup the logic between old and new tests
         - it's becoming a case of rewrite the tests
         - ... but ... they're verifying the whole results so that's probably better
+- bug the source.SourceObject needs to block trailing empty columsn
 - for v1
     - [x] change `output-dir` to just `output`
     - [x] remove any/all "create dir" stuff for the parameter
@@ -41,6 +42,7 @@ from there the arg type (thing) instantiates something to write the tables to.
 - for v2
     - [x] get an integration test
         - there's only one option
+    - [ ] get .tsv files for the integration test
     - [ ] make it work with v2's folder variant
     - [ ] get v2's trino/postgresql variants working with the API interfaces
     - [x] check if v2 test(s) can be "normalised" to work like this?
@@ -50,29 +52,5 @@ from there the arg type (thing) instantiates something to write the tables to.
         - it is; can i merge all the functionality?
     - test and see if we/i can auto-determine the person table
         - tests indicate as such (for v1 anyway)
-
-
-
-def permutations(arg_lists)
-    assert 0 != arg_lists
-    if 1 == arg lists len
-        for i in arg_lists[0]
-            yield (i)
-    else
-        for t in permutations(arglists[1:])
-            for h in arglists[0]
-                yield (h) + t
-
-def zipations(arg_lists)
-    assert 0 != arg_lists
-    if 1 == arg lists len
-        for i in arg_lists[0]
-            yield (i)
-    else
-        t = zipations(arg_lists[1:])
-        h = arg_lists[0]
-        x = max(len(t, h))
-        for i in 0, x:
-            yield (h[i % len(h)]) + (t[i % len(t)])
-    
-
+    - can i use just ONE validation function for person_rules_check_v2?
+        - i changed v2 to ignore the .csv suffix

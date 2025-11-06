@@ -16,7 +16,6 @@ from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
 from carrottransform.tools.person_helpers import (
     load_person_ids_v2,
-    set_saved_person_id_file,
 )
 from carrottransform.tools.record_builder import RecordBuilderFactory
 from carrottransform.tools.stream_helpers import StreamingLookupCache
@@ -353,10 +352,10 @@ class V2ProcessingOrchestrator:
         omop_config_file: Path,
     ):
         self._inputs: sources.SourceObject = inputs
+        self._person: str = person
         self._output: outputs.OutputTarget = output
         self._rules_file: Path = rules_file
         self._write_mode: str = write_mode
-        self._person: str = person
 
         assert omop_ddl_file is not None, "omopddl/omop_ddl_file musn't be null"
 
@@ -375,61 +374,33 @@ class V2ProcessingOrchestrator:
 
         self.mappingrules = MappingRules(rules_file, self.omopcdm)
 
-        raise Exception('??? hole - keep pushing changed through')
 
         if not self.mappingrules.is_v2_format:
             raise ValueError("Rules file is not in v2 format!")
         else:
             try:
-                person_rules_check_v2(
-                    self.person_file, self.person_table, self.mappingrules
-                )
+                person_rules_check_v2(self._person, self.mappingrules)
             except Exception as e:
                 logger.exception(f"Validation for person rules failed: {e}")
                 raise e
 
         self.metrics = tools.metrics.Metrics(self.mappingrules.get_dataset_name())
-        self.output_manager = OutputFileManager(self.output_dir, self.omopcdm)
 
         # Pre-compute lookup cache for efficient streaming
         self.lookup_cache = StreamingLookupCache(self.mappingrules, self.omopcdm)
 
-        if self.db_conn_params:
-            self.engine_connection = EngineConnection(self.db_conn_params)
-
-    def setup_person_lookup(self) -> Tuple[Dict[str, str], int]:
-        """Setup person ID lookup and save mapping"""
-        saved_person_id_file = set_saved_person_id_file(None, self.output_dir)
-        connection = None
-        schema = None
-        if self.db_conn_params:
-            connection = self.engine_connection.connect()
-            schema = self.db_conn_params.schema
-
-        person_lookup, rejected_person_count = load_person_ids_v2(
-            saved_person_id_file,
-            person_file=self.person_file,
-            person_table_name=self.person_table,
-            mappingrules=self.mappingrules,
-            use_input_person_ids="N",
-            db_connection=connection,
-            schema=schema,
-        )
-
-        # Save person IDs
-        with saved_person_id_file.open(mode="w") as fhpout:
-            fhpout.write("SOURCE_SUBJECT\tTARGET_SUBJECT\n")
-            for person_id, person_assigned_id in person_lookup.items():
-                fhpout.write(f"{str(person_id)}\t{str(person_assigned_id)}\n")
-
-        return person_lookup, rejected_person_count
-
     def execute_processing(self) -> ProcessingResult:
         """Execute the complete processing pipeline with efficient streaming"""
+
 
         try:
             # Setup person lookup
             person_lookup, rejected_person_count = self.setup_person_lookup()
+
+
+            raise Exception('??? we have done the person lookup')
+
+
             # Log results of person lookup
             logger.info(
                 f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
@@ -471,6 +442,31 @@ class V2ProcessingOrchestrator:
             return result
 
         finally:
-            # Always close files
-            if self.output_manager:
-                self.output_manager.close_all_files()
+            pass
+            # don't worry about closing files; the program will need to be re-run in any use case
+            # # Always close files
+            # if self.output_manager:
+            #     self.output_manager.close_all_files()
+
+    def setup_person_lookup(self) -> dict[str, str] | int:
+        """Setup person ID lookup and save mapping"""
+
+        logger.info("v2 assumes it is always `person_ids` and doesn't try to reuse ids")
+
+        person_lookup, rejected_person_count = load_person_ids_v2(
+            mappingrules=self.mappingrules,
+        inputs = self._inputs,
+        person = self._person,
+        output =  outputs.OutputTarget ,
+        )
+        raise Exception('??? did we gettit?')
+
+        # Save person IDs
+        raise Exception('??? use the/a/new outputs to save the IDs as expected')
+        saved_person_id_file = output_dir / "person_ids.tsv"
+        with saved_person_id_file.open(mode="w") as fhpout:
+            fhpout.write("SOURCE_SUBJECT\tTARGET_SUBJECT\n")
+            for person_id, person_assigned_id in person_lookup.items():
+                fhpout.write(f"{str(person_id)}\t{str(person_assigned_id)}\n")
+
+        return person_lookup, rejected_person_count

@@ -64,7 +64,7 @@ def process_common_logic(
     omop_version: Optional[str],
     person: str,
 ):
-    assert not person.endswith(".csv"), "don't call the thingies .csv - just use thenor name"
+    assert not person.endswith(".csv"), "don't call the person table .csv - just use their name"
 
     """Common processing logic for both modes"""
     start_time = time.time()
@@ -107,14 +107,10 @@ def process_common_logic(
             # db_conn_params=db_conn_params,
         )
 
-        
-        # the revisde args redundate the need for resolving paths
-        raise Exception('? proceed from here with inputs/output')
-
         logger.info(
             f"Loaded v2 mapping rules from: {rules_file} in {time.time() - start_time:.5f} secs"
         )
-
+        
         result = orchestrator.execute_processing()
 
         if result.success:
@@ -123,6 +119,7 @@ def process_common_logic(
             )
         else:
             logger.error(f"V2 processing failed: {result.error_message}")
+            exit(12)
 
     except Exception as e:
         import traceback

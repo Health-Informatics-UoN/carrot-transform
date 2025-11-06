@@ -2,7 +2,8 @@ import csv
 import sys
 from pathlib import Path
 from typing import Iterator, Optional
-
+import  carrottransform.tools.sources as sources
+import  carrottransform.tools.outputs as outputs
 from sqlalchemy.engine import Connection
 from sqlalchemy.schema import MetaData, Table
 from sqlalchemy.sql.expression import select
@@ -26,16 +27,32 @@ def load_last_used_ids(last_used_ids_file: Path, last_used_ids):
 
 
 def load_person_ids_v2(
-    saved_person_id_file,
-    person_file: Path | None,
-    person_table_name: str | None,
     mappingrules: MappingRules,
-    use_input_person_ids: str,
-    delim=",",
-    db_connection: Optional[Connection] = None,
-    schema: Optional[str] = None,
+    inputs: sources.SourceObject,
+    person: str,
+    output: outputs.OutputTarget
 ):
-    person_ids, person_number = _get_person_lookup(saved_person_id_file)
+
+    # we used to try and load these, but, that's not happening now
+    person_ids = {}
+    person_number = 1
+
+    saved_person_id_file: Path | None # self.output_dir / "person_ids.tsv"
+    person_file: Path | None = None
+    person_table_name: str | None = None
+    use_input_person_ids: str = "N"
+    delim: str = ","
+    db_connection: Optional[Connection] = None
+    schema: Optional[str] = None
+
+    #
+    # so now ... load all existing persons?
+    fh = inputs.open(person)
+    csvr = fh
+    personhdr = next(csvr)
+
+
+    raise Exception('??? time to do the person lookup')
 
     if db_connection and person_table_name:
         person_table_model = Table(
@@ -51,6 +68,8 @@ def load_person_ids_v2(
         personhdr = next(csvr)
     else:
         raise ValueError("No person file or person table name provided")
+
+    # i've copied op to here
 
     person_columns = {}
     person_col_in_hdr_number = 0
@@ -158,29 +177,6 @@ def read_person_ids(
 
     return person_ids, reject_count
 
-
-# TODO: understand the purpose of this function and simplify it
-def set_saved_person_id_file(
-    saved_person_id_file: Path | None, output_dir: Path
-) -> Path:
-    """check if there is a saved person id file set in options - if not, check if the file exists and remove it"""
-
-    if saved_person_id_file is None:
-        saved_person_id_file = output_dir / "person_ids.tsv"
-        if saved_person_id_file.is_dir():
-            logger.exception(
-                f"the detected saved_person_id_file {saved_person_id_file} is already a dir"
-            )
-            sys.exit(1)
-        if saved_person_id_file.exists():
-            saved_person_id_file.unlink()
-    else:
-        if saved_person_id_file.is_dir():
-            logger.exception(
-                f"the passed saved_person_id_file {saved_person_id_file} is already a dir"
-            )
-            sys.exit(1)
-    return saved_person_id_file
 
 
 def _get_person_lookup(saved_person_id_file: Path) -> tuple[dict[str, str], int]:
