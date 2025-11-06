@@ -2,27 +2,23 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug Current File (uv Pytest)",
-      "type": "debugpy",
-      "request": "launch",
-      "module": "pytest",
-      "args": ["${file}"],
-      "justMyCode": false
-    },
-    {
-      "name": "Debug Pytest",
-      "type": "debugpy",
-      "request": "launch",
-      "module": "pytest",
-      "args": [],
-      "justMyCode": false
-    },
-    {
       "name": "uv pytest / integration2",
       "type": "debugpy",
       "request": "launch",
       "program": "-m",
       "args": ["pytest", "tests/test_integration2.py", "-v", "-s"],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+          "PYTHONPATH": "${workspaceFolder}"
+      }
+  },
+    {
+      "name": "uv pytest / ${file}",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "-m",
+      "args": ["pytest", "${file}", "-v", "-s"],
       "console": "integratedTerminal",
       "justMyCode": false,
       "env": {

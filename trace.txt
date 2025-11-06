@@ -1,0 +1,23 @@
+Error occurred: ??? time to do the person lookup
+Full stack trace:
+Traceback (most recent call last):
+  File "C:\Users\peter\Desktop\infomatics\ct-fixhead\carrottransform\cli\subcommands\run_v2.py", line 114, in process_common_logic
+    result = orchestrator.execute_processing()
+  File "C:\Users\peter\Desktop\infomatics\ct-fixhead\carrottransform\tools\orchestrator.py", line 398, in execute_processing
+    person_lookup, rejected_person_count = self.setup_person_lookup()
+                                           ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\peter\Desktop\infomatics\ct-fixhead\carrottransform\tools\orchestrator.py", line 456, in setup_person_lookup
+    person_lookup, rejected_person_count = load_person_ids_v2(
+                                           ~~~~~~~~~~~~~~~~~~^
+        mappingrules=self.mappingrules,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+    output =  outputs.OutputTarget ,
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\peter\Desktop\infomatics\ct-fixhead\carrottransform\tools\person_helpers.py", line 55, in load_person_ids_v2
+    raise Exception('??? time to do the person lookup')
+Exception: ??? time to do the person lookup
+
+==================================================

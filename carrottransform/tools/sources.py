@@ -2,7 +2,7 @@ import csv
 import logging
 from pathlib import Path
 from typing import Iterator
-
+from carrottransform import require
 import click
 import sqlalchemy
 from sqlalchemy import MetaData, select
@@ -128,7 +128,23 @@ def csvSourceObject(path: Path, sep: str) -> SourceObject:
                 logger.error(f"couldn't find {table=} in csvs at path {path=}")
                 raise SourceTableNotFound(table)
 
+            # used to check "doking" where we remove the last entry if the colum name and each row's final cell are ''
+            doked = False # "doked" like curring a dog's tail off
+            count = -1
+
             for row in csv.reader(file.open("r", encoding="utf-8-sig"), delimiter=sep):
+                if count == -1:
+                    count = len(row)
+                    if row[-1].strip() == '':
+                        doked = True
+                        count = len(row) - 1
+                
+                if doked:
+                    require('' == row[-1].strip())
+                    row = row[:-1]
+
+                require(len(row) == count)
+
                 yield row
 
     return SO()

@@ -66,3 +66,35 @@ def test_basic_sqlite():
     # check the iterator is exhausted
     with pytest.raises(StopIteration):
         next(iterator)
+
+
+
+
+test_data: Path = Path(__file__).parent / 'test_data'
+
+@pytest.mark.unit
+def test_csv_truncating_empty():
+    """csv files may use trailing commas. if the last column has no column name; this checks to be sure we're handling that"""
+
+    folder = test_data / "integration_test1/"
+
+    source = sources.csvSourceObject(folder, ",")
+
+    iterator = source.open("src_PERSON")
+
+    head = next(iterator)
+
+    assert'' != head[-1], f"{head=}"
+    # first entry should be the header
+    assert head == ["person_id", "gender_source_value", "birth_datetime"]
+
+    # check each row
+    assert next(iterator) == ["321", "male", "1950-10-31"]
+    assert next(iterator) == ["789345", "female", "1981-11-19"]
+    assert next(iterator) == ["6789", "femail", "1985-03-01"]
+    assert next(iterator) == ["289", "", "1989-07-23"]
+
+    # check the iterator is exhausted
+    with pytest.raises(StopIteration):
+        next(iterator)
+
