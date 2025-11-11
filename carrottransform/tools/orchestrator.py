@@ -412,10 +412,10 @@ class V2ProcessingOrchestrator:
             target_column_map = self.omopcdm.get_omop_column_map(output_name)
 
             # check that those things were given
-            if output_header is None:  
+            if output_header is None:
                 raise Exception(f"need columns for {output_name=}")
 
-            if target_column_map is None:  
+            if target_column_map is None:
                 raise Exception(f"need column map for {output_name=}")
 
             # open the output handle
@@ -444,21 +444,24 @@ class V2ProcessingOrchestrator:
 
         # Process each input file
         for source_filename in input_files:
-            if                 result is not None            :  
-            # we can't break from inside a catch? i can't test that
+            if result is not None:
+                # we can't break from inside a catch? i can't test that
                 break
 
             try:
-                source = self._inputs.open(source_filename[:-4] if source_filename.endswith('.csv') else source_filename)
+                source = self._inputs.open(
+                    source_filename[:-4]
+                    if source_filename.endswith(".csv")
+                    else source_filename
+                )
                 # s3v2;
                 output_counts, rejected_count = self._process_input_file_stream22(
                     source_filename,
                     source,
-
                     target_column_maps=target_column_maps,
-                    person_lookup = person_lookup,
-                    record_numbers = record_numbers,
-                    file_handles = file_handles
+                    person_lookup=person_lookup,
+                    record_numbers=record_numbers,
+                    file_handles=file_handles,
                 )
 
                 # Update totals
@@ -481,8 +484,6 @@ class V2ProcessingOrchestrator:
         # write outputs
         for target_file, count in result.output_counts.items():
             logger.info(f"TARGET: {target_file}: output count {count}")
-            
-
 
         # Write summary
         data_summary = None
@@ -503,21 +504,21 @@ class V2ProcessingOrchestrator:
         self,
         source_filename: str,
         source_iterator,
-
         target_column_maps,
         person_lookup,
         record_numbers,
-        file_handles
+        file_handles,
     ) -> Tuple[Dict[str, int], int]:
         """Stream process a single input file with direct output writing"""
         logger.info(f"Streaming input file: {source_filename}")
 
         # Get which output tables this input file can map to
-        applicable_targets = self.lookup_cache.input_to_outputs.get(source_filename, set())
+        applicable_targets = self.lookup_cache.input_to_outputs.get(
+            source_filename, set()
+        )
         if not applicable_targets:
             logger.info(f"No mappings found for {source_filename}")
             return {}, 0
-
 
         output_counts = {target: 0 for target in applicable_targets}
         rejected_count = 0
@@ -531,22 +532,16 @@ class V2ProcessingOrchestrator:
         try:
             column_headers = next(source_iterator)
 
-
             # s3v2; this won't work - need to refind the path to the thingie
-            input_column_map = self.omopcdm.get_column_map(
-                column_headers
-            )
+            input_column_map = self.omopcdm.get_column_map(column_headers)
 
             # Validate required columns exist
-            datetime_col_idx = input_column_map.get(
-                file_meta["datetime_source"]
-            )
+            datetime_col_idx = input_column_map.get(file_meta["datetime_source"])
             if datetime_col_idx is None:
                 logger.warning(
                     f"Date field {file_meta['datetime_source']} not found in {source_filename}"
                 )
                 return output_counts, rejected_count
-
 
             # Stream process each row
             for source_row in source_iterator:
@@ -557,20 +552,15 @@ class V2ProcessingOrchestrator:
                     applicable_targets,
                     datetime_col_idx,
                     file_meta,
-
                     target_column_maps,
-                    
-         person_lookup,
-         record_numbers,
-         file_handles,
+                    person_lookup,
+                    record_numbers,
+                    file_handles,
                 )
 
                 for target, count in row_counts.items():
                     output_counts[target] += count
                 rejected_count += row_rejected
-
-
-
 
         except Exception as e:
             logger.error(f"Error streaming file {source_filename}: {str(e)}")
@@ -601,11 +591,6 @@ class V2ProcessingOrchestrator:
 
         return person_lookup, rejected_person_count
 
-
-
-
-
-
     def _process_single_row_stream(
         self,
         source_filename: str,
@@ -614,14 +599,10 @@ class V2ProcessingOrchestrator:
         applicable_targets: Set[str],
         datetime_col_idx: int,
         file_meta: Dict[str, Any],
-
         target_column_maps,
-
-        
-         person_lookup,
-         record_numbers,
-         file_handles,
-
+        person_lookup,
+        record_numbers,
+        file_handles,
     ) -> Tuple[Dict[str, int], int]:
         """Process single row and write directly to all applicable output files"""
 
@@ -656,13 +637,15 @@ class V2ProcessingOrchestrator:
         # Process this row for each applicable target table
         for target_file in applicable_targets:
             target_counts, target_rejected = self._process_row_for_target_stream(
-                source_filename, input_data, input_column_map, target_file, file_meta,
+                source_filename,
+                input_data,
+                input_column_map,
+                target_file,
+                file_meta,
                 target_column_maps,
-
-                
-         person_lookup,
-         record_numbers,
-         file_handles,
+                person_lookup,
+                record_numbers,
+                file_handles,
             )
 
             row_output_counts[target_file] = target_counts
@@ -677,16 +660,12 @@ class V2ProcessingOrchestrator:
         input_column_map: Dict[str, int],
         target_file: str,
         file_meta: Dict[str, Any],
-
         target_column_maps,
-
-        
-         person_lookup,
-         record_numbers,
-         file_handles,
+        person_lookup,
+        record_numbers,
+        file_handles,
     ) -> Tuple[int, int]:
         """Process row for specific target and write records directly"""
-
 
         v2_mapping = self.mappingrules.v2_mappings[target_file][source_filename]
         target_column_map = target_column_maps[target_file]
@@ -722,11 +701,9 @@ class V2ProcessingOrchestrator:
                 date_col_data,
                 date_component_data,
                 notnull_numeric_fields,
-
-                
-         person_lookup,
-         record_numbers,
-         file_handles,
+                person_lookup,
+                record_numbers,
+                file_handles,
             )
 
             output_count += column_output
@@ -748,18 +725,11 @@ class V2ProcessingOrchestrator:
         date_col_data: Dict[str, str],
         date_component_data: Dict[str, Dict[str, str]],
         notnull_numeric_fields: List[str],
-
-
-         person_lookup,
-         record_numbers,
-         file_handles,
-
-
-
-
-    )-> Tuple[int, int]:
+        person_lookup,
+        record_numbers,
+        file_handles,
+    ) -> Tuple[int, int]:
         """Process data column and write records directly to output"""
-
 
         # person_lookup
         # record_numbers
@@ -790,7 +760,7 @@ class V2ProcessingOrchestrator:
 
         # Build records
         builder = RecordBuilderFactory.create_builder(context)
-        result = builder.build_records() # why is this dropping a 94 filed recordin?
+        result = builder.build_records()  # why is this dropping a 94 filed recordin?
 
         # Update metrics
         self.metrics = result.metrics

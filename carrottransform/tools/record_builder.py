@@ -171,7 +171,7 @@ class TargetRecordBuilder(ABC):
             )
 
             # Write directly to output file (files are kept open)
-            self.context.file_handles[self.context.tgtfilename].write(output_record            )
+            self.context.file_handles[self.context.tgtfilename].write(output_record)
 
             return True
         else:
