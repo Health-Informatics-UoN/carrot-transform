@@ -30,9 +30,6 @@ def test_invalid_directory(tmp_path: Path):
     assert exc_info.value.code == 1
 
 
-
-
-
 ### check_files_in_rules_exist(rules_input_files, existing_input_files):
 @pytest.mark.unit
 def test_matching_files(caplog):

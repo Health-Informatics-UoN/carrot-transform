@@ -4,6 +4,7 @@ params = {
     "version": __version__,
 }
 
+
 def require(con: bool, msg: str = ""):
     if con:
         return

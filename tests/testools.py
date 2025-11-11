@@ -2,8 +2,8 @@ import logging
 import re
 from pathlib import Path
 
-import sqlalchemy
 import pytest
+import sqlalchemy
 from click.testing import CliRunner
 
 import tests.click_tools as click_tools
@@ -238,13 +238,12 @@ def rand_hex(length: int = 16) -> str:
 
 test_data = Path(__file__).parent / "test_data"
 
+
 class CarrotTestCase:
     """defines an integration test case in terms of the person file, and the optional mapper rules"""
 
     def __init__(self, person_name: str, mapper: str = ""):
         self._person_name = person_name
-
-        
 
         self._folder = (test_data / person_name).parent
 
@@ -259,7 +258,7 @@ class CarrotTestCase:
         assert 1 == person_name.count("/")
         [label, person] = person_name.split("/")
         self._label = label
-        assert person.endswith('.csv')
+        assert person.endswith(".csv")
         self._person = person[:-4]
 
     def load_sqlite(self, tmp_path: Path):

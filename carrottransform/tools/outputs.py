@@ -2,7 +2,6 @@
 this file contains several "output target" classes. each class is used to write carrot-transform output data in a different way. all classes are operated the same way - so - which output is in use can be selected by the CLICK argument type - also defined in this file.
 """
 
-from carrottransform import require
 import io
 import logging
 from pathlib import Path
@@ -12,8 +11,9 @@ import click
 import sqlalchemy
 from sqlalchemy import MetaData
 
-logger = logging.getLogger(__name__)
+from carrottransform import require
 
+logger = logging.getLogger(__name__)
 
 
 class OutputTarget:

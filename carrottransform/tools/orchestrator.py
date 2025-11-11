@@ -333,22 +333,23 @@ class StreamProcessor:
             rejected_count += 1
 
         return result.record_count, rejected_count
-import carrottransform.tools.sources as sources
+
+
 import carrottransform.tools.outputs as outputs
+import carrottransform.tools.sources as sources
+
 
 class V2ProcessingOrchestrator:
     """Main orchestrator for the entire V2 processing pipeline"""
 
     def __init__(
         self,
-        
         inputs: sources.SourceObject,
         output: outputs.OutputTarget,
         rules_file: Path,
         write_mode: str,
         omop_ddl_file: Path,
         person: str,
-
         omop_config_file: Path,
     ):
         self._inputs: sources.SourceObject = inputs
@@ -374,7 +375,6 @@ class V2ProcessingOrchestrator:
 
         self.mappingrules = MappingRules(rules_file, self.omopcdm)
 
-
         if not self.mappingrules.is_v2_format:
             raise ValueError("Rules file is not in v2 format!")
         else:
@@ -392,81 +392,120 @@ class V2ProcessingOrchestrator:
     def execute_processing(self) -> ProcessingResult:
         """Execute the complete processing pipeline with efficient streaming"""
 
+        # Setup person lookup
+        person_lookup, rejected_person_count = self.setup_person_lookup()
 
-        try:
-            # Setup person lookup
-            person_lookup, rejected_person_count = self.setup_person_lookup()
+        # Log results of person lookup
+        logger.info(
+            f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
+        )
 
+        # Setup output files - keep all open for streaming
+        output_files = self.mappingrules.get_all_outfile_names()
+        target_column_maps = {}
+        file_handles = {}
+        for output_name in output_files:
+            # need the header names
+            output_header = self.omopcdm.get_omop_column_list(output_name)
 
-            raise Exception('??? we have done the person lookup')
+            # we also need the target_column_map
+            target_column_map = self.omopcdm.get_omop_column_map(output_name)
 
+            # check that those things were given
+            if (
+                output_header is None
+            ):  # the functions return None instead of raising an error themselves
+                raise Exception(f"need columns for {output_name=}")
+            if (
+                target_column_map is None
+            ):  # the functions return None instead of raising an error themselves
+                raise Exception(f"need column map for {output_name=}")
 
-            # Log results of person lookup
-            logger.info(
-                f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
-            )
-            # Setup output files - keep all open for streaming
-            output_files = self.mappingrules.get_all_outfile_names()
-            file_handles, target_column_maps = self.output_manager.setup_output_files(
-                output_files, self.write_mode
-            )
+            # open the output handle
+            file_handles[output_name] = self._output.start(output_name, output_header)
 
-            # Create processing context
-            context = ProcessingContext(
-                mappingrules=self.mappingrules,
-                omopcdm=self.omopcdm,
-                input_dir=self.input_dir,
-                person_lookup=person_lookup,
-                record_numbers={output_file: 1 for output_file in output_files},
-                file_handles=file_handles,
-                target_column_maps=target_column_maps,
-                metrics=self.metrics,
-                db_connection=self.engine_connection.connect()
-                if self.db_conn_params
-                else None,
-                schema=self.db_conn_params.schema if self.db_conn_params else None,
-            )
+            # the functions return None instead of raising an error themselves
+            target_column_maps[output_name] = target_column_map
 
-            # Process data using efficient streaming approach
-            processor = StreamProcessor(context, self.lookup_cache)
-            result = processor.process_all_data()
+        # s3v2; there's a bunch of variables which the exisitng thing creates here, but, most is just copying parameters so i skip it
 
-            for target_file, count in result.output_counts.items():
-                logger.info(f"TARGET: {target_file}: output count {count}")
+        # data used by the old processing context
+        record_numbers = {output_file: 1 for output_file in output_files}
 
-            # Write summary
-            data_summary = self.metrics.get_mapstream_summary()
-            with (self.output_dir / "summary_mapstream.tsv").open(mode="w") as dsfh:
-                dsfh.write(data_summary)
+        # create the stream processor?
+        # s3v2; copy the
+        # def __init__(self, context: ProcessingContext, lookup_cache: StreamingLookupCache):
+        #     self.context = context
+        #     self.cache = lookup_cache
 
-            return result
+        # Process data using efficient streaming approach
+        result: ProcessingResult | None = None
+        logger.info("Processing data...")
+        total_output_counts = {outfile: 0 for outfile in output_files}
+        input_files = self.mappingrules.get_all_infile_names()
+        total_rejected_counts = {infile: 0 for infile in input_files}
 
-        finally:
-            pass
-            # don't worry about closing files; the program will need to be re-run in any use case
-            # # Always close files
-            # if self.output_manager:
-            #     self.output_manager.close_all_files()
+        # Process each input file
+        for source_filename in input_files:
+            if (
+                result is not None
+            ):  # we can't break from inside a catch? i can't test that
+                break
+
+            try:
+                # s3v2;
+                raise "??? - upadte/adapt the input file stream thing"
+
+                # Update totals
+                for target_file, count in output_counts.items():
+                    total_output_counts[target_file] += count
+                total_rejected_counts[source_filename] = rejected_count
+
+            except Exception as e:
+                logger.error(f"Error processing file {source_filename}: {str(e)}")
+                result = ProcessingResult(
+                    total_output_counts,
+                    total_rejected_counts,
+                    success=False,
+                    error_message=str(e),
+                )
+                break
+        if result is None:
+            result = ProcessingResult(total_output_counts, total_rejected_counts)
+
+        raise Exception("??? write outputs now")
+
+        # write outputs
+        for target_file, count in result.output_counts.items():
+            logger.info(f"TARGET: {target_file}: output count {count}")
+
+        # Write summary
+        data_summary = self.metrics.get_mapstream_summary()
+        with (self.output_dir / "summary_mapstream.tsv").open(mode="w") as dsfh:
+            dsfh.write(data_summary)
+
+        return result
 
     def setup_person_lookup(self) -> dict[str, str] | int:
         """Setup person ID lookup and save mapping"""
 
         logger.info("v2 assumes it is always `person_ids` and doesn't try to reuse ids")
 
+        # compute the "real id" to the "anon id" mapping. remeber to lookup the old one if relevant
+        # ... oh; skip the scrabmling if that's disabled
         person_lookup, rejected_person_count = load_person_ids_v2(
             mappingrules=self.mappingrules,
-        inputs = self._inputs,
-        person = self._person,
-        output =  outputs.OutputTarget ,
+            inputs=self._inputs,
+            person=self._person,
+            output=outputs.OutputTarget,
         )
-        raise Exception('??? did we gettit?')
 
-        # Save person IDs
-        raise Exception('??? use the/a/new outputs to save the IDs as expected')
-        saved_person_id_file = output_dir / "person_ids.tsv"
-        with saved_person_id_file.open(mode="w") as fhpout:
-            fhpout.write("SOURCE_SUBJECT\tTARGET_SUBJECT\n")
-            for person_id, person_assigned_id in person_lookup.items():
-                fhpout.write(f"{str(person_id)}\t{str(person_assigned_id)}\n")
+        # now save the IDs
+        id_out = self._output.start("person_ids", ["SOURCE_SUBJECT", "TARGET_SUBJECT"])
+
+        for person_source_id, person_assigned_id in person_lookup.items():
+            id_out.write([person_source_id, person_assigned_id])
+
+        id_out.close()
 
         return person_lookup, rejected_person_count

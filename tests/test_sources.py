@@ -68,9 +68,8 @@ def test_basic_sqlite():
         next(iterator)
 
 
+test_data: Path = Path(__file__).parent / "test_data"
 
-
-test_data: Path = Path(__file__).parent / 'test_data'
 
 @pytest.mark.unit
 def test_csv_truncating_empty():
@@ -84,7 +83,7 @@ def test_csv_truncating_empty():
 
     head = next(iterator)
 
-    assert'' != head[-1], f"{head=}"
+    assert "" != head[-1], f"{head=}"
     # first entry should be the header
     assert head == ["person_id", "gender_source_value", "birth_datetime"]
 
@@ -97,4 +96,3 @@ def test_csv_truncating_empty():
     # check the iterator is exhausted
     with pytest.raises(StopIteration):
         next(iterator)
-

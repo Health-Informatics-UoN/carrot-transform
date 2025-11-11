@@ -123,20 +123,18 @@ class ObjectStructureError(Exception):
     """Raised when the object path format points to inaccessible elements."""
 
 
-def person_rules_check_v2(
-    person: str, mappingrules: MappingRules
-) -> None:
+def person_rules_check_v2(person: str, mappingrules: MappingRules) -> None:
     """ensure that the person rules ONLY reffer to the named table/csv"""
 
-    
-    if '.' in person:
+    if "." in person:
         raise Exception(
             f"Can't have a table named {person=} (if it's csv, remove the file extension)"
         )
 
-
     # grab the indicated section
-    person__rules: dict | str | None = object_query(mappingrules.rules_data, "cdm/person")
+    person__rules: dict | str | None = object_query(
+        mappingrules.rules_data, "cdm/person"
+    )
     if isinstance(person__rules, str):
         # this is unlikely, but, mypy flags it.
         # ... will probably write a test at some point to cover this exception
@@ -147,7 +145,7 @@ def person_rules_check_v2(
     if not person_rules:
         raise Exception("Mapping rules to Person table not found")
 
-    # 
+    #
     if len(person_rules) > 1:
         raise Exception(
             f"""The source table for the OMOP table Person can be only one, which is the person file: {person}. However, there are multiple source tables {list(person_rules.keys())} for the Person table in the mapping rules."""
@@ -161,12 +159,12 @@ def person_rules_check_v2(
     seen: str = list(person_rules.keys())[0]
 
     # we don't care if the rule's suffix is .csv
-    if seen.endswith('.csv'):
+    if seen.endswith(".csv"):
         named = seen[:-4]
     else:
         named = seen
 
-    if '.' in named:
+    if "." in named:
         raise Exception(
             f"The mapping tries to use {seen=} (whihc i can reduce to {named=}) but that's not going to be {person=}"
         )
@@ -175,7 +173,6 @@ def person_rules_check_v2(
         raise Exception(
             f"The source table for the OMOP table's Person data should be {person=}, but the mapping uses {named=}"
         )
-
 
 
 def person_rules_check(person_file_name: str, rules_file: Path) -> None:

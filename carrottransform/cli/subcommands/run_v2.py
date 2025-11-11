@@ -2,9 +2,6 @@
 Entry point for the v2 processing system
 """
 
-from carrottransform import require
-
-import carrottransform.tools.sources as sources
 import importlib.resources as resources
 import time
 from pathlib import Path
@@ -12,6 +9,8 @@ from typing import Optional
 
 import click
 
+import carrottransform.tools.sources as sources
+from carrottransform import require
 from carrottransform.tools.args import PathArg
 from carrottransform.tools.file_helpers import (
     check_dir_isvalid,
@@ -53,7 +52,8 @@ def common_options(func):
     return func
 
 
-import  carrottransform.tools.outputs as outputs
+import carrottransform.tools.outputs as outputs
+
 
 def process_common_logic(
     inputs: sources.SourceObject,
@@ -64,7 +64,9 @@ def process_common_logic(
     omop_version: Optional[str],
     person: str,
 ):
-    assert not person.endswith(".csv"), "don't call the person table .csv - just use their name"
+    assert not person.endswith(".csv"), (
+        "don't call the person table .csv - just use their name"
+    )
 
     """Common processing logic for both modes"""
     start_time = time.time()
@@ -73,29 +75,27 @@ def process_common_logic(
     omop_config_file: Path = PathArg.convert("@carrot/config/config.json", None, None)
     require(omop_config_file.is_file())
 
-
     try:
-        
         # default to 5.3 - value is onlu used for ddl fallback so nailing it in place
         if omop_version is None:
-            omop_version = '5.3'
-        
+            omop_version = "5.3"
+
         #
-        if omop_ddl_file is None: 
-            omop_ddl_file: Path = PathArg.convert(f"@carrot/config/OMOPCDM_postgresql_{omop_version}_ddl.sql", None, None)
+        if omop_ddl_file is None:
+            omop_ddl_file: Path = PathArg.convert(
+                f"@carrot/config/OMOPCDM_postgresql_{omop_version}_ddl.sql", None, None
+            )
 
         require(omop_ddl_file.is_file())
 
         # Create orchestrator and execute processing (pass explicit kwargs to satisfy typing)
         orchestrator = V2ProcessingOrchestrator(
-            
-            inputs = inputs,
-            output = output,
-            rules_file = rules_file,
-            write_mode = write_mode,
-            omop_ddl_file = omop_ddl_file,
-            person = person,
-
+            inputs=inputs,
+            output=output,
+            rules_file=rules_file,
+            write_mode=write_mode,
+            omop_ddl_file=omop_ddl_file,
+            person=person,
             # rules_file=rules_file,
             # output_dir=output_dir,
             # input_dir=input_dir,
@@ -110,7 +110,7 @@ def process_common_logic(
         logger.info(
             f"Loaded v2 mapping rules from: {rules_file} in {time.time() - start_time:.5f} secs"
         )
-        
+
         result = orchestrator.execute_processing()
 
         if result.success:
@@ -122,17 +122,18 @@ def process_common_logic(
             exit(12)
 
     except Exception as e:
-        import traceback
         import logging
+        import traceback
+
         # Get the full stack trace as a string
         stack_trace = traceback.format_exc()
         # Write stack trace to file
-        trace = Path('trace.txt').absolute()
-        with trace.open('a') as f:
+        trace = Path("trace.txt").absolute()
+        with trace.open("a") as f:
             f.write(f"Error occurred: {str(e)}\n")
             f.write("Full stack trace:\n")
             f.write(stack_trace)
-            f.write("\n" + "="*50 + "\n")  # separator for multiple errors
+            f.write("\n" + "=" * 50 + "\n")  # separator for multiple errors
 
         logger.error(f"V2 processing failed with error: {str(e)} (added to {trace=})")
         raise
@@ -166,11 +167,11 @@ def folder(
     """Process data from folder input"""
     process_common_logic(
         rules_file=rules_file,
-        output = output,
+        output=output,
         omop_version=omop_version,
         inputs=inputs,
-        person = person,
-        write_mode='w',
+        person=person,
+        write_mode="w",
         omop_ddl_file=omop_ddl_file,
     )
 

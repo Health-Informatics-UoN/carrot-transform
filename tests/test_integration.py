@@ -201,8 +201,8 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
 
     assert output is not None, f"couldn't use {output_to=}"  # check output was set
 
-
-    env, args = testools.passed_as(pass_as,
+    env, args = testools.passed_as(
+        pass_as,
         "--inputs",
         inputs,
         "--rules-file",
