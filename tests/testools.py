@@ -275,11 +275,8 @@ class CarrotTestCase:
         )
         return f"sqlite:///{sqlite3.absolute()}"
 
-    def compare_to_tsvs(self, source):
-        compare_to_tsvs(self._label, source)
-
-    def compare_to_tsvs_v2(self, source):
-        compare_to_tsvs(self._label + "/v2-out", source)
+    def compare_to_tsvs(self, source, suffix=""):
+        compare_to_tsvs(self._label + suffix, source)
 
 
 ###

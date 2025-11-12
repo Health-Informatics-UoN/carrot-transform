@@ -37,6 +37,10 @@ def test_v2(request, tmp_path: Path, test_case: testools.CarrotTestCase):
     # future test case parameters
     output_to = "csv"  # f"s3:{testools.CARROT_TEST_BUCKET}"
     input_from = "csv"
+    main_entry = run_v2.folder
+    test_suffix = "/v2-out"
+
+    test_case = test_case
 
     # generat a semi-random slug/name to group test data under
     # the files we read/write to s3 will appear in this folder
@@ -97,7 +101,7 @@ def test_v2(request, tmp_path: Path, test_case: testools.CarrotTestCase):
     ##
     # run click
     runner = CliRunner()
-    result = runner.invoke(run_v2.folder, args=args, env=env)
+    result = runner.invoke(main_entry, args=args, env=env)
 
     if result.exception is not None:
         print(result.exception)
@@ -117,4 +121,4 @@ def test_v2(request, tmp_path: Path, test_case: testools.CarrotTestCase):
     assert results is not None  # check output was set
 
     # verify that the results are good
-    test_case.compare_to_tsvs_v2(results)
+    test_case.compare_to_tsvs(results, test_suffix)
