@@ -2,7 +2,6 @@
 these are various integration tests for carroti using pytest and the inbuild click tools
 
 """
-import boto3
 
 import logging
 import re
@@ -36,10 +35,9 @@ v2TestCases = [
 @pytest.mark.integration
 def test_v2(request, tmp_path: Path, test_case: testools.CarrotTestCase):
     # future test case parameters
-    output_to = "csv" # f"s3:{testools.CARROT_TEST_BUCKET}"
+    output_to = "csv"  # f"s3:{testools.CARROT_TEST_BUCKET}"
     input_from = "csv"
 
-    
     # generat a semi-random slug/name to group test data under
     # the files we read/write to s3 will appear in this folder
     import re
@@ -49,7 +47,6 @@ def test_v2(request, tmp_path: Path, test_case: testools.CarrotTestCase):
         + "__"
         + testools.rand_hex()
     )
-
 
     # set the input
     inputs: None | str = None

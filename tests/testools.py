@@ -1,8 +1,8 @@
 import logging
 import re
 from pathlib import Path
-import boto3
 
+import boto3
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
@@ -313,8 +313,6 @@ def passed_as(pass_as, *args):
         args = args[:i] + args[(i + 2) :]
 
     return (env, args)
-
-
 
 
 def delete_s3_folder(coordinate):
