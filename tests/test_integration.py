@@ -37,15 +37,18 @@ def test_sql_read(tmp_path: Path):
     test_case = V1TestCase(testing_person_file)
 
     # run the test sourcing that SQLite database but writing to disk
+    input_db = test_case.load_sqlite(tmp_path)
+    output_to = tmp_path / "out"
     testools.run_v1(
-        inputs=test_case.load_sqlite(tmp_path),
-        person=test_case._person_name,
+        inputs=input_db,
+        person=test_case._person,
         mapper=test_case._mapper,
-        output=str((tmp_path / "out").absolute()),
+        output=str(output_to),
     )
 
     # cool; now verify that the on-disk results are good
-    test_case.compare_to_tsvs(sources.csvSourceObject(tmp_path / "out", sep="\t"))
+    actual = sources.csvSourceObject(output_to, sep="\t")
+    test_case.compare_to_tsvs(actual)
 
 
 v1TestCases = list(
@@ -66,7 +69,7 @@ v1TestCases = list(
 pass__arg_names = [
     "inputs",
     "rules-file",
-    "person-file",
+    "person",
     "output",
     "omop-ddl-file",
 ]
@@ -164,7 +167,7 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
         inputs,
         "--rules-file",
         test_case._mapper,
-        "--person-file",
+        "--person",
         test_case._person,
         "--output",
         output,
@@ -220,8 +223,8 @@ def test_mireda_key_error(tmp_path: Path, caplog):
             str(person_file.parent),
             "--rules-file",
             str(person_file.parent / "original_rules.json"),
-            "--person-file",
-            person_file.name,
+            "--person",
+            "demographics_mother_gold",  # person_file.name,
             "--output",
             str(tmp_path),
             "--omop-ddl-file",
@@ -234,7 +237,7 @@ def test_mireda_key_error(tmp_path: Path, caplog):
     message = caplog.text.splitlines(keepends=False)[-1]
 
     assert message.strip().endswith(
-        "Person properties were mapped from (['demographics_child_gold.csv', 'infant_data_gold.csv']) but can only come from the person file person_file.name='demographics_mother_gold.csv'"
+        "Person properties were mapped from (['demographics_child_gold.csv', 'infant_data_gold.csv']) but can only come from the person file person='demographics_mother_gold'"
     )
 
     assert "-1" == str(result.exception)

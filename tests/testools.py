@@ -74,11 +74,13 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
 
         import itertools
 
+        idx = 0
         for e, a in itertools.zip_longest(so_ex.open(name), so.open(name)):
-            assert e is not None
-            assert a is not None
+            assert e is not None, f"expected value {idx} is missing"
+            assert a is not None, f"expected value {idx} is missing"
 
-            assert e == a
+            assert e == a, f"expected/actual values {idx} do not match"
+            idx += 1
         logger.info(f"matching {subpath=} for {name=}")
 
     assert person_ids_seen and persons_seen, (
@@ -208,7 +210,7 @@ def run_v1(
             inputs,
             "--rules-file",
             mapper,
-            "--person-file",
+            "--person",
             person,
             "--output",
             output,

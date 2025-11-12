@@ -13,6 +13,8 @@ from carrottransform.tools.args import (
     AlchemyConnectionArg,
     OnlyOnePersonInputAllowed,
     PathArg,
+    PatternStringParamType,
+    de_csv,
     person_rules_check,
 )
 from carrottransform.tools.core import get_target_records
@@ -28,42 +30,11 @@ from carrottransform.tools.person_helpers import (
 
 logger = logger_setup()
 
+import carrottransform.tools.args as args
+
 
 @click.command()
-@click.option(
-    "--rules-file",
-    envvar="RULES_FILE",
-    type=PathArg,
-    required=True,
-    help="json file containing mapping rules",
-)
-@click.option(
-    "--output",
-    envvar="OUTPUT",
-    type=outputs.TargetArgument,
-    # default=None,
-    required=True,
-    help="define the output directory for OMOP-format tsv files",
-)
-@click.option(
-    "--person",
-    envvar="PERSON",
-    required=True,
-    help="File or table containing person_ids in the first column",
-)
-@click.option(
-    "--omop-ddl-file",
-    envvar="OMOP_DDL_FILE",
-    type=PathArg,
-    required=False,
-    help="File containing OHDSI ddl statements for OMOP tables",
-)
-@click.option(
-    "--omop-version",
-    required=True,
-    help="Quoted string containing omop version - eg '5.3'",
-    default="5.3",
-)
+@args.common
 @click.option(
     "--use-input-person-ids",
     required=False,
@@ -82,13 +53,6 @@ logger = logger_setup()
     required=False,
     default=0,
     help="Lower outcount limit for logfile output",
-)
-@click.option(
-    "--inputs",
-    envvar="INPUTS",
-    type=sources.SourceArgument,
-    required=True,
-    help="Input directory or database",
 )
 def mapstream(
     rules_file: Path,
@@ -403,13 +367,3 @@ def run():
 run.add_command(mapstream, "mapstream")
 if __name__ == "__main__":
     run()
-
-
-def de_csv(name: str) -> str:
-    # do an assertion
-    if not name.endswith(".csv"):
-        logger.error(f"{name=} but it was expected to end with .csv")
-        exit(2)
-
-    # strip the extension
-    return name[:-4]

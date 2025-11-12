@@ -14,10 +14,11 @@ from sqlalchemy.schema import MetaData, Table
 from sqlalchemy.sql.expression import select
 
 import carrottransform.tools as tools
+import carrottransform.tools.args as args
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
 from carrottransform import require
-from carrottransform.tools.args import PathArg, person_rules_check_v2
+from carrottransform.tools.args import PathArg, common, person_rules_check_v2
 from carrottransform.tools.date_helpers import normalise_to8601
 from carrottransform.tools.db import EngineConnection
 from carrottransform.tools.file_helpers import (
@@ -46,45 +47,8 @@ logger = logger_setup()
 # Common options shared by both modes
 def common_options(func):
     """Decorator for common options used by both folder and db modes"""
-    func = click.option(
-        "--rules-file",
-        type=PathArg,
-        required=True,
-        help="v2 json file containing mapping rules",
-    )(func)
-    func = click.option(
-        "--omop-ddl-file",
-        type=PathArg,
-        required=False,
-        help="File containing OHDSI ddl statements for OMOP tables",
-    )(func)
-    func = click.option(
-        "--omop-version",
-        required=False,
-        help="Quoted string containing omop version - eg '5.3'",
-    )(func)
+    func = args.common(func)
 
-    func = click.option(
-        "--person",
-        envvar="PERSON",
-        required=True,
-        help="File or table containing person_ids in the first column",
-    )(func)
-    func = click.option(
-        "--inputs",
-        envvar="INPUTS",
-        type=sources.SourceArgument,
-        required=True,
-        help="Input directory or database",
-    )(func)
-    func = click.option(
-        "--output",
-        envvar="OUTPUT",
-        type=outputs.TargetArgument,
-        # default=None,
-        required=True,
-        help="define the output directory for OMOP-format tsv files",
-    )(func)
     return func
 
 
@@ -168,10 +132,6 @@ def process_common_logic(
         )
 
         if result.success:
-            # close/flush these because we need the files on-diks for unit test valiation
-            output.close()
-            inputs.close()
-
             logger.info(
                 f"V2 processing completed successfully in {time.time() - start_time:.5f} secs"
             )
@@ -239,6 +199,10 @@ def v2_via_interfaces(
 ):
     """Main orchestrator for the entire V2 processing pipeline"""
     """Execute the complete processing pipeline with fully inlined streaming logic"""
+
+    # try to open the persons
+    inputs.open(person)
+
     self__inputs: sources.SourceObject = inputs
     self__person: str = person
     self__output: outputs.OutputTarget = output
@@ -516,4 +480,7 @@ def v2_via_interfaces(
     assert data_summary is not None
     data_summary.close()
 
+    # close/flush these because we need the files on-diks for unit test valiation
+    output.close()
+    inputs.close()
     return result

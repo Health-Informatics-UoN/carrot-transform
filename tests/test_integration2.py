@@ -110,15 +110,15 @@ def test_v2(request, tmp_path: Path, test_case: testools.CarrotTestCase):
     assert 0 == result.exit_code
 
     # get the results so we can compare them to the expectations
-    results = None
+    actual_results = None
     if "csv" == output_to:
-        results = sources.csvSourceObject(tmp_path / "out", sep="\t")
+        actual_results = sources.csvSourceObject(tmp_path / "out", sep="\t")
     if "sqlite" == output_to:
-        results = sources.sqlSourceObject(sqlalchemy.create_engine(output))
+        actual_results = sources.sqlSourceObject(sqlalchemy.create_engine(output))
     if output_to.startswith("s3:"):
-        results = sources.s3SourceObject(output, sep="\t")
+        actual_results = sources.s3SourceObject(output, sep="\t")
 
-    assert results is not None  # check output was set
+    assert actual_results is not None  # check output was set
 
     # verify that the results are good
-    test_case.compare_to_tsvs(results, test_suffix)
+    test_case.compare_to_tsvs(actual_results, test_suffix)

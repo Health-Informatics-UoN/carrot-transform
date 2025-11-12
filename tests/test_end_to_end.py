@@ -31,11 +31,12 @@ def test_no_args():
     ##
     # check click results
     assert 2 == result.exit_code
+
     assert [
         "Usage: mapstream [OPTIONS]",
         "Try 'mapstream --help' for help.",
         "",
-        "Error: Missing option '--rules-file'.",
+        "Error: Missing option '--person'.",  # this seems to change a lot
         "",
     ] == result.output.split("\n")
 

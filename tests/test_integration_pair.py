@@ -139,10 +139,7 @@ def run_test(
 
     # determine person file and input
     if "csv" == case.input_from:
-        person: str = str(
-            package_root.parent
-            / f"tests/test_data/{case.test.folder}/{case.test.person}.csv"
-        )
+        person: str = case.test.person
         inputs: str = str(package_root.parent / f"tests/test_data/{case.test.folder}/")
     else:
         raise Exception(f"unknown {case.input_from}")

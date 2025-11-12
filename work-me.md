@@ -1,11 +1,26 @@
 
 delete this before merging with main
 
+- [x] fix v1 testing
+- [x] pass existing v2 tests
+- [ ] full spread for v1 testing
+- [ ] postgresql testing through alchemy
+- [ ] trino testing through alchemy
+- [ ] full-spread of v2 testing
+- [ ] delete old code
+    - .. and update tests validating old paths to use the new ones
+- then
+    - [ ] v1/v2 named instead of mapstream/folder
+    - [ ] test person detection
+
+----
+
 this branch has the functionality to read/write from s3 buckets as if they're `.tsv` or `.csv`
 reading is pretty inefficent (sorry) and really is just used for testing - writing is done via a streaming approach.
 oddly; these are pretty simmilar, so, reading could be improved - likely faster than i was able to inegrate v2.
 
-it does that by reworkign the input and output to function behind an API instead of the intersections of options they used prior
+it does that by reworkign the input and output to function behind an API instead of the intersections of options they used prior.
+this means that v1 and v2 carrot transform run with `--input` and `--output` parameters
 
 to switch between the two, we/i change the "output-dir" arg to now specify either a path to where the output should be, or, an `s3:<bucket name>` value.
 from there the arg type (thing) instantiates something to write the tables to.

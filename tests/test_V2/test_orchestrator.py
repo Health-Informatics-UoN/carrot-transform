@@ -11,6 +11,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+import carrottransform.tools.args as args
+import carrottransform.tools.outputs as outputs
+import carrottransform.tools.sources as sources
 from carrottransform.tools.orchestrator import StreamProcessor, V2ProcessingOrchestrator
 from carrottransform.tools.types import ProcessingContext
 
@@ -174,11 +177,18 @@ class TestV2ProcessingOrchestrator:
         # Use the test DDL file from test_data
         ddl_file = Path("tests/test_data/test_ddl.sql")
 
+        # reduce the person file from a path to just a table/filename
+        if isinstance(person_file, Path):
+            person: str = person_file.name
+        else:
+            person: str = person_file
+        person: str = args.de_csv(person)
+
         orchestrator = V2ProcessingOrchestrator(
             rules_file=v2_rules_file,
-            output_dir=temp_dirs["output_dir"],
-            input_dir=temp_dirs["input_dir"],
-            person_file=person_file,
+            inputs=sources.csvSourceObject(temp_dirs["input_dir"], sep=","),
+            output=outputs.csvOutputTarget(temp_dirs["output_dir"]),
+            person=person,
             omop_ddl_file=ddl_file,
             omop_config_file=omop_config_file,
             write_mode="w",
@@ -188,7 +198,7 @@ class TestV2ProcessingOrchestrator:
         assert orchestrator.omopcdm is not None
         assert orchestrator.mappingrules is not None
         assert orchestrator.metrics is not None
-        assert orchestrator.output_manager is not None
+        assert orchestrator._output is not None
         assert orchestrator.lookup_cache is not None
 
     def test_initialization_invalid_rules(
@@ -238,14 +248,22 @@ class TestV2ProcessingOrchestrator:
 
         ddl_file = Path("tests/test_data/test_ddl.sql")
 
+        # reduce the person file from a path to just a table/filename
+        if isinstance(person_file, Path):
+            person: str = person_file.name
+        else:
+            person: str = person_file
+        person: str = args.de_csv(person)
+
         with pytest.raises(ValueError, match="Rules file is not in v2 format!"):
             V2ProcessingOrchestrator(
                 rules_file=rules_file,
-                output_dir=temp_dirs["output_dir"],
-                input_dir=temp_dirs["input_dir"],
-                person_file=person_file,
+                inputs=sources.csvSourceObject(temp_dirs["input_dir"], sep=","),
+                output=outputs.csvOutputTarget(temp_dirs["output_dir"]),
+                person=person,
                 omop_ddl_file=ddl_file,
                 omop_config_file=omop_config_file,
+                write_mode="w",
             )
 
     def test_setup_person_lookup(
@@ -254,13 +272,21 @@ class TestV2ProcessingOrchestrator:
         """Test person lookup setup"""
         ddl_file = Path("tests/test_data/test_ddl.sql")
 
+        # reduce the person file from a path to just a table/filename
+        if isinstance(person_file, Path):
+            person: str = person_file.name
+        else:
+            person: str = person_file
+        person: str = args.de_csv(person)
+
         orchestrator = V2ProcessingOrchestrator(
             rules_file=v2_rules_file,
-            output_dir=temp_dirs["output_dir"],
-            input_dir=temp_dirs["input_dir"],
-            person_file=person_file,
+            inputs=sources.csvSourceObject(temp_dirs["input_dir"], sep=","),
+            output=outputs.csvOutputTarget(temp_dirs["output_dir"]),
+            person=person,
             omop_ddl_file=ddl_file,
             omop_config_file=omop_config_file,
+            write_mode="w",
         )
 
         person_lookup, rejected_count = orchestrator.setup_person_lookup()
@@ -289,17 +315,29 @@ class TestV2ProcessingOrchestrator:
         """Test successful processing execution"""
         ddl_file = Path("tests/test_data/test_ddl.sql")
 
-        orchestrator = V2ProcessingOrchestrator(
+        # reduce the person file from a path to just a table/filename
+        if isinstance(person_file, Path):
+            person: str = person_file.name
+        else:
+            person: str = person_file
+        person: str = args.de_csv(person)
+
+        from carrottransform.cli.subcommands.run_v2 import v2_via_interfaces
+
+        result = v2_via_interfaces(
+            # orchestrator = V2ProcessingOrchestrator(
             rules_file=v2_rules_file,
-            output_dir=temp_dirs["output_dir"],
-            input_dir=temp_dirs["input_dir"],
-            person_file=person_file,
+            inputs=sources.csvSourceObject(temp_dirs["input_dir"], sep=","),
+            output=outputs.csvOutputTarget(temp_dirs["output_dir"]),
+            person=person,
             omop_ddl_file=ddl_file,
             omop_config_file=omop_config_file,
+            write_mode="w",
+            # )
+            # # Actually run the real processing
+            # result = orchestrator.execute_processing()
+            # v2_via_interfaces(
         )
-
-        # Actually run the real processing
-        result = orchestrator.execute_processing()
 
         # Check the real results
         assert result.success is True
@@ -351,15 +389,23 @@ class TestV2ProcessingOrchestrator:
         # Remove the input files to cause a realistic failure
         person_file.unlink()  # Delete the person file
 
+        # reduce the person file from a path to just a table/filename
+        if isinstance(person_file, Path):
+            person: str = person_file.name
+        else:
+            person: str = person_file
+        person: str = args.de_csv(person)
+
         # This should fail because the person file doesn't exist
-        with pytest.raises(Exception, match="Person file not found."):
+        with pytest.raises(Exception, match="couldn't open table name='test_persons'"):
             V2ProcessingOrchestrator(
                 rules_file=v2_rules_file,
-                output_dir=temp_dirs["output_dir"],
-                input_dir=temp_dirs["input_dir"],
-                person_file=person_file,  # This file no longer exists
+                inputs=sources.csvSourceObject(temp_dirs["input_dir"], sep=","),
+                output=outputs.csvOutputTarget(temp_dirs["output_dir"]),
+                person=person,
                 omop_ddl_file=ddl_file,
                 omop_config_file=omop_config_file,
+                write_mode="w",
             )
 
     def test_execute_processing_with_invalid_rules(
@@ -375,13 +421,23 @@ class TestV2ProcessingOrchestrator:
 
         # This should fail during initialization with key error, missing "cdm" key
         with pytest.raises(KeyError):
-            V2ProcessingOrchestrator(
+            # reduce the person file from a path to just a table/filename
+            if isinstance(person_file, Path):
+                person: str = person_file.name
+            else:
+                person: str = person_file
+            person: str = args.de_csv(person)
+
+            from carrottransform.cli.subcommands.run_v2 import v2_via_interfaces
+
+            result = v2_via_interfaces(
                 rules_file=invalid_rules_file,
-                output_dir=temp_dirs["output_dir"],
-                input_dir=temp_dirs["input_dir"],
-                person_file=person_file,
+                inputs=sources.csvSourceObject(temp_dirs["input_dir"], sep=","),
+                output=outputs.csvOutputTarget(temp_dirs["output_dir"]),
+                person=person,
                 omop_ddl_file=ddl_file,
                 omop_config_file=omop_config_file,
+                write_mode="w",
             )
 
 
@@ -563,17 +619,18 @@ class TestOrchestratorIntegration:
                 shutil.copy2(csv_file, input_dir)
 
             try:
-                orchestrator = V2ProcessingOrchestrator(
-                    rules_file=rules_file,
-                    output_dir=output_dir,
-                    input_dir=input_dir,
-                    person_file=input_dir / "src_PERSON.csv",
-                    omop_ddl_file=ddl_file,
-                    omop_config_file=config_file,
-                )
+                from carrottransform.cli.subcommands.run_v2 import v2_via_interfaces
 
                 # This should not raise an exception
-                result = orchestrator.execute_processing()
+                result = v2_via_interfaces(
+                    rules_file=rules_file,
+                    output=outputs.csvOutputTarget(output_dir),
+                    inputs=sources.csvSourceObject(input_dir, sep=","),
+                    person="src_PERSON",
+                    omop_ddl_file=ddl_file,
+                    omop_config_file=config_file,
+                    write_mode="w",
+                )
 
                 # Basic checks - the result should be structured correctly
                 assert hasattr(result, "success")

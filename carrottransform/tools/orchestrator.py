@@ -7,6 +7,8 @@ from sqlalchemy.schema import MetaData, Table
 from sqlalchemy.sql.expression import select
 
 import carrottransform.tools as tools
+import carrottransform.tools.outputs as outputs
+import carrottransform.tools.sources as sources
 from carrottransform.tools.args import person_rules_check_v2
 from carrottransform.tools.date_helpers import normalise_to8601
 from carrottransform.tools.db import EngineConnection
@@ -335,10 +337,6 @@ class StreamProcessor:
         return result.record_count, rejected_count
 
 
-import carrottransform.tools.outputs as outputs
-import carrottransform.tools.sources as sources
-
-
 class V2ProcessingOrchestrator:
     """Main orchestrator for the entire V2 processing pipeline"""
 
@@ -346,10 +344,10 @@ class V2ProcessingOrchestrator:
         self,
         inputs: sources.SourceObject,
         output: outputs.OutputTarget,
+        person: str,
         rules_file: Path,
         write_mode: str,
         omop_ddl_file: Path,
-        person: str,
         omop_config_file: Path,
     ):
         self._inputs: sources.SourceObject = inputs
@@ -385,6 +383,9 @@ class V2ProcessingOrchestrator:
                 raise e
 
         self.metrics = tools.metrics.Metrics(self.mappingrules.get_dataset_name())
+
+        # try to open the persons
+        self._inputs.open(person)
 
         # Pre-compute lookup cache for efficient streaming
         self.lookup_cache = StreamingLookupCache(self.mappingrules, self.omopcdm)

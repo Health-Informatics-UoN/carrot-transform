@@ -2,12 +2,19 @@
 functions to handle args
 """
 
+import re
 from pathlib import Path
+from typing import Any
 
 import click
 from sqlalchemy import create_engine
 
+import carrottransform.tools.sources as sources
+from carrottransform.tools import outputs
+from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
+
+logger = logger_setup()
 
 # need this for substition. this should be the folder iwth an "examples/" sub" folder
 carrot: Path = Path(__file__).parent.parent
@@ -239,5 +246,87 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
     if "/" in person_file_name:
         person_file_name = person_file_name[(person_file_name.rfind("/") + 1) :]
 
-    if person_file_name != seen_table:
+    if de_csv(person_file_name) != de_csv(seen_table):
         raise WrongInputException(rules_file, person_file_name, seen_table)
+
+
+def de_csv(name: str) -> str:
+    if not name.endswith(".csv"):
+        return name
+
+    # strip the extension
+    return name[:-4]
+
+
+class PatternStringParamType(click.ParamType):
+    """A Click parameter type that validates strings against a RE pattern"""
+
+    name = "regex checked string"
+
+    def __init__(self, pattern: str = r"^[a-zA-Z_][a-zA-Z0-9_]*$"):
+        self._pattern = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+    def convert(
+        self, value: Any, param: click.Parameter | None, ctx: click.Context | None
+    ) -> str:
+        if not isinstance(value, str):
+            value = str(value)
+
+        # Check if empty
+        if not value.strip():
+            self.fail(f"Empty string is not allowed", param, ctx)
+
+        if not (self._pattern.match(value)):
+            self.fail(f"'{value}' is not a valid match for the pattern", param, ctx)
+
+        return value
+
+
+def common(func):
+    """Decorator for common options used by all modes"""
+
+    func = click.option(
+        "--rules-file",
+        envvar="RULES_FILE",
+        type=PathArg,
+        required=True,
+        help="json file containing mapping rules",
+    )(func)
+
+    func = click.option(
+        "--inputs",
+        envvar="INPUTS",
+        type=sources.SourceArgument,
+        required=True,
+        help="Input directory or database",
+    )(func)
+    func = click.option(
+        "--output",
+        envvar="OUTPUT",
+        type=outputs.TargetArgument,
+        required=True,
+        help="define the output directory for OMOP-format tsv files",
+    )(func)
+
+    func = click.option(
+        "--person",
+        envvar="PERSON",
+        type=PatternStringParamType(),
+        required=True,
+        help="File or table containing person_ids in the first column",
+    )(func)
+
+    func = click.option(
+        "--omop-ddl-file",
+        envvar="OMOP_DDL_FILE",
+        type=PathArg,
+        required=False,
+        help="File containing OHDSI ddl statements for OMOP tables",
+    )(func)
+    func = click.option(
+        "--omop-version",
+        required=True,
+        help="Quoted string containing omop version - eg '5.3'",
+        default="5.3",
+    )(func)
+    return func

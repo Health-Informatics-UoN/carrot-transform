@@ -81,7 +81,10 @@ def sqlSourceObject(connection: sqlalchemy.engine.Engine) -> SourceObject:
             pass
 
         def open(self, table: str) -> Iterator[list[str]]:
-            assert not table.endswith(".csv")
+            assert not table.endswith(".csv"), (
+                f"table names shouldn't have a file extension {table=}"
+            )
+            assert "/" not in table, f"invalid table name {table=}"
 
             def sql():
                 metadata = MetaData()
