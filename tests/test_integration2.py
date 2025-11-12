@@ -2,6 +2,7 @@
 these are various integration tests for carroti using pytest and the inbuild click tools
 
 """
+import boto3
 
 import logging
 import re
@@ -33,10 +34,56 @@ v2TestCases = [
 
 @pytest.mark.parametrize("test_case", v2TestCases)
 @pytest.mark.integration
-def test_v2(tmp_path: Path, test_case: testools.CarrotTestCase):
-    output = tmp_path / "out"
+def test_v2(request, tmp_path: Path, test_case: testools.CarrotTestCase):
+    # future test case parameters
+    output_to = "csv" # f"s3:{testools.CARROT_TEST_BUCKET}"
+    input_from = "csv"
 
-    inputs = str(test_case._folder).replace("\\", "/")
+    
+    # generat a semi-random slug/name to group test data under
+    # the files we read/write to s3 will appear in this folder
+    import re
+
+    slug = (
+        re.sub(r"[^a-zA-Z0-9]+", "_", request.node.name).strip("_")
+        + "__"
+        + testools.rand_hex()
+    )
+
+
+    # set the input
+    inputs: None | str = None
+    if "sqlite" == input_from:
+        inputs = test_case.load_sqlite(tmp_path)
+    if "csv" == input_from:
+        inputs = str(test_case._folder).replace("\\", "/")
+    if input_from.startswith("s3:"):
+        # create a random s3 subfolder
+        inputs = input_from + "/" + slug + "/input"
+
+        # set a task to delete the subfolder on exit
+        request.addfinalizer(lambda: testools.delete_s3_folder(inputs))
+
+        # copy data into the thing
+        outputTarget = outputs.s3OutputTarget(inputs)
+        testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
+    assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
+
+    # set the output
+    output: None | str = None
+    if "csv" == output_to:
+        output = str((tmp_path / "out").absolute())
+    if "sqlite" == output_to:
+        output = f"sqlite:///{(tmp_path / 'output.sqlite3').absolute()}"
+
+    if output_to.startswith("s3:"):
+        # create a random s3 subfolder
+        output = output_to + "/" + slug + "/output"
+
+        # set a task to delete the subfolder on exit
+        request.addfinalizer(lambda: testools.delete_s3_folder(output))
+
+    assert output is not None, f"couldn't use {output_to=}"  # check output was set
 
     env, args = testools.passed_as(
         [],
@@ -48,8 +95,6 @@ def test_v2(tmp_path: Path, test_case: testools.CarrotTestCase):
         test_case._person,
         "--output",
         output,
-        # "--omop-ddl-file",
-        # "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
     )
 
     ##
@@ -63,4 +108,16 @@ def test_v2(tmp_path: Path, test_case: testools.CarrotTestCase):
 
     assert 0 == result.exit_code
 
-    raise Exception(f"{test_case}")
+    # get the results so we can compare them to the expectations
+    results = None
+    if "csv" == output_to:
+        results = sources.csvSourceObject(tmp_path / "out", sep="\t")
+    if "sqlite" == output_to:
+        results = sources.sqlSourceObject(sqlalchemy.create_engine(output))
+    if output_to.startswith("s3:"):
+        results = sources.s3SourceObject(output, sep="\t")
+
+    assert results is not None  # check output was set
+
+    # verify that the results are good
+    test_case.compare_to_tsvs_v2(results)

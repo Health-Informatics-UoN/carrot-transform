@@ -114,6 +114,10 @@ def process_common_logic(
         result = orchestrator.execute_processing()
 
         if result.success:
+            # close/flush these because we need the files on-diks for unit test valiation
+            output.close()
+            inputs.close()
+
             logger.info(
                 f"V2 processing completed successfully in {time.time() - start_time:.5f} secs"
             )
