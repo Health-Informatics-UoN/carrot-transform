@@ -2,22 +2,43 @@
 Entry point for the v2 processing system
 """
 
+import csv
 import importlib.resources as resources
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import click
+from sqlalchemy.engine import Connection
+from sqlalchemy.schema import MetaData, Table
+from sqlalchemy.sql.expression import select
 
+import carrottransform.tools as tools
+import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
 from carrottransform import require
-from carrottransform.tools.args import PathArg
+from carrottransform.tools.args import PathArg, person_rules_check_v2
+from carrottransform.tools.date_helpers import normalise_to8601
+from carrottransform.tools.db import EngineConnection
 from carrottransform.tools.file_helpers import (
+    OutputFileManager,
     check_dir_isvalid,
 )
 from carrottransform.tools.logger import logger_setup
-from carrottransform.tools.orchestrator import V2ProcessingOrchestrator
-from carrottransform.tools.types import DBConnParams
+from carrottransform.tools.mappingrules import MappingRules
+from carrottransform.tools.omopcdm import OmopCDM
+from carrottransform.tools.orchestrator import StreamProcessor, V2ProcessingOrchestrator
+from carrottransform.tools.person_helpers import (
+    load_person_ids_v2,
+)
+from carrottransform.tools.record_builder import RecordBuilderFactory
+from carrottransform.tools.stream_helpers import StreamingLookupCache
+from carrottransform.tools.types import (
+    DBConnParams,
+    ProcessingContext,
+    ProcessingResult,
+    RecordContext,
+)
 
 logger = logger_setup()
 
@@ -48,6 +69,21 @@ def common_options(func):
         envvar="PERSON",
         required=True,
         help="File or table containing person_ids in the first column",
+    )(func)
+    func = click.option(
+        "--inputs",
+        envvar="INPUTS",
+        type=sources.SourceArgument,
+        required=True,
+        help="Input directory or database",
+    )(func)
+    func = click.option(
+        "--output",
+        envvar="OUTPUT",
+        type=outputs.TargetArgument,
+        # default=None,
+        required=True,
+        help="define the output directory for OMOP-format tsv files",
     )(func)
     return func
 
@@ -162,21 +198,6 @@ def process_common_logic(
 
 
 @click.command()
-@click.option(
-    "--inputs",
-    envvar="INPUTS",
-    type=sources.SourceArgument,
-    required=True,
-    help="Input directory or database",
-)
-@click.option(
-    "--output",
-    envvar="OUTPUT",
-    type=outputs.TargetArgument,
-    # default=None,
-    required=True,
-    help="define the output directory for OMOP-format tsv files",
-)
 @common_options
 def folder(
     inputs: sources.SourceObject,
@@ -198,72 +219,6 @@ def folder(
     )
 
 
-@click.command()
-@click.option(
-    "--person-table",
-    required=True,
-    help="Table containing person_ids in the first column",
-)
-@click.option("--username", required=True, help="Database username")
-@click.option(
-    "--password",
-    required=True,
-    help="Database password. Optional in Trino, but we will enforce this.",
-)
-@click.option(
-    "--db-type",
-    required=True,
-    type=click.Choice(["postgres", "trino"]),
-    help="Database type/driver that users want to access",
-)
-@click.option(
-    "--schema",
-    required=True,
-    help="Database schema or input directory holding the input tables",
-)
-@click.option(
-    "--db-name", required=True, help="Name of the Database or Catalog in Trino"
-)
-@click.option("--host", required=True, help="Database host")
-@click.option("--port", required=True, type=int, help="Database port")
-@common_options
-def db(
-    username: str,
-    password: str,
-    db_type: str,
-    schema: str,
-    db_name: str,
-    host: str,
-    port: int,
-    rules_file: Path,
-    output_dir: Path,
-    write_mode: str,
-    person_table: str,
-    omop_ddl_file: Optional[Path],
-    omop_version: Optional[str],
-):
-    """Process data from database input"""
-    db_conn_params = DBConnParams(
-        db_type=db_type,
-        username=username,
-        password=password,
-        host=host,
-        port=port,
-        db_name=db_name,
-        schema=schema,
-    )
-
-    process_common_logic(
-        rules_file=rules_file,
-        output_dir=output_dir,
-        write_mode=write_mode,
-        person_table=person_table,
-        omop_ddl_file=omop_ddl_file,
-        omop_version=omop_version,
-        db_conn_params=db_conn_params,
-    )
-
-
 @click.group(help="V2 Commands for mapping data to the OMOP CommonDataModel (CDM).")
 def run_v2():
     pass
@@ -271,47 +226,6 @@ def run_v2():
 
 # Add both commands to the group
 run_v2.add_command(folder, "folder")
-run_v2.add_command(db, "db")
-
-if __name__ == "__main__":
-    run_v2()
-
-
-
-import carrottransform.tools.outputs as outputs
-import carrottransform.tools.sources as sources
-import csv
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
-
-from sqlalchemy.engine import Connection
-from sqlalchemy.schema import MetaData, Table
-from sqlalchemy.sql.expression import select
-
-import carrottransform.tools as tools
-from carrottransform.tools.args import person_rules_check_v2
-from carrottransform.tools.date_helpers import normalise_to8601
-from carrottransform.tools.db import EngineConnection
-from carrottransform.tools.file_helpers import OutputFileManager
-from carrottransform.tools.logger import logger_setup
-from carrottransform.tools.mappingrules import MappingRules
-from carrottransform.tools.omopcdm import OmopCDM
-from carrottransform.tools.person_helpers import (
-    load_person_ids_v2,
-)
-from carrottransform.tools.record_builder import RecordBuilderFactory
-from carrottransform.tools.stream_helpers import StreamingLookupCache
-from carrottransform.tools.types import (
-    DBConnParams,
-    ProcessingContext,
-    ProcessingResult,
-    RecordContext,
-)
-
-from carrottransform.tools.orchestrator import StreamProcessor
-
-
-
 
 
 def v2_via_interfaces(
@@ -441,14 +355,21 @@ def v2_via_interfaces(
                 rejected_count = 0
 
                 file_meta = self_lookup_cache.file_metadata_cache[source_filename]
-                if not file_meta["datetime_source"] or not file_meta["person_id_source"]:
-                    logger.warning(f"Missing date or person ID mapping for {source_filename}")
+                if (
+                    not file_meta["datetime_source"]
+                    or not file_meta["person_id_source"]
+                ):
+                    logger.warning(
+                        f"Missing date or person ID mapping for {source_filename}"
+                    )
                 else:
                     try:
                         column_headers = next(source)
                         input_column_map = self_omopcdm.get_column_map(column_headers)
 
-                        datetime_col_idx = input_column_map.get(file_meta["datetime_source"])
+                        datetime_col_idx = input_column_map.get(
+                            file_meta["datetime_source"]
+                        )
                         if datetime_col_idx is None:
                             logger.warning(
                                 f"Date field {file_meta['datetime_source']} not found in {source_filename}"
@@ -467,7 +388,9 @@ def v2_via_interfaces(
                                 )
 
                                 # Normalize date
-                                fulldate = normalise_to8601(input_data[datetime_col_idx])
+                                fulldate = normalise_to8601(
+                                    input_data[datetime_col_idx]
+                                )
                                 if fulldate is None:
                                     self_metrics.increment_key_count(
                                         source=source_filename,
@@ -484,17 +407,29 @@ def v2_via_interfaces(
 
                                 # Process per target
                                 for target_file in applicable_targets:
-                                    v2_mapping = self_mappingrules.v2_mappings[target_file][source_filename]
+                                    v2_mapping = self_mappingrules.v2_mappings[
+                                        target_file
+                                    ][source_filename]
                                     target_column_map = target_column_maps[target_file]
 
-                                    target_meta = self_lookup_cache.target_metadata_cache[target_file]
+                                    target_meta = (
+                                        self_lookup_cache.target_metadata_cache[
+                                            target_file
+                                        ]
+                                    )
                                     auto_num_col = target_meta["auto_num_col"]
                                     person_id_col = target_meta["person_id_col"]
                                     date_col_data = target_meta["date_col_data"]
-                                    date_component_data = target_meta["date_component_data"]
-                                    notnull_numeric_fields = target_meta["notnull_numeric_fields"]
+                                    date_component_data = target_meta[
+                                        "date_component_data"
+                                    ]
+                                    notnull_numeric_fields = target_meta[
+                                        "notnull_numeric_fields"
+                                    ]
 
-                                    data_columns = file_meta["data_fields"].get(target_file, [])
+                                    data_columns = file_meta["data_fields"].get(
+                                        target_file, []
+                                    )
 
                                     output_count_local = 0
                                     rejected_count_local = 0
@@ -524,7 +459,9 @@ def v2_via_interfaces(
                                             notnull_numeric_fields=notnull_numeric_fields,
                                         )
 
-                                        builder = RecordBuilderFactory.create_builder(context)
+                                        builder = RecordBuilderFactory.create_builder(
+                                            context
+                                        )
                                         result_obj = builder.build_records()
 
                                         self_metrics = result_obj.metrics
@@ -538,7 +475,9 @@ def v2_via_interfaces(
                                     rejected_count += rejected_count_local
 
                     except Exception as e:
-                        logger.error(f"Error streaming file {source_filename}: {str(e)}")
+                        logger.error(
+                            f"Error streaming file {source_filename}: {str(e)}"
+                        )
 
             # Update totals
             for target_file, count in output_counts.items():
@@ -578,32 +517,3 @@ def v2_via_interfaces(
     data_summary.close()
 
     return result
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
