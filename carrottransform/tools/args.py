@@ -234,5 +234,10 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
     # check if the seen file is correct
     seen_table: str = list(seen_inputs)[0]
 
+    # shorten to just the part we want
+    person_file_name = person_file_name.replace("\\", "/")
+    if "/" in person_file_name:
+        person_file_name = person_file_name[(person_file_name.rfind("/") + 1) :]
+
     if person_file_name != seen_table:
         raise WrongInputException(rules_file, person_file_name, seen_table)

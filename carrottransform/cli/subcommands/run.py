@@ -45,19 +45,6 @@ logger = logger_setup()
     required=True,
     help="define the output directory for OMOP-format tsv files",
 )
-# @click.option(
-#     "--write-mode",
-#     default="w",
-#     type=click.Choice(["w", "a"]),
-#     help="force write-mode on output files",
-# )
-# @click.option(
-#     "--person-file",
-#     envvar="PERSON_FILE",
-#     type=PathArg,
-#     required=True,
-#     help="File containing person_ids in the first column",
-# )
 @click.option(
     "--person",
     envvar="PERSON",
@@ -73,16 +60,10 @@ logger = logger_setup()
 )
 @click.option(
     "--omop-version",
-    required=False,
+    required=True,
     help="Quoted string containing omop version - eg '5.3'",
+    default="5.3",
 )
-# @click.option(
-#     "--saved-person-id-file",
-#     type=PathArg,
-#     default=None,
-#     required=False,
-#     help="Full path to person id file used to save person_id state and share person_ids between data sets",
-# )
 @click.option(
     "--use-input-person-ids",
     required=False,
@@ -111,14 +92,14 @@ logger = logger_setup()
 )
 def mapstream(
     rules_file: Path,
+    person: str,
+    inputs: sources.SourceArgument,
     output: outputs.OutputTarget,
-    person_file: Path,
     omop_ddl_file: Path | None,
     omop_version,
     use_input_person_ids,
     last_used_ids_file: Path | None,
     log_file_threshold,
-    inputs: sources.SourceArgument,
 ):
     # this doesn't make a lot of sense with s3 (or the eventual database)
     write_mode: str = "w"
@@ -143,7 +124,6 @@ def mapstream(
                 [
                     rules_file,
                     write_mode,
-                    person_file,
                     omop_ddl_file,
                     omop_config_file,
                     omop_version,
@@ -161,7 +141,7 @@ def mapstream(
         sys.exit()
 
     ## fallback for the ddl filename
-    if omop_ddl_file is None and omop_version is not None:
+    if omop_ddl_file is None:
         omop_ddl_name = f"OMOPCDM_postgresql_{omop_version}_ddl.sql"
         omop_ddl_file = Path(
             Path(str(resources.files("carrottransform"))) / "config" / omop_ddl_name
@@ -171,12 +151,12 @@ def mapstream(
 
     ## check on the person_file_rules
     try:
-        person_rules_check(rules_file=rules_file, person_file_name=person_file.name)
+        person_rules_check(rules_file=rules_file, person_file_name=person)
     except OnlyOnePersonInputAllowed as e:
         inputs = list(sorted(list(e._inputs)))
 
         logger.error(
-            f"Person properties were mapped from ({inputs}) but can only come from the person file {person_file.name=}"
+            f"Person properties were mapped from ({inputs}) but can only come from the person file {person=}"
         )
         sys.exit(-1)
     except Exception as e:
@@ -217,7 +197,7 @@ def mapstream(
         person_lookup, rejected_person_count = read_person_ids(
             # this is a little horrible; i'm not ready to rewrite/replace `read_person_ids()` so we just do this pointeing to a fake file
             Path(__file__) / "this-should-not-exist.txt",
-            inputs.open(de_csv(person_file.name)),
+            inputs.open(de_csv(person)),
             mappingrules,
             use_input_person_ids != "N",
         )

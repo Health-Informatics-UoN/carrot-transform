@@ -157,12 +157,12 @@ def run_test(
             inputs,
             "--rules-file",
             mapper,
-            "--person-file",
+            "--person",
             person,
             "--output",
             output,
-            "--omop-ddl-file",
-            "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
+            # "--omop-ddl-file",
+            # "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
         ],
     )
 

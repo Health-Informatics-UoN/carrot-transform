@@ -382,12 +382,3 @@ def test_output_data_writing(omopcdm, test_rules_file, input_data):
         2 * len(input_data)
     )  # 1 person record + 2 observation types per person
     assert total_records == expected_records
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])
-
-
-@pytest.mark.unit
-def test_version_detect():
-    raise Exception("use MappingRules::_is_v2() as a basis to detect the version")
