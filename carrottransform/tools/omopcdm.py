@@ -17,6 +17,8 @@ class OmopCDM:
     """
 
     def __init__(self, omopddl, omopcfg):
+        assert omopddl is not None, "omopddl musn't be null"
+
         self.numeric_types = ["integer", "numeric"]
         self.datetime_types = ["timestamp"]
         self.date_types = ["date"]
