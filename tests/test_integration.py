@@ -11,7 +11,7 @@ import pytest
 
 import tests.click_tools as click_tools
 import tests.csvrow as csvrow
-
+from tests.testools import package_root, project_root
 ##
 # concept constants
 # these are concept values that happen to be used in these tests. they're not a universal thing - they're just what is being used here.

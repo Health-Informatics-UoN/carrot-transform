@@ -10,13 +10,9 @@ from sqlalchemy import Column, MetaData, Table, Text, insert
 import carrottransform.tools.sources as sources
 import tests.csvrow as csvrow
 from carrottransform.cli.subcommands.run import mapstream
-
 logger = logging.getLogger(__name__)
 
-
-# Get the package root directory
-package_root: Path = Path(str(importlib.resources.files("carrottransform")))
-
+from tests.testools import package_root, project_root
 
 def click_test(
     # a folder that the test can read/write files into

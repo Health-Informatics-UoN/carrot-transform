@@ -7,17 +7,15 @@ import pytest
 import sqlalchemy
 from click.testing import CliRunner
 
-import tests.click_tools as click_tools
-import tests.csvrow as csvrow
 from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
-from tests.click_tools import package_root
 
 #
 logger = logging.getLogger(__name__)
 
 # Get the package root directory
 project_root: Path = Path(__file__).parent.parent
+package_root: Path = project_root / "carrottransform"
 
 # need/want to define the s3 bucket somewhere, so, let's do it here
 CARROT_TEST_BUCKET = "carrot-transform-testtt"

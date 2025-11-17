@@ -21,7 +21,7 @@ import tests.testools as testools
 from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
 from tests.click_tools import package_root
-
+from tests.testools import package_root, project_root
 logger = logging.getLogger(__name__)
 
 
@@ -189,8 +189,7 @@ def test_join():
 
 @pytest.mark.s3tests
 def test_s3run(tmp_path: Path, caplog):
-    logger.warning("enable this")
-    return
+
     caplog.set_level(logging.INFO)
 
     output = f"s3:{testools.CARROT_TEST_BUCKET}/s3run"

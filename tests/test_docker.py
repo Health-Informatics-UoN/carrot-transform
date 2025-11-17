@@ -8,11 +8,9 @@ from pathlib import Path
 import pytest
 
 import tests.csvrow as csvrow
-from tests.click_tools import package_root
-
-project_root: Path = package_root.parent
-
-
+from tests.click_tools import package_root, project_root
+from tests.click_tools import package_root, project_root
+from tests.testools import package_root, project_root
 class DockerImage:
     """class to build a docker container with a distinct (random) name and retrn that name for a `with as:` block"""
 

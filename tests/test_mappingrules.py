@@ -8,7 +8,7 @@ import pytest
 
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
-
+from tests.testools import package_root, project_root
 
 def get_latest_omop_ddl():
     """Find the latest version of OMOP DDL file in the config directory."""
