@@ -98,11 +98,11 @@ def test_dock_observations(tmp_path: Path):
             "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
             "--rules-file",
             "/run/mapping.json",
-            "--output-dir",
+            "--output",
             "/run/out",
-            "--person-file",
-            "/run/demos.csv",
-            "--input-dir",
+            "--person",
+            "demos",
+            "--inputs",
             "/run/",
         ]
 
