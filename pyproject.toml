@@ -61,9 +61,9 @@ markers = [
     "s3tests: marks tests that require s3 credentials and quotas",
 ]
 
-# not all platforms have docker, so, don't run the docker tests by default
-# ... you can run them with `λ uv run pytest -m docker`
-addopts = "-m 'not docker'"
+# not all platforms have docker and s3 creds, so, don't run the docker tests by default
+# ... you can run them with `λ uv run pytest -m 'not docker and not s3tests'`
+addopts = "-m 'not docker and not s3tests'"
 
 
 
