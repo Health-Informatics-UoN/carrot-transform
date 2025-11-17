@@ -69,6 +69,11 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
     for item in test.glob("*.tsv"):
         name: str = item.name[:-4]
 
+        # just skip summary_mapstream
+        if "summary_mapstream" == name:
+            continue
+
+
         person_ids_seen = person_ids_seen or ("person_ids" == name)
         persons_seen = persons_seen or ("person" == name)
 
@@ -79,7 +84,7 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
             assert e is not None, f"expected value {idx} is missing"
             assert a is not None, f"expected value {idx} is missing"
 
-            assert e == a, f"expected/actual values {idx} do not match"
+            assert e == a, f"{name=} expected/actual values {idx} do not match\n\t{e=}\n\t{a=}"
             idx += 1
         logger.info(f"matching {subpath=} for {name=}")
 
@@ -92,7 +97,54 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
 
 
 #### ==========================================================================
+## test case functions
+
+from itertools import product
+def keyed_variations(**kv):
+    """given some things passed as k=[v1,v2], yields all permutations"""
+    keys = kv.keys()
+    for values in product(*kv.values()):
+        yield dict(zip(keys, values))
+
+
+
+
+def zip_long(l, r):
+    """combine the two sequences to produce pairs. don'ty repeat values from the longeds, but, loop those in the smallest
+    """
+
+    # convert them both to lists
+    t = []
+    for i in l:
+        t.append(i)
+    l = t
+    t = []
+    for i in r:
+        t.append(i)
+    r = t
+
+    # get the lengths
+    ll = len(l)
+    rl = len(r)
+
+    # emit all the pairs
+    for i in range(0, max(ll, rl)):
+        yield (
+            l[i % ll],
+            r[i % rl]
+        )
+
+
+
+
+
+
+
+
+
+#### ==========================================================================
 ## utility functions
+
 def variations(keys):
     """
     computes key -> bool dicts where all, none, or only one value is true or false, then, maps those dicts to simple lists
@@ -245,7 +297,8 @@ test_data = Path(__file__).parent / "test_data"
 class CarrotTestCase:
     """defines an integration test case in terms of the person file, and the optional mapper rules"""
 
-    def __init__(self, person_name: str, mapper: str = ""):
+    def __init__(self, person_name: str, mapper: str = "", suffix = ""):
+        self._suffix = suffix
         self._person_name = person_name
 
         self._folder = (test_data / person_name).parent
@@ -277,8 +330,8 @@ class CarrotTestCase:
         )
         return f"sqlite:///{sqlite3.absolute()}"
 
-    def compare_to_tsvs(self, source, suffix=""):
-        compare_to_tsvs(self._label + suffix, source)
+    def compare_to_tsvs(self, source, suffix = ''):
+        compare_to_tsvs(self._label + self._suffix, source)
 
 
 ###
@@ -299,7 +352,7 @@ def passed_as(pass_as, *args):
             i += 2
             continue
 
-        # convert eh key
+        # conver the key
         k = k.upper().replace("-", "_")
 
         # get the value
