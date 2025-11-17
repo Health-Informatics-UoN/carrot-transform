@@ -5,6 +5,7 @@ import pytest
 import carrottransform.tools.args as args
 from tests.testools import package_root, project_root
 
+
 @pytest.mark.unit
 @pytest.mark.parametrize(
     "input, expected",

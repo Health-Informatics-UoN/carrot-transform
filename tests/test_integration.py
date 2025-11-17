@@ -89,7 +89,7 @@ def generate_cases(with_s3: bool):
 
     return [
         (case["output_to"], case["test_case"], case["input_from"], case["pass_as"])
-        for case in testools.repeating_unions(perts, varts)
+        for case in testools.zip_loop(perts, varts)
     ]
 
 

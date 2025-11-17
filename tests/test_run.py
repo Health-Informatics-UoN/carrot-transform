@@ -10,6 +10,7 @@ import carrottransform.cli.subcommands.run as run
 import carrottransform.tools.sources as sources
 from carrottransform.tools.person_helpers import _get_person_lookup
 from tests.testools import package_root, project_root
+
 logger = logging.getLogger(__name__)
 
 

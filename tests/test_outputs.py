@@ -5,23 +5,19 @@ runs tests for the target writer
 
 """
 
-import io
 import logging
 import textwrap
 from pathlib import Path
 
-import boto3
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
-from sqlalchemy import Column, MetaData, Table, Text, insert
 
-import carrottransform.tools.sources
 import tests.testools as testools
 from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
-from tests.click_tools import package_root
-from tests.testools import package_root, project_root
+from tests.testools import package_root
+
 logger = logging.getLogger(__name__)
 
 
@@ -51,8 +47,8 @@ def test_csvOutputTarget(tmp_path: Path):
 @pytest.mark.unit
 def test_sqliteTargetWriter(tmp_path: Path):
     heights = Path(__file__).parent / "test_data/measure_weight_height/heights.csv"
-    persons = Path(__file__).parent / "test_data/measure_weight_height/persons.csv"
-    weights = Path(__file__).parent / "test_data/measure_weight_height/weights.csv"
+    # persons = Path(__file__).parent / "test_data/measure_weight_height/persons.csv"
+    # weights = Path(__file__).parent / "test_data/measure_weight_height/weights.csv"
 
     # connect to a database
     engine: sqlalchemy.engine.Engine = sqlalchemy.create_engine(
@@ -117,8 +113,8 @@ def test_sqliteTargetWriter(tmp_path: Path):
 @pytest.mark.unit
 def test_in_and_out_sqlite(tmp_path: Path):
     heights = Path(__file__).parent / "test_data/measure_weight_height/heights.csv"
-    persons = Path(__file__).parent / "test_data/measure_weight_height/persons.csv"
-    weights = Path(__file__).parent / "test_data/measure_weight_height/weights.csv"
+    # persons = Path(__file__).parent / "test_data/measure_weight_height/persons.csv"
+    # weights = Path(__file__).parent / "test_data/measure_weight_height/weights.csv"
 
     # connect to a database
     engine: sqlalchemy.engine.Engine = sqlalchemy.create_engine(
@@ -189,7 +185,6 @@ def test_join():
 
 @pytest.mark.s3tests
 def test_s3run(tmp_path: Path, caplog):
-
     caplog.set_level(logging.INFO)
 
     output = f"s3:{testools.CARROT_TEST_BUCKET}/s3run"

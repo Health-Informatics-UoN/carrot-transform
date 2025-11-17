@@ -18,7 +18,7 @@ def require(con: bool, msg: str = ""):
     frame = currentframe.f_back if currentframe is not None else None
     frame_info = inspect.getframeinfo(frame) if frame is not None else None
     context = frame_info.code_context if frame_info is not None else None
-    if context:
+    if context and frame_info:
         call_line = context[0].strip()
         raise AssertionError(
             f"failed {frame_info.filename}:{frame_info.lineno}: {call_line}{msg}"

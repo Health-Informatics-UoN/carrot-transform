@@ -57,7 +57,7 @@ import carrottransform.tools.args as args
 def mapstream(
     rules_file: Path,
     person: str,
-    inputs: sources.SourceArgument,
+    inputs: sources.SourceObject,
     output: outputs.OutputTarget,
     omop_ddl_file: Path | None,
     omop_version,
@@ -117,10 +117,10 @@ def mapstream(
     try:
         person_rules_check(rules_file=rules_file, person_file_name=person)
     except OnlyOnePersonInputAllowed as e:
-        inputs = list(sorted(list(e._inputs)))
+        input_list = list(sorted(list(e._inputs)))
 
         logger.error(
-            f"Person properties were mapped from ({inputs}) but can only come from the person file {person=}"
+            f"Person properties were mapped from ({input_list}) but can only come from the person file {person=}"
         )
         sys.exit(-1)
     except Exception as e:

@@ -1,5 +1,5 @@
 import logging
-import re
+from itertools import product
 from pathlib import Path
 
 import boto3
@@ -25,7 +25,7 @@ CARROT_TEST_BUCKET = "carrot-transform-testtt"
 
 
 @pytest.mark.unit
-def test_compare(caplog):
+def test_compare(caplog) -> None:
     """test the validator"""
 
     caplog.set_level(logging.INFO)
@@ -53,10 +53,11 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
 
     from carrottransform.tools.args import PathArg
 
+    test: Path
     if subpath.startswith("@carrot"):
-        test: Path = PathArg.convert(subpath, None, None)
+        test = PathArg.convert(subpath, None, None)
     else:
-        test: Path = project_root / "tests/test_data" / subpath
+        test = project_root / "tests/test_data" / subpath
 
     # open the saved .tsv file
     so_ex = sources.csvSourceObject(test, sep="\t")
@@ -71,7 +72,6 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
         if "summary_mapstream" == name:
             continue
 
-
         person_ids_seen = person_ids_seen or ("person_ids" == name)
         persons_seen = persons_seen or ("person" == name)
 
@@ -82,7 +82,9 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
             assert e is not None, f"expected value {idx} is missing"
             assert a is not None, f"expected value {idx} is missing"
 
-            assert e == a, f"{name=} expected/actual values {idx} do not match\n\t{e=}\n\t{a=}"
+            assert e == a, (
+                f"{name=} expected/actual values {idx} do not match\n\t{e=}\n\t{a=}"
+            )
             idx += 1
         logger.info(f"matching {subpath=} for {name=}")
 
@@ -97,7 +99,7 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
 #### ==========================================================================
 ## test case functions
 
-from itertools import product
+
 def keyed_variations(**kv):
     """given some things passed as k=[v1,v2], yields all permutations"""
     keys = kv.keys()
@@ -105,43 +107,9 @@ def keyed_variations(**kv):
         yield dict(zip(keys, values))
 
 
-
-
-def zip_long(l, r):
-    """combine the two sequences to produce pairs. don'ty repeat values from the longeds, but, loop those in the smallest
-    """
-
-    # convert them both to lists
-    t = []
-    for i in l:
-        t.append(i)
-    l = t
-    t = []
-    for i in r:
-        t.append(i)
-    r = t
-
-    # get the lengths
-    ll = len(l)
-    rl = len(r)
-
-    # emit all the pairs
-    for i in range(0, max(ll, rl)):
-        yield (
-            l[i % ll],
-            r[i % rl]
-        )
-
-
-
-
-
-
-
-
-
 #### ==========================================================================
 ## utility functions
+
 
 def variations(keys):
     """
@@ -186,36 +154,51 @@ def permutations(**name_to_list):
         if 0 == c:
             return
 
-        k, l = listing[0]
+        head_key, head_items = listing[0]
 
         if 1 == c:
-            for v in l:
-                yield {k: v}
+            for v in head_items:
+                yield {head_key: v}
 
             return
 
         for t in loop(listing[1:]):
-            for v in l:
-                t[k] = v
+            for v in head_items:
+                t[head_key] = v
                 yield t.copy()
 
     for i in loop(list(map(lambda k: (k, name_to_list[k]), name_to_list.keys()))):
         yield i
 
 
-def repeating_unions(*args: list[list]):
-    height = []
-    column = []
+def zip_loop(*ar: list[dict]):
+    # convert them all to lists so that they're "stable"
+    args = list(list(a) for a in ar)
 
-    for a in args:
-        c = list(a)
-        column += [c]
-        height += [len(c)]
+    # find the longest length
+    max_length = max(len(a) for a in args)
 
-    for i in range(0, max(height)):
-        row = {}
-        for c in column:
-            row = row | c[i % len(c)].copy()
+    def loop(a):
+        while True:
+            for i in a:
+                yield i
+
+    # turn them all into forever loops
+    loopers = [loop(a) for a in args]
+
+    # now build "rows" from each
+    count = 0
+    while count < max_length:
+        count += 1
+
+        # start an empty row
+        row: dict = {}
+
+        # each of those inputs will contribute some {k:v} so we union them togehter
+        for c in loopers:
+            row = row | next(c).copy()
+
+        # yield this row before we continue
         yield row
 
 
@@ -295,7 +278,7 @@ test_data = Path(__file__).parent / "test_data"
 class CarrotTestCase:
     """defines an integration test case in terms of the person file, and the optional mapper rules"""
 
-    def __init__(self, person_name: str, mapper: str = "", suffix = ""):
+    def __init__(self, person_name: str, mapper: str = "", suffix=""):
         self._suffix = suffix
         self._person_name = person_name
 
@@ -328,7 +311,7 @@ class CarrotTestCase:
         )
         return f"sqlite:///{sqlite3.absolute()}"
 
-    def compare_to_tsvs(self, source, suffix = ''):
+    def compare_to_tsvs(self, source, suffix=""):
         compare_to_tsvs(self._label + self._suffix, source)
 
 
@@ -346,7 +329,7 @@ def passed_as(pass_as, *args):
     while i < len(args):
         k = args[i][2:]
 
-        if not (k in pass_as):
+        if k not in pass_as:
             i += 2
             continue
 

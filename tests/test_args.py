@@ -1,6 +1,5 @@
-
 from pathlib import Path
-from tests.testools import package_root, project_root
+
 import pytest
 
 from carrottransform.tools.args import (
@@ -12,6 +11,7 @@ from carrottransform.tools.args import (
     object_query,
     person_rules_check,
 )
+from tests.testools import package_root, project_root
 
 
 @pytest.mark.parametrize(
@@ -85,7 +85,7 @@ def test_person_rules_throws(exception):
             assert exception._inputs == caught._inputs
 
 
-def test_person_rules_throws_WrongInputException():
+def test_person_rules_throws_WrongInputException() -> None:
     """this is a test to trigger the WrongInputException"""
     person_file = "demographics_mother_gold.csv"
     rules_file = Path("tests/test_data/wrong-person-table-rules.json")
@@ -112,10 +112,10 @@ def test_person_rules_throws_WrongInputException():
     assert caught._source_table == source_table
 
 
-def test_object_query_error():
+def test_object_query_error() -> None:
     """tests the object_query() throws an error when it starts with /"""
 
-    data = {"foo": 9, "bar": {"value": 12}}
+    data: dict[str, str | dict[str, str]] = {"foo": "9", "bar": {"value": "12"}}
 
     error: None | ObjectQueryError = None
     try:
@@ -132,10 +132,10 @@ def test_object_query_error():
     )
 
 
-def test_object_structure_error():
+def test_object_structure_error() -> None:
     """tests the object_query() throws an error when trying to read a string as a dict"""
 
-    data = {"foo": 9, "bar": {"value": 12}}
+    data: dict[str, str | dict[str, str]] = {"foo": "9", "bar": {"value": "12"}}
 
     error: None | ObjectStructureError = None
     try:

@@ -14,10 +14,10 @@ from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
 from tests.click_tools import package_root, project_root
 from tests.testools import package_root, project_root
+
+
 @pytest.mark.unit
 def test_datetime_in_measurement_csv(tmp_path: Path):
-    
-
     testools.run_v1(
         # set the inputs directory
         inputs=str(package_root / "examples/test/inputs/"),
@@ -36,7 +36,6 @@ def test_datetime_in_measurement_csv(tmp_path: Path):
 
 @pytest.mark.unit
 def test_datetime_in_measurement_sqlite(tmp_path: Path):
-
     # set the sqlite dir
     sqlite_file: Path = tmp_path / "sql.db"
     sqlite_string = f"sqlite:///{sqlite_file}"

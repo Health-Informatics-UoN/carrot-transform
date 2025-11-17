@@ -1,6 +1,7 @@
 """
 functions to handle args
 """
+
 import re
 from pathlib import Path
 from typing import Any
@@ -11,13 +12,6 @@ from sqlalchemy import create_engine
 import carrottransform.tools.sources as sources
 from carrottransform.tools import outputs
 from carrottransform.tools.logger import logger_setup
-from carrottransform.tools.mappingrules import MappingRules
-
-from pathlib import Path
-
-import click
-from sqlalchemy import create_engine
-
 from carrottransform.tools.mappingrules import MappingRules
 
 # need this for substition. this should be the folder iwth an "examples/" sub" folder
@@ -175,7 +169,6 @@ def person_rules_check_v2(
         )
 
 
-
 def person_rules_check(person_file_name: str, rules_file: Path) -> None:
     """check that the person rules file is correct.
 
@@ -242,9 +235,6 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
 
     if de_csv(person_file_name) != de_csv(seen_table):
         raise WrongInputException(rules_file, person_file_name, seen_table)
-
-
-
 
 
 def de_csv(name: str) -> str:

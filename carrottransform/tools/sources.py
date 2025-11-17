@@ -10,7 +10,6 @@ from sqlalchemy import MetaData, select
 from carrottransform import require
 from carrottransform.tools.outputs import s3BucketFolder
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -157,7 +156,7 @@ class SourceObjectArgumentType(click.ParamType):
     name = "a connection to the/a source (whatever that may be)"
 
     def convert(self, value: str, param, ctx):
-        value: str = str(value)
+        value = str(value)
         if value.startswith("s3:"):
             return s3SourceObject(
                 value, "\t"

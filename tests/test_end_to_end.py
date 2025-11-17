@@ -2,7 +2,6 @@
 tests the complete system in a few ways. needs better verification of the outputs
 """
 
-from tests.click_tools import package_root
 import shutil
 from pathlib import Path
 
@@ -10,7 +9,9 @@ import pytest
 from click.testing import CliRunner
 
 from carrottransform.cli.subcommands.run import mapstream
+from tests.click_tools import package_root
 from tests.testools import package_root, project_root
+
 
 @pytest.mark.integration
 def test_run_the_command_line():

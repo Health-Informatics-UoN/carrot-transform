@@ -9,8 +9,9 @@ import pytest
 
 import tests.csvrow as csvrow
 from tests.click_tools import package_root, project_root
-from tests.click_tools import package_root, project_root
 from tests.testools import package_root, project_root
+
+
 class DockerImage:
     """class to build a docker container with a distinct (random) name and retrn that name for a `with as:` block"""
 
@@ -19,7 +20,7 @@ class DockerImage:
         self._name = name
         self._image_name = ""
 
-    def __enter__(self):
+    def __enter__(self) -> str:
         assert self._image_name == ""
 
         length: int = 16
