@@ -420,7 +420,7 @@ class PostgreSQLContainer:
 
 
 @pytest.fixture(scope="function")
-def postgres(docker_ip) -> Generator[PostgreSQLContainer]:
+def postgres(docker_ip) -> Generator[PostgreSQLContainer, None, None]:
     """Start a PostgreSQL container for tests"""
 
     config: PostgreSQLConfig = PostgreSQLConfig(
