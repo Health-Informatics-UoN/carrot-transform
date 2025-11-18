@@ -158,13 +158,14 @@ class SourceObjectArgumentType(click.ParamType):
     def convert(self, value: str, param, ctx):
         value = str(value)
         if value.startswith("s3:"):
-            return s3SourceObject(
-                value, "\t"
-            )  # TODO; do something else with the separators
+            return s3SourceObject(value, "\t")
 
-        if value.startswith(
-            "sqlite:"
-        ):  # TODO; allow other sorts of database connections
+        # check for a databse prefix
+        # ... this is really only done to make the csv/file thing below simpler
+        sqlite = value.startswith("sqlite:")
+        postgresql = value.startswith("postgresql:")
+
+        if sqlite or postgresql:
             return sqlSourceObject(sqlalchemy.create_engine(value))
 
         return csvSourceObject(Path(value), sep=",")

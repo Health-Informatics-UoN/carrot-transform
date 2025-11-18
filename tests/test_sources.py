@@ -7,8 +7,9 @@ from pathlib import Path
 import pytest
 import sqlalchemy
 
+import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
-import tests.click_tools as click_tools
+import tests.testools as testools
 
 
 @pytest.mark.unit
@@ -41,16 +42,31 @@ def test_basic_csv():
 def test_basic_sqlite():
     """opens a sql connection, loads data from a file, checks the correct data comes back out"""
 
+    ###
+    # arrange
     folder = Path(__file__).parent / "test_data/measure_weight_height/"
     engine = sqlalchemy.create_engine("sqlite:///:memory:")
-
-    source = sources.SourceOpener(engine=engine)
+    height = "heights.csv"
 
     # load a table with data
-    click_tools.load_test_database_table(engine, folder / "heights.csv")
+    testools.copy_across(
+        # an output tied to that sql engine,
+        outputs.sqlOutputTarget(engine),
+        # the path to the files,
+        sources.csvSourceObject(folder, ","),
+        # we only want the heights file
+        [height[:-4]],
+    )
+
+    ###
+    # act
 
     # read that table back
-    iterator = source.open("heights.csv")
+    source = sources.sqlSourceObject(engine)
+    iterator = source.open(height[:-4])
+
+    ###
+    # assert
 
     # first entry should be the header
     assert next(iterator) == ["pid", "date", "value"]
