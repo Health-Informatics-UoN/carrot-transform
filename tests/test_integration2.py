@@ -45,6 +45,7 @@ def test_v2(request, tmp_path: Path, test_case: testools.CarrotTestCase):
     # generat a semi-random slug/name to group test data under
     # the files we read/write to s3 will appear in this folder
     import re
+
     slug = (
         re.sub(r"[^a-zA-Z0-9]+", "_", request.node.name).strip("_")
         + "__"
@@ -84,9 +85,7 @@ def test_v2(request, tmp_path: Path, test_case: testools.CarrotTestCase):
         request.addfinalizer(lambda: testools.delete_s3_folder(output))
     assert output is not None, f"couldn't use {output_to=}"  # check output was set
 
-    logger.info(
-        f"testing into {output_to=}"
-    )
+    logger.info(f"testing into {output_to=}")
     env, args = testools.passed_as(
         [],
         "--inputs",
@@ -114,9 +113,7 @@ def test_v2(request, tmp_path: Path, test_case: testools.CarrotTestCase):
     actual_results = None
     if "csv" == output_to:
         actual_results = sources.csvSourceObject(tmp_path / "out", sep="\t")
-        logger.info(
-            f"results are in {tmp_path}"
-        )
+        logger.info(f"results are in {tmp_path}")
     if "sqlite" == output_to:
         actual_results = sources.sqlSourceObject(sqlalchemy.create_engine(output))
     if output_to.startswith("s3:"):
@@ -125,7 +122,5 @@ def test_v2(request, tmp_path: Path, test_case: testools.CarrotTestCase):
     assert actual_results is not None  # check output was set
 
     # verify that the results are good
-    logger.info(
-        f"verifying {output_to=}"
-    )
+    logger.info(f"verifying {output_to=}")
     test_case.compare_to_tsvs(actual_results, test_suffix)

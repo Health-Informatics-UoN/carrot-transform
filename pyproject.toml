@@ -28,7 +28,9 @@ test = [
 dev = [
     "boto3-stubs>=1.40.39",
     "build>=1.2.2.post1",
+    "docker>=7.1.0",
     "mypy>=1.18.1",
+    "pytest-docker>=3.2.5",
     "ruff>=0.12.0",
 ]
 

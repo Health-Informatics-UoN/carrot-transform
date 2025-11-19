@@ -1,14 +1,29 @@
+import io
 import logging
+import os
+import random
 import re
+import shutil
+import string
+import subprocess
+import textwrap
+import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import boto3
+import docker
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
+from sqlalchemy import Column, MetaData, Table, Text, create_engine, insert
+from sqlalchemy.orm import sessionmaker
 
+import carrottransform.tools.sources
+import carrottransform.tools.sources as sources
 import tests.click_tools as click_tools
 import tests.csvrow as csvrow
+import tests.testools as testools
 from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
 from tests.click_tools import package_root
@@ -73,7 +88,6 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
         if "summary_mapstream" == name:
             continue
 
-
         person_ids_seen = person_ids_seen or ("person_ids" == name)
         persons_seen = persons_seen or ("person" == name)
 
@@ -84,7 +98,9 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
             assert e is not None, f"expected value {idx} is missing"
             assert a is not None, f"expected value {idx} is missing"
 
-            assert e == a, f"{name=} expected/actual values {idx} do not match\n\t{e=}\n\t{a=}"
+            assert e == a, (
+                f"{name=} expected/actual values {idx} do not match\n\t{e=}\n\t{a=}"
+            )
             idx += 1
         logger.info(f"matching {subpath=} for {name=}")
 
@@ -100,6 +116,8 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
 ## test case functions
 
 from itertools import product
+
+
 def keyed_variations(**kv):
     """given some things passed as k=[v1,v2], yields all permutations"""
     keys = kv.keys()
@@ -107,11 +125,8 @@ def keyed_variations(**kv):
         yield dict(zip(keys, values))
 
 
-
-
 def zip_long(l, r):
-    """combine the two sequences to produce pairs. don'ty repeat values from the longeds, but, loop those in the smallest
-    """
+    """combine the two sequences to produce pairs. don'ty repeat values from the longeds, but, loop those in the smallest"""
 
     # convert them both to lists
     t = []
@@ -129,21 +144,12 @@ def zip_long(l, r):
 
     # emit all the pairs
     for i in range(0, max(ll, rl)):
-        yield (
-            l[i % ll],
-            r[i % rl]
-        )
-
-
-
-
-
-
-
+        yield (l[i % ll], r[i % rl])
 
 
 #### ==========================================================================
 ## utility functions
+
 
 def variations(keys):
     """
@@ -297,7 +303,7 @@ test_data = Path(__file__).parent / "test_data"
 class CarrotTestCase:
     """defines an integration test case in terms of the person file, and the optional mapper rules"""
 
-    def __init__(self, person_name: str, mapper: str = "", suffix = ""):
+    def __init__(self, person_name: str, mapper: str = "", suffix=""):
         self._suffix = suffix
         self._person_name = person_name
 
@@ -330,7 +336,7 @@ class CarrotTestCase:
         )
         return f"sqlite:///{sqlite3.absolute()}"
 
-    def compare_to_tsvs(self, source, suffix = ''):
+    def compare_to_tsvs(self, source, suffix=""):
         compare_to_tsvs(self._label + self._suffix, source)
 
 
@@ -409,3 +415,68 @@ def delete_s3_folder(coordinate):
             logger.info(f"Errors deleting some objects: {response['Errors']}")
 
     logger.info(f"Successfully deleted folder '{folder}' and its contents")
+
+
+@dataclass
+class PostgreSQLConfig:
+    docker_name: str
+    db_name: str
+    db_user: str
+    db_pass: str
+    db_port: int
+
+    @property
+    def connection(self) -> str:
+        return f"postgresql://{self.db_user}:{self.db_pass}@localhost:{self.db_port}/{self.db_name}"
+
+
+@dataclass
+class PostgreSQLContainer:
+    container: docker.models.containers.Container
+    config: PostgreSQLConfig
+
+
+@pytest.fixture(scope="function")
+def postgres(docker_ip):
+    """Start a PostgreSQL container for tests"""
+
+    config: PostgreSQLConfig = PostgreSQLConfig(
+        docker_name="carrot_test_docker",
+        db_name="carrot_test_db",
+        db_user="carrot_test_user",
+        db_pass="carrot_test_7890",
+        db_port=5432,
+    )
+
+    container = docker.from_env().containers.run(
+        "postgres:13",
+        name=config.docker_name,
+        environment={
+            "POSTGRES_DB": config.db_name,
+            "POSTGRES_USER": config.db_user,
+            "POSTGRES_PASSWORD": config.db_pass,
+        },
+        ports={f"{config.db_port}/tcp": ("127.0.0.1", config.db_port)},
+        detach=True,
+        remove=True,
+    )
+
+    # Wait for PostgreSQL to be ready
+    timeout = 30
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            engine = create_engine(config.connection)
+            conn = engine.connect()
+            conn.close()
+            break
+        except:
+            time.sleep(0.5)
+    else:
+        container.stop()
+        raise Exception("PostgreSQL container failed to start")
+
+    yield PostgreSQLContainer(container=container, config=config)
+
+    # Cleanup
+    container.stop()
