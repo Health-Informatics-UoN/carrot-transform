@@ -58,7 +58,7 @@ def test_sqliteTargetWriter(tmp_path: Path):
     # create the target
     outputTarget = outputs.sqlOutputTarget(engine)
 
-    source: sources.SourceObject = sources.csvSourceObject(
+    source: sources.SourceObject = sources.csv_source_object(
         Path(__file__).parent / "test_data/measure_weight_height/", ","
     )
 
@@ -92,7 +92,7 @@ def test_sqliteTargetWriter(tmp_path: Path):
         target.write(record)
 
     # create a source
-    source = sources.sqlSourceObject(engine)
+    source = sources.sql_source_object(engine)
 
     # re-read and verify
     for table in ["heights", "persons", "weights"]:
@@ -124,7 +124,7 @@ def test_in_and_out_sqlite(tmp_path: Path):
     # create a writer
     outputTarget = outputs.sqlOutputTarget(engine)
 
-    source: sources.SourceObject = sources.csvSourceObject(
+    source: sources.SourceObject = sources.csv_source_object(
         Path(__file__).parent / "test_data/measure_weight_height/", ","
     )
 
@@ -158,7 +158,7 @@ def test_in_and_out_sqlite(tmp_path: Path):
         target.write(record)
 
     # create a source
-    source = sources.sqlSourceObject(engine)
+    source = sources.sql_source_object(engine)
 
     # re-read and verify
     for table in ["heights", "persons", "weights"]:

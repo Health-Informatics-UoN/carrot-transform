@@ -46,7 +46,7 @@ def test_sql_read(tmp_path: Path):
     )
 
     # cool; now verify that the on-disk results are good
-    actual = sources.csvSourceObject(output_to, sep="\t")
+    actual = sources.csv_source_object(output_to, sep="\t")
     test_case.compare_to_tsvs(actual)
 
 

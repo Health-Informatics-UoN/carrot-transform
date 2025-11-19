@@ -316,6 +316,8 @@ def click_test(
 def load_test_database_table(connection: sqlalchemy.engine.Engine, csv: Path):
     """load a csv file into a testing database.
 
+    TODO; this should be replaced with the "copy_to" at some point
+
     does some adjustments to make sure the column names work, but, generally dumps it itno a "dumb" database for testing
     """
 

@@ -10,8 +10,8 @@ import click
 from sqlalchemy import create_engine
 
 import carrottransform.tools.sources as sources
+from carrottransform import require
 from carrottransform.tools import outputs
-from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
 
 # need this for substition. this should be the folder iwth an "examples/" sub" folder
@@ -186,7 +186,7 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
     ... this does reopen the possibility of auto-detecting the person file from the rules file
     """
 
-    assert isinstance(person_file_name, str)
+    require(isinstance(person_file_name, str))
 
     # check the rules file is real
     if not rules_file.is_file():
@@ -261,7 +261,7 @@ class PatternStringParamType(click.ParamType):
 
         # Check if empty
         if not value.strip():
-            self.fail(f"Empty string is not allowed", param, ctx)
+            self.fail("Empty string is not allowed", param, ctx)
 
         if not (self._pattern.match(value)):
             self.fail(f"'{value}' is not a valid match for the pattern", param, ctx)

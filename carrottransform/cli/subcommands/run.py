@@ -8,6 +8,7 @@ from sqlalchemy.engine import Engine
 
 import carrottransform.tools as tools
 import carrottransform.tools.sources as sources
+from carrottransform import require
 from carrottransform.tools import outputs
 from carrottransform.tools.args import (
     AlchemyConnectionArg,
@@ -102,7 +103,7 @@ def mapstream(
     # check on the rules file
     if (rules_file is None) or (not rules_file.is_file()):
         logger.error(f"rules file was set to {rules_file=} and is missing")
-        sys.exit()
+        sys.exit(-1)
 
     ## fallback for the ddl filename
     if omop_ddl_file is None:
@@ -155,8 +156,7 @@ def mapstream(
     fhd = {}
     tgtcolmaps = {}
 
-    if True:
-        # try:
+    try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
         person_lookup, rejected_person_count = read_person_ids(
             # this is a little horrible; i'm not ready to rewrite/replace `read_person_ids()` so we just do this pointeing to a fake file
@@ -186,9 +186,9 @@ def mapstream(
             ## so tgtcolmaps is a dict of dicts.
             tgtcolmaps[target_file] = omopcdm.get_omop_column_map(target_file)
 
-    # except IOError as e:
-    # logger.exception(f"I/O - error({e.errno}): {e.strerror} -> {str(e)}")
-    # sys.exit()
+    except IOError as e:
+        logger.exception(f"I/O - error({e.errno}): {e.strerror} -> {str(e)}")
+        sys.exit(-1)
 
     logger.info(
         f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
@@ -338,17 +338,23 @@ def mapstream(
 
     data_summary = metrics.get_mapstream_summary()
     try:
+        # convert the data into like-csv lines
+        csv_like_lines = map(lambda x: x.split("\t"), data_summary.split("\n")[:-1])
+
+        # loop through the lines writing them
         summary: None | outputs.OutputTarget.Handle = None
-        for line in map(lambda x: x.split("\t"), data_summary.split("\n")[:-1]):
+        for line in csv_like_lines:
             if summary is None:
+                # we need the column names to "open" this sort of file/table, and, that'll be the first line
                 summary = output.start("summary_mapstream", line)
             else:
+                # once the summary is open
                 summary.write(line)
 
-        assert (
-            summary is not None
-        )  # need SOME sort of check here to appease mypy BUT we do want to crash badly when summary is still none ... right?
-        summary.close()
+        # mypy needs a typecheck
+        if summary is not None:
+            summary.close()
+            summary = None
     except IOError as e:
         logger.exception(f"I/O error({e.errno}): {e.strerror}")
         logger.exception("Unable to write file")

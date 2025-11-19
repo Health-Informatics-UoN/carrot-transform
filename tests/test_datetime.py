@@ -30,7 +30,8 @@ def test_datetime_in_measurement_csv(tmp_path: Path):
     )
 
     testools.compare_to_tsvs(
-        "@carrot/examples/test/output", sources.csvSourceObject(tmp_path / "out", "\t")
+        "@carrot/examples/test/output",
+        sources.csv_source_object(tmp_path / "out", "\t"),
     )
 
 
@@ -58,5 +59,6 @@ def test_datetime_in_measurement_sqlite(tmp_path: Path):
     )
 
     testools.compare_to_tsvs(
-        "@carrot/examples/test/output", sources.csvSourceObject(tmp_path / "out", "\t")
+        "@carrot/examples/test/output",
+        sources.csv_source_object(tmp_path / "out", "\t"),
     )

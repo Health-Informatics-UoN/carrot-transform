@@ -48,7 +48,7 @@ def test_successful_file_open(tmp_path: Path):
     with file_path.open("w", encoding="utf-8") as f:
         f.write(file_content)
 
-    source = sources.csvSourceObject(file_path.parent, ",")
+    source = sources.csv_source_object(file_path.parent, ",")
     csv_reader = source.open(
         file_path.name[:-4]
     )  # need to remove the .csv fron the name
@@ -67,7 +67,7 @@ def test_nonexistent_file(tmp_path: Path):
 
     src = tmp_path / "nonexistent.csv"
 
-    source = sources.csvSourceObject(tmp_path, ",")
+    source = sources.csv_source_object(tmp_path, ",")
     try:
         result = source.open("nonexistent")
 
@@ -83,7 +83,7 @@ def test_directory_not_found(caplog):
     with caplog.at_level(logging.ERROR):
         folder = Path("/nonexistent/directory")
         try:
-            source = sources.csvSourceObject(folder, ",")
+            source = sources.csv_source_object(folder, ",")
             raise Exception("the test shouldn't get this far")
             result = source.open("test.csv")
             assert result is None, "the result should be None"
@@ -104,7 +104,7 @@ def test_utf8_with_bom(tmp_path: Path):
         f.write(b"\xef\xbb\xbf")  # UTF-8 BOM
         f.write(content.encode("utf-8"))
 
-    source = sources.csvSourceObject(file_path.parent, ",")
+    source = sources.csv_source_object(file_path.parent, ",")
     csv_reader = source.open(
         file_path.name[:-4]
     )  # need to remove the .csv fron the name
