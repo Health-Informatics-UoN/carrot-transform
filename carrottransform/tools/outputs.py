@@ -47,7 +47,7 @@ class OutputTarget:
             del self._host._active[self._name]
 
     def start(self, name: str, header: list[str]):
-        assert name not in self._active
+        require(name not in self._active)
 
         length = len(header)
         shorten = "" == header[-1]
@@ -158,7 +158,7 @@ class S3Tool:
         if "Contents" in response:
             for obj in response["Contents"]:
                 name = obj["Key"]
-                assert name not in seen
+                require(name not in seen)
                 seen.append(name)
 
         return seen
@@ -174,11 +174,11 @@ class S3Tool:
 
     def new_stream(self, name: str):
         """start a stre for date we're going to upload"""
-        assert name not in self._streams
+        require(name not in self._streams)
         self._streams[name] = S3Tool.S3UploadStream(self, name)
 
     def send_chunk(self, name: str, data):
-        assert name in self._streams
+        require(name in self._streams)
 
         stream = self._streams[name]
 
@@ -220,10 +220,11 @@ class S3Tool:
 
 
 def s3BucketFolder(coordinate: str):
-    assert "/" in coordinate, (
-        f"need <s3>:<bucket>/<folder> at the lease but was {coordinate=}"
+    require(
+        "/" in coordinate,
+        f"need <s3>:<bucket>/<folder> at the lease but was {coordinate=}",
     )
-    assert coordinate.startswith("s3:")
+    require(coordinate.startswith("s3:"))
 
     bucket = coordinate.split("/")[0]
     folder = coordinate[len(bucket) + 1 :]

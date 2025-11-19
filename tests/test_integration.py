@@ -47,7 +47,7 @@ def test_sql_read(tmp_path: Path):
     )
 
     # cool; now verify that the on-disk results are good
-    actual = sources.csvSourceObject(output_to, sep="\t")
+    actual = sources.csv_source_object(output_to, sep="\t")
     test_case.compare_to_tsvs(actual)
 
 
@@ -189,9 +189,9 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
     # get the results so we can compare them to the expectations
     results = None
     if "csv" == output_to:
-        results = sources.csvSourceObject(tmp_path / "out", sep="\t")
+        results = sources.csv_source_object(tmp_path / "out", sep="\t")
     if "sqlite" == output_to:
-        results = sources.sqlSourceObject(sqlalchemy.create_engine(output))
+        results = sources.sql_source_object(sqlalchemy.create_engine(output))
     if output_to.startswith("s3:"):
         results = sources.s3SourceObject(output, sep="\t")
 

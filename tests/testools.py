@@ -32,7 +32,7 @@ def test_compare(caplog) -> None:
 
     path: Path = project_root / "tests/test_data/observe_smoking"
 
-    compare_to_tsvs("observe_smoking", sources.csvSourceObject(path, sep="\t"))
+    compare_to_tsvs("observe_smoking", sources.csv_source_object(path, sep="\t"))
 
 
 #### ==========================================================================
@@ -60,7 +60,7 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
         test = project_root / "tests/test_data" / subpath
 
     # open the saved .tsv file
-    so_ex = sources.csvSourceObject(test, sep="\t")
+    so_ex = sources.csv_source_object(test, sep="\t")
 
     person_ids_seen = False
     persons_seen = False
@@ -206,7 +206,7 @@ def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names
     assert isinstance(so, Path) == (names is None)
     if isinstance(so, Path):
         names = [file.name[:-4] for file in so.glob("*.csv")]
-        so = sources.csvSourceObject(path=so, sep=",")
+        so = sources.csv_source_object(path=so, sep=",")
     assert isinstance(so, sources.SourceObject)
 
     # copy all named ones across
