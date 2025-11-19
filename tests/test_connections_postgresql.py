@@ -37,9 +37,9 @@ def test_targetWriter(postgres, tmp_path: Path):
     engine = create_engine(postgres.config.connection)
 
     # create the target
-    outputTarget = outputs.sqlOutputTarget(engine)
+    outputTarget = outputs.sql_output_target(engine)
 
-    source: sources.SourceObject = sources.csvSourceObject(
+    source: sources.SourceObject = sources.csv_source_object(
         Path(__file__).parent / "test_data/measure_weight_height/", ","
     )
 
@@ -73,7 +73,7 @@ def test_targetWriter(postgres, tmp_path: Path):
         target.write(record)
 
     # create a source
-    source = sources.sqlSourceObject(engine)
+    source = sources.sql_source_object(engine)
 
     # re-read and verify
     for table in ["heights", "persons", "weights"]:

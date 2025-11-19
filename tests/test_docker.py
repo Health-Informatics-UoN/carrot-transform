@@ -143,5 +143,5 @@ def test_dock_observations(tmp_path: Path):
         #
         testools.compare_to_tsvs(
             str(person_file.parent),
-            sources.csvSourceObject(tmp_path / "out", sep="\t"),
+            sources.csv_source_object(tmp_path / "out", sep="\t"),
         )

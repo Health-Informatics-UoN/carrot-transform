@@ -56,9 +56,9 @@ def test_basic_sqlite():
     # load a table with data
     testools.copy_across(
         # an output tied to that sql engine,
-        outputs.sqlOutputTarget(engine),
+        outputs.sql_output_target(engine),
         # the path to the files,
-        sources.csvSourceObject(folder, ","),
+        sources.csv_source_object(folder, ","),
         # we only want the heights file
         [height[:-4]],
     )
@@ -67,7 +67,7 @@ def test_basic_sqlite():
     # act
 
     # read that table back
-    source = sources.sqlSourceObject(engine)
+    source = sources.sql_source_object(engine)
     iterator = source.open(height[:-4])
 
     ###

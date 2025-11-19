@@ -234,7 +234,7 @@ class CarrotTestCase:
         # create an SQLite database and copy the contents into it
         sqlite3 = tmp_path / f"{self._label}.sqlite3"
         copy_across(
-            ot=outputs.sqlOutputTarget(
+            ot=outputs.sql_output_target(
                 sqlalchemy.create_engine(f"sqlite:///{sqlite3.absolute()}")
             ),
             so=self._folder,

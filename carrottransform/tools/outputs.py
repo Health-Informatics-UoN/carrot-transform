@@ -76,7 +76,7 @@ class OutputTarget:
             self._active[name].close()
 
 
-def csvOutputTarget(into: Path) -> OutputTarget:
+def csv_output_target(into: Path) -> OutputTarget:
     """creates an instance of the OutputTarget that points at simple .csv files"""
 
     def start(name: str, header: list[str]):
@@ -93,7 +93,7 @@ def csvOutputTarget(into: Path) -> OutputTarget:
     )
 
 
-def sqlOutputTarget(connection: sqlalchemy.engine.Engine) -> OutputTarget:
+def sql_output_target(connection: sqlalchemy.engine.Engine) -> OutputTarget:
     """creates an instance of the OutputTarget that points at simple .csv files"""
 
     def start(name: str, header: list[str]):
@@ -234,7 +234,7 @@ def s3BucketFolder(coordinate: str):
     return [bucket[3:], folder]
 
 
-def s3OutputTarget(coordinate: str) -> OutputTarget:
+def s3_output_target(coordinate: str) -> OutputTarget:
     s3tool = S3Tool(boto3.client("s3"), coordinate)
 
     def start(name: str, header: list[str]):
@@ -259,17 +259,17 @@ class OutputTargetArgumentType(click.ParamType):
     def convert(self, value: str, param, ctx):
         value = str(value)
         if value.startswith("s3:"):
-            return s3OutputTarget(value)
+            return s3_output_target(value)
 
         try:
-            return sqlOutputTarget(sqlalchemy.create_engine(value))
+            return sql_output_target(sqlalchemy.create_engine(value))
         except sqlalchemy.exc.ArgumentError as argumentError:
             require(
                 "Could not parse SQLAlchemy URL from given URL string"
                 == str(argumentError)
             )
 
-        return csvOutputTarget(Path(value))
+        return csv_output_target(Path(value))
 
 
 # create a singleton for the Click settings

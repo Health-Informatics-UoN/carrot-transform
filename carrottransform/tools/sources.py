@@ -158,7 +158,7 @@ class SourceObjectArgumentType(click.ParamType):
     def convert(self, value: str, param, ctx):
         value = str(value)
         if value.startswith("s3:"):
-            return s3SourceObject(value, "\t")
+            return s3_source_object(value, "\t")
 
         # check for a databse prefix
         # ... this is really only done to make the csv/file thing below simpler
@@ -259,7 +259,7 @@ def csv_source_object(path: Path, sep: str) -> SourceObject:
     return SO()
 
 
-def s3SourceObject(coordinate: str, sep: str) -> SourceObject:
+def s3_source_object(coordinate: str, sep: str) -> SourceObject:
     class SO(SourceObject):
         def __init__(self, coordinate: str):
             import boto3

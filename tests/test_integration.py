@@ -170,13 +170,13 @@ def body_of_test(
         request.addfinalizer(lambda: testools.delete_s3_folder(inputs))
 
         # copy data into the thing
-        outputTarget = outputs.s3OutputTarget(inputs)
+        outputTarget = outputs.s3_output_target(inputs)
         testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
 
     if "postgres" == input_from:
         assert postgres is not None
         inputs = postgres.config.connection
-        outputTarget = outputs.sqlOutputTarget(sqlalchemy.create_engine(inputs))
+        outputTarget = outputs.sql_output_target(sqlalchemy.create_engine(inputs))
         testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
 
     assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
@@ -230,17 +230,17 @@ def body_of_test(
     # get the results so we can compare them to the expectations
     results = None
     if "csv" == output_to:
-        results = sources.csvSourceObject(tmp_path / "out", sep="\t")
+        results = sources.csv_source_object(tmp_path / "out", sep="\t")
 
     if ("sqlite" == output_to) or ("postgres" == output_to):
-        results = sources.sqlSourceObject(sqlalchemy.create_engine(output))
+        results = sources.sql_source_object(sqlalchemy.create_engine(output))
 
     if output_to.startswith("s3:"):
-        results = sources.s3SourceObject(output, sep="\t")
+        results = sources.s3_source_object(output, sep="\t")
 
     if "postgres" == output_to:
         assert postgres is not None
-        results = sources.sqlSourceObject(
+        results = sources.sql_source_object(
             sqlalchemy.create_engine(postgres.config.connection)
         )
 

@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.unit
-def test_csvOutputTarget(tmp_path: Path):
-    target = outputs.csvOutputTarget(tmp_path)
+def test_csv_output_target(tmp_path: Path):
+    target = outputs.csv_output_target(tmp_path)
 
     csv = target.start("foo", ["a", "b"])
 
@@ -56,7 +56,7 @@ def test_sqliteTargetWriter(tmp_path: Path):
     )
 
     # create the target
-    outputTarget = outputs.sqlOutputTarget(engine)
+    outputTarget = outputs.sql_output_target(engine)
 
     source: sources.SourceObject = sources.csv_source_object(
         Path(__file__).parent / "test_data/measure_weight_height/", ","
@@ -122,7 +122,7 @@ def test_in_and_out_sqlite(tmp_path: Path):
     )
 
     # create a writer
-    outputTarget = outputs.sqlOutputTarget(engine)
+    outputTarget = outputs.sql_output_target(engine)
 
     source: sources.SourceObject = sources.csv_source_object(
         Path(__file__).parent / "test_data/measure_weight_height/", ","
@@ -227,5 +227,5 @@ def test_s3run(tmp_path: Path, caplog):
     ##
     # verify / assert
     testools.compare_to_tsvs(
-        "observe_smoking", sources.s3SourceObject(output, sep="\t")
+        "observe_smoking", sources.s3_source_object(output, sep="\t")
     )
