@@ -74,31 +74,6 @@ pass__arg_names = [
 ]
 
 
-def generate_cases(s3: bool, postgres: bool):
-    # TODO; remove this and just use the lists
-
-    connection_types = ["csv", "sqlite"]
-
-    if s3:
-        # TODO; use just he name "s3"
-        connection_types += [f"s3:{testools.CARROT_TEST_BUCKET}"]
-
-    if postgres:
-        connection_types += ["postgres"]
-
-    parameters = testools.permutations(
-        input_from=connection_types, test_case=v1TestCases, output_to=connection_types
-    )
-
-    pass_vars_as = list(
-        map(lambda v: {"pass_as": v}, testools.variations(pass__arg_names))
-    )
-
-    return [
-        (case["output_to"], case["test_case"], case["input_from"], case["pass_as"])
-        for case in testools.zip_loop(parameters, pass_vars_as)
-    ]
-
 
 def generate_tests(types: list[str], needs: list[str]):
     parameters = testools.permutations(
@@ -127,7 +102,8 @@ def generate_tests(types: list[str], needs: list[str]):
 
 
 @pytest.mark.parametrize(
-    "output_to, test_case, input_from, pass_as", generate_cases(s3=True, postgres=False)
+    "output_to, test_case, input_from, pass_as",
+    generate_tests(["csv", "postgres", f"s3:{testools.CARROT_TEST_BUCKET}"], [f"s3:{testools.CARROT_TEST_BUCKET}"]),
 )
 @pytest.mark.s3tests
 def test_function_w_s3(
@@ -151,7 +127,7 @@ def test_function_postgresql(
 
 @pytest.mark.parametrize(
     "output_to, test_case, input_from, pass_as",
-    generate_cases(s3=False, postgres=False),
+    generate_tests(["csv", "sqlite"], None),
 )
 @pytest.mark.integration
 def test_function(request, tmp_path: Path, output_to, test_case, input_from, pass_as):
