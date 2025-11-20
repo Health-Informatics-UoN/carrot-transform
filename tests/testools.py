@@ -554,8 +554,9 @@ def trino(docker_ip, tmp_path) -> Generator[TrinoContainer, None, None]:
         remove=True,
     )
 
-    # Wait for Trino to be ready
+    # start the container
     start_time = time.time()
+    first_start_time = start_time
     while time.time() - start_time < STARTUP_TIMEOUT:
         try:
             import requests
@@ -574,6 +575,28 @@ def trino(docker_ip, tmp_path) -> Generator[TrinoContainer, None, None]:
         logger.error(f"Full container logs:\n{logs}")
         raise Exception("Trino container failed to start")
 
+    # wait for the server itself to start
+    start_time = time.time()
+    while time.time() - start_time < STARTUP_TIMEOUT:
+        import requests
+        response = requests.get(f"http://localhost:{config.server_port}/v1/info")
+        if response.status_code != 200:
+            raise Exception('trino container stopped working during startup')
+
+        starting = response.json()['starting']
+        if not starting:
+            break
+    else:
+        # don't bother stopping the contianer if it didn't start
+        logs = container.logs().decode("utf-8")
+        logger.error(
+            f"Trino server (inside container) failed to start within {STARTUP_TIMEOUT} seconds"
+        )
+        logger.error(f"Full container logs:\n{logs}")
+        raise Exception("Trino server failed to start")
+
+    full_start_time = time.time() - first_start_time
+    logger.info(f"Trino is ready after {full_start_time}")
     yield TrinoContainer(container=container, config=config)
 
     # Cleanup
