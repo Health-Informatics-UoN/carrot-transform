@@ -14,7 +14,9 @@
       "type": "debugpy",
       "request": "launch",
       "module": "pytest",
-      "args": [],
+      "args": [
+        "-m", "docker","tests/test_connection_trino.py::test_trino_updown",
+      ],
       "justMyCode": false
     },
 

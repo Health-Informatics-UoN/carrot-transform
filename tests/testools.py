@@ -1,5 +1,6 @@
 import logging
 import random
+import textwrap
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -26,6 +27,11 @@ test_data = Path(__file__).parent / "test_data"
 
 # need/want to define the s3 bucket somewhere, so, let's do it here
 CARROT_TEST_BUCKET = "carrot-transform-testtt"
+
+
+STARTUP_TIMEOUT = 30
+STARTUP_SLEEP = 0.2
+
 
 #### ==========================================================================
 ## unit test cases - test the test functions
@@ -431,7 +437,9 @@ def postgres(docker_ip) -> Generator[PostgreSQLContainer, None, None]:
         db_port=5432,  # random.randrange(5200, 5400),
     )
 
-    container = docker.from_env().containers.run(
+    client = docker.from_env()
+    client.images.pull("postgres:13")
+    container = client.containers.run(
         "postgres:13",
         name=config.docker_name,
         environment={
@@ -445,21 +453,128 @@ def postgres(docker_ip) -> Generator[PostgreSQLContainer, None, None]:
     )
 
     # Wait for PostgreSQL to be ready
-    timeout = 30
     start_time = time.time()
-    while time.time() - start_time < timeout:
+    while time.time() - start_time < STARTUP_TIMEOUT:
         try:
             engine = create_engine(config.connection)
             conn = engine.connect()
             conn.close()
             break
         except:
-            time.sleep(0.5)
+            time.sleep(STARTUP_SLEEP)
     else:
         container.stop()
         raise Exception("PostgreSQL container failed to start")
 
     yield PostgreSQLContainer(container=container, config=config)
+
+    # Cleanup
+    container.stop()
+
+
+@dataclass
+class TrinoConfig:
+    """config for a Trino connection"""
+
+    docker_name: str
+    coordinator_port: int
+    server_port: int = 8080
+
+    @property
+    def connection(self) -> str:
+        return f"trino://user@localhost:{self.server_port}"
+
+
+@dataclass
+class TrinoContainer:
+    """an object used by the fixture to tell a test about their trino instance"""
+
+    container: docker.models.containers.Container
+    config: TrinoConfig
+
+
+@pytest.fixture(scope="function")
+def trino(docker_ip, tmp_path) -> Generator[TrinoContainer, None, None]:
+    """Start a Trino container for tests"""
+
+    config = TrinoConfig(
+        docker_name=f"trino_test_docker_{rand_hex()}",
+        coordinator_port=random.randrange(9000, 9100),
+        server_port=random.randrange(8080, 8180),
+    )
+
+    # Create a simple Trino configuration
+    config_dir = tmp_path / "trino" / f"trino_config_{rand_hex()}"
+    config_dir.mkdir(parents=True, exist_ok=False)
+
+    # 1. JVM Configuration - THIS WAS MISSING!
+    (config_dir / "jvm.config").write_text(
+        textwrap.dedent("""
+        -server
+    """).strip()
+    )
+
+    # Create node.properties
+    (config_dir / "node.properties").write_text(
+        textwrap.dedent(f"""
+        node.environment=test
+        node.id=test-node
+        node.data-dir=/var/trino/data
+    """)
+    )
+
+    # Create config.properties
+    (config_dir / "config.properties").write_text(
+        textwrap.dedent(f"""
+        coordinator=true
+        node-scheduler.include-coordinator=true
+        http-server.http.port={config.server_port}
+        query.max-memory=1GB
+        query.max-memory-per-node=512MB
+        discovery.uri=http://localhost:{config.server_port}
+    """)
+    )
+
+    # Create catalog properties for memory connector
+    catalog_dir = config_dir / "catalog"
+    catalog_dir.mkdir(exist_ok=True)
+    (catalog_dir / "memory.properties").write_text("connector.name=memory")
+
+    client = docker.from_env()
+    client.images.pull("trinodb/trino:latest")
+    container = client.containers.run(
+        "trinodb/trino:latest",
+        name=config.docker_name,
+        ports={f"{config.server_port}/tcp": ("127.0.0.1", config.server_port)},
+        volumes={
+            str(config_dir): {"bind": "/etc/trino", "mode": "rw"},
+            str(tmp_path / "var"): {"bind": "/var/trino", "mode": "rw"},
+        },
+        detach=True,
+        remove=True,
+    )
+
+    # Wait for Trino to be ready
+    start_time = time.time()
+    while time.time() - start_time < STARTUP_TIMEOUT:
+        try:
+            import requests
+
+            response = requests.get(f"http://localhost:{config.server_port}/v1/info")
+            if response.status_code == 200:
+                break
+        except:
+            time.sleep(STARTUP_SLEEP)
+    else:
+        # don't bother stopping the contianer if it didn't start
+        logs = container.logs().decode("utf-8")
+        logger.error(
+            f"Trino container failed to start within {STARTUP_TIMEOUT} seconds"
+        )
+        logger.error(f"Full container logs:\n{logs}")
+        raise Exception("Trino container failed to start")
+
+    yield TrinoContainer(container=container, config=config)
 
     # Cleanup
     container.stop()
