@@ -103,7 +103,7 @@ def generate_tests(types: list[str], needs: list[str]):
 
 @pytest.mark.parametrize(
     "output_to, test_case, input_from, pass_as",
-    generate_tests(["csv", "postgres", f"s3:{testools.CARROT_TEST_BUCKET}"], [f"s3:{testools.CARROT_TEST_BUCKET}"]),
+    generate_tests(["csv", "sqlite", f"s3:{testools.CARROT_TEST_BUCKET}"], [f"s3:{testools.CARROT_TEST_BUCKET}"]),
 )
 @pytest.mark.s3tests
 def test_function_w_s3(
@@ -115,7 +115,7 @@ def test_function_w_s3(
 
 @pytest.mark.parametrize(
     "output_to, test_case, input_from, pass_as",
-    generate_tests(["csv", "postgres"], ["postgres"]),
+    generate_tests(["csv", "sqlite", "postgres"], ["postgres"]),
 )
 @pytest.mark.docker
 def test_function_postgresql(
