@@ -164,7 +164,10 @@ class SourceObjectArgumentType(click.ParamType):
         # ... this is really only done to make the csv/file thing below simpler
         sqlite = value.startswith("sqlite:")
         postgresql = value.startswith("postgresql:")
+        trino = value.startswith("trino:")
 
+        if trino:
+            return trino_source_object(value)
         if sqlite or postgresql:
             return sql_source_object(sqlalchemy.create_engine(value))
 
@@ -295,3 +298,61 @@ def s3_source_object(coordinate: str, sep: str) -> SourceObject:
                 raise RuntimeError(f"Failed to read {table=} from S3: {e=} w/ {key=}")
 
     return SO(coordinate)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def trino_source_object(connection: str, catalog: str = "memory", schema: str = "default") -> SourceObject:
+    """creates a SourceObject that reads from Trino"""
+    
+    class SO(SourceObject):
+        def __init__(self):
+            import trino
+            from trino.dbapi import connect
+            
+            if connection.startswith("trino://"):
+                conn_str = connection
+            else:
+                conn_str = f"trino://user@{connection}"
+            
+            self._conn = connect(
+                host=conn_str.split('//')[1].split('@')[1].split(':')[0],
+                port=int(conn_str.split(':')[-1]),
+                user="user"
+            )
+            self._catalog = catalog
+            self._schema = schema
+        
+        def close(self):
+            if hasattr(self, '_conn'):
+                self._conn.close()
+        
+        def open(self, table: str) -> Iterator[list[str]]:
+            require(not table.endswith(".csv"))
+            
+            def trino_reader():
+                cursor = self._conn.cursor()
+                cursor.execute(f'SELECT * FROM {self._catalog}.{self._schema}.{table}')
+                
+                # Yield column names
+                yield [desc[0] for desc in cursor.description]
+                
+                # Yield rows
+                for row in cursor:
+                    yield [str(val) if val is not None else "" for val in row]
+                
+                cursor.close()
+            
+            return keen_head(trino_reader())
+    
+    return SO()
