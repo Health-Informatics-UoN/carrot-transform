@@ -74,7 +74,7 @@ pass__arg_names = [
 ]
 
 
-def generate_tests(types: list[str], needs: list[str]):
+def generate_tests(types: list[str], needs: None | list[str]):
     parameters = testools.permutations(
         input_from=types, test_case=v1TestCases, output_to=types
     )
