@@ -238,7 +238,11 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
 
 
 def de_csv(name: str) -> str:
-    if not name.endswith(".csv"):
+    """removes .csv from the end of file names. 
+
+    this is implemented as a function to avoid copying and pasting the logic"""
+    
+    if not name.lower().endswith(".csv"):
         return name
 
     # strip the extension
