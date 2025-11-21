@@ -118,7 +118,7 @@ test = [
 requires-dist = [
     { name = "awscli", specifier = ">=1.42.74" },
     { name = "boto3", specifier = ">=1.40.74" },
-    { name = "click", specifier = ">=8.2.1,<8.3.0" },
+    { name = "click", specifier = ">=8.1.7,<9" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "sqlalchemy", specifier = ">=2.0.42" },
     { name = "trino", specifier = ">=0.335.0" },

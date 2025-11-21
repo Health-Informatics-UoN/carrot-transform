@@ -3,7 +3,7 @@ functions to handle args
 """
 
 import re
-from enum import StrEnum
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +16,7 @@ from carrottransform.tools import outputs
 from carrottransform.tools.mappingrules import MappingRules
 
 
-class NamePattern(StrEnum):
+class NamePattern(str, Enum):
     # only matches strings which can be used as SQL (et al) tables
     PERSON = r"^[a-zA-Z_][a-zA-Z0-9_]*$"
 
