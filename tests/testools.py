@@ -11,7 +11,7 @@ import docker
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 import carrottransform.tools.sources as sources
 from carrottransform.cli.subcommands.run import mapstream
@@ -480,9 +480,13 @@ class TrinoConfig:
     coordinator_port: int
     server_port: int = 8080
 
+    trino_user: str = f"trino_user_{rand_hex()}"
+    catalog: str = "memory"
+    schema: str = f"schema_{rand_hex()}"
+
     @property
     def connection(self) -> str:
-        return f"trino://user@localhost:{self.server_port}"
+        return f"trino://{self.trino_user}@localhost:{self.server_port}/{self.catalog}/{self.schema}"
 
 
 @dataclass
@@ -496,6 +500,8 @@ class TrinoContainer:
 @pytest.fixture(scope="function")
 def trino(docker_ip, tmp_path) -> Generator[TrinoContainer, None, None]:
     """Start a Trino container for tests"""
+
+    # it'd be cool if this was one thingie to start the server and another to start a trino db 
 
     config = TrinoConfig(
         docker_name=f"trino_test_docker_{rand_hex()}",
@@ -593,8 +599,42 @@ def trino(docker_ip, tmp_path) -> Generator[TrinoContainer, None, None]:
             f"Trino server (inside container) failed to start within {STARTUP_TIMEOUT} seconds"
         )
         logger.error(f"Full container logs:\n{logs}")
-        raise Exception("Trino server failed to start")
+        raise Exception(f"Trino server failed to start within {STARTUP_TIMEOUT} seconds")
 
+    # create a schema
+    try:
+        short_connection: str = f"trino://{config.trino_user}@localhost:{config.server_port}/{config.catalog}/information_schema"
+        logger.info(f"connecting to trino engine {short_connection}")
+
+        engine = create_engine(
+            short_connection,
+            connect_args={
+                "http_scheme": "http"
+            }
+        )
+
+        logger.info(f"create_engine() okay")
+        with engine.connect() as conn:
+            logger.info(f"engine.connect() : complete")
+
+            # Now create the schema in the available catalog
+            create_schema_sql = text(f"CREATE SCHEMA IF NOT EXISTS {config.catalog}.{config.schema}")
+            conn.execute(create_schema_sql)
+            conn.commit()
+
+            # Verify schema was created
+            result = conn.execute(text(f"SHOW SCHEMAS FROM {config.catalog}"))
+            schemas = [row[0] for row in result]
+            logger.info(f"Available schemas in {config.catalog}: {schemas}")
+        engine.dispose()
+
+        logger.info(f"Created schema {config.catalog}.{config.schema}")
+    except Exception as e:
+        logger.error(f"Failed to create schema: {e}")
+        container.stop()
+        raise
+
+    # we're ready now
     full_start_time = time.time() - first_start_time
     logger.info(f"Trino is ready after {full_start_time}")
     yield TrinoContainer(container=container, config=config)

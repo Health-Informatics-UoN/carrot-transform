@@ -15,7 +15,7 @@ import docker
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
-from sqlalchemy import Column, MetaData, Table, Text, create_engine, insert
+from sqlalchemy import Column, MetaData, Table, Text, create_engine, insert, text
 from sqlalchemy.orm import sessionmaker
 
 import tests.csvrow as csvrow
@@ -40,7 +40,7 @@ def test_targetWriter_trino(trino, tmp_path: Path):
     weights = Path(__file__).parent / "test_data/measure_weight_height/weights.csv"
 
     # connect to Trino
-    outputTarget = outputs.trino_output_target(trino.config.connection)
+    outputTarget = outputs.sql_output_target(trino.config.connection)
 
     source: sources.SourceObject = sources.csv_source_object(
         Path(__file__).parent / "test_data/measure_weight_height/", ","
@@ -68,7 +68,7 @@ def test_targetWriter_trino(trino, tmp_path: Path):
         target.write(record)
 
     # create a source
-    source = sources.trino_source_object(trino.config.connection)
+    source = sources.sql_source_object(trino.config.connection)
 
     # re-read and verify
     for table in ["heights", "persons", "weights"]:

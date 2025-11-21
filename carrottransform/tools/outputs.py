@@ -10,6 +10,7 @@ import boto3
 import click
 import sqlalchemy
 from sqlalchemy import MetaData
+from sqlalchemy import Column, Table, Text, insert
 
 from carrottransform import require
 
@@ -93,11 +94,13 @@ def csv_output_target(into: Path) -> OutputTarget:
     )
 
 
-def sql_output_target(connection: sqlalchemy.engine.Engine) -> OutputTarget:
+def sql_output_target(connection: sqlalchemy.engine.Engine | str) -> OutputTarget:
     """creates an instance of the OutputTarget that points at simple .csv files"""
 
+    if isinstance(connection, str):
+        connection = sqlalchemy.create_engine(connection)
+
     def start(name: str, header: list[str]):
-        from sqlalchemy import Column, Table, Text, insert
 
         # if you're adapting this to a non-dumb database; probably best to read the DDL or something and check/match the column types
         columns = [Column(name, Text()) for name in header]
@@ -285,50 +288,3 @@ TargetArgument = OutputTargetArgumentType()
 
 
 
-
-
-
-
-
-
-
-def trino_output_target(connection: str, catalog: str = "memory", schema: str = "default") -> OutputTarget:
-    """creates an instance of the OutputTarget that writes to Trino"""
-
-    raise Exception("use the sql implementation not this")
-    
-    def start(name: str, header: list[str]):
-        import trino
-        from trino.dbapi import connect
-        
-        # Parse connection string
-        # Expected format: trino://user@host:port
-        if connection.startswith("trino://"):
-            conn_str = connection
-        else:
-            conn_str = f"trino://user@{connection}"
-        
-        # Create connection
-        conn = connect(
-            host=conn_str.split('//')[1].split('@')[1].split(':')[0],
-            port=int(conn_str.split(':')[-1]),
-            user="user"
-        )
-        cursor = conn.cursor()
-        
-        # Create table with VARCHAR columns (Trino doesn't have a generic Text type)
-        columns = ", ".join([f'"{col}" VARCHAR' for col in header])
-        create_table_sql = f'CREATE TABLE IF NOT EXISTS {catalog}.{schema}.{name} ({columns})'
-        cursor.execute(create_table_sql)
-        
-        def upload(record):
-            # Convert all values to strings for VARCHAR columns
-            str_record = [str(val) if val is not None else "" for val in record]
-            placeholders = ", ".join(["?" for _ in header])
-            insert_sql = f'INSERT INTO {catalog}.{schema}.{name} VALUES ({placeholders})'
-            cursor.execute(insert_sql, str_record)
-            conn.commit()
-        
-        return upload
-    
-    return OutputTarget(start, lambda upload, record: upload(record), lambda item: 0)

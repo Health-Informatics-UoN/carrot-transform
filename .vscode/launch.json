@@ -6,7 +6,7 @@
       "type": "debugpy",
       "request": "launch",
       "module": "pytest",
-      "args": ["${file}"],
+      "args": ["${file}" ,"-m", "not skipping_any"],
       "justMyCode": false
     },
     {
@@ -15,7 +15,7 @@
       "request": "launch",
       "module": "pytest",
       "args": [
-        "-m", "docker","tests/test_connection_trino.py::test_trino_updown",
+        "-m", "docker","tests/test_connection_trino.py::test_targetWriter_trino",
       ],
       "justMyCode": false
     },
