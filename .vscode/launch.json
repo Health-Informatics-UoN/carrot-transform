@@ -10,7 +10,7 @@
       "justMyCode": false
     },
     {
-      "name": "Debug Pytest",
+      "name": "Debug Pytest (test_datetime_in_measurement_csv)",
       "type": "debugpy",
       "request": "launch",
       "module": "pytest",

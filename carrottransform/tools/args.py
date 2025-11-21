@@ -3,6 +3,7 @@ functions to handle args
 """
 
 import re
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,12 @@ import carrottransform.tools.sources as sources
 from carrottransform import require
 from carrottransform.tools import outputs
 from carrottransform.tools.mappingrules import MappingRules
+
+
+class NamePattern(str, Enum):
+    # only matches strings which can be used as SQL (et al) tables
+    PERSON = r"^[a-zA-Z_][a-zA-Z0-9_]*$"
+
 
 # need this for substition. this should be the folder iwth an "examples/" sub" folder
 carrot: Path = Path(__file__).parent.parent
@@ -238,7 +245,11 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
 
 
 def de_csv(name: str) -> str:
-    if not name.endswith(".csv"):
+    """removes .csv from the end of file names.
+
+    this is implemented as a function to avoid copying and pasting the logic"""
+
+    if not name.lower().endswith(".csv"):
         return name
 
     # strip the extension
@@ -250,8 +261,8 @@ class PatternStringParamType(click.ParamType):
 
     name = "regex checked string"
 
-    def __init__(self, pattern: str = r"^[a-zA-Z_][a-zA-Z0-9_]*$"):
-        self._pattern = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+    def __init__(self, pattern: str):
+        self._pattern = re.compile(pattern)
 
     def convert(
         self, value: Any, param: click.Parameter | None, ctx: click.Context | None
@@ -259,10 +270,7 @@ class PatternStringParamType(click.ParamType):
         if not isinstance(value, str):
             value = str(value)
 
-        # Check if empty
-        if not value.strip():
-            self.fail("Empty string is not allowed", param, ctx)
-
+        # test to see if the pattern matches the regular expression
         if not (self._pattern.match(value)):
             self.fail(f"'{value}' is not a valid match for the pattern", param, ctx)
 
@@ -298,7 +306,7 @@ def common(func):
     func = click.option(
         "--person",
         envvar="PERSON",
-        type=PatternStringParamType(),
+        type=PatternStringParamType(NamePattern.PERSON),
         required=True,
         help="File or table containing person_ids in the first column",
     )(func)
