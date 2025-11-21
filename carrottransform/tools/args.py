@@ -3,6 +3,7 @@ functions to handle args
 """
 
 import re
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,12 @@ import carrottransform.tools.sources as sources
 from carrottransform import require
 from carrottransform.tools import outputs
 from carrottransform.tools.mappingrules import MappingRules
+
+
+class NamePattern(StrEnum):
+    # only matches strings which can be used as SQL (et al) tables
+    PERSON = r"^[a-zA-Z_][a-zA-Z0-9_]*$"
+
 
 # need this for substition. this should be the folder iwth an "examples/" sub" folder
 carrot: Path = Path(__file__).parent.parent
@@ -299,10 +306,7 @@ def common(func):
     func = click.option(
         "--person",
         envvar="PERSON",
-        type=PatternStringParamType(
-            # only matches strings which can be used as SQL (et al) tables
-            r"^[a-zA-Z_][a-zA-Z0-9_]*$"
-        ),
+        type=PatternStringParamType(NamePattern.PERSON),
         required=True,
         help="File or table containing person_ids in the first column",
     )(func)

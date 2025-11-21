@@ -4,6 +4,7 @@ this file contains several "output target" classes. each class is used to write 
 
 import io
 import logging
+from enum import IntEnum
 from pathlib import Path
 
 import boto3
@@ -14,6 +15,10 @@ from sqlalchemy import MetaData
 from carrottransform import require
 
 logger = logging.getLogger(__name__)
+
+
+class RateLimits(IntEnum):
+    S3_LIMIT = 100 * 1024 * 1024  # 100 MB
 
 
 class OutputTarget:
@@ -149,7 +154,7 @@ class S3Tool:
             self._parts: list[dict[str, int | object]] = []
             self._part_number = 1
 
-    def __init__(self, s3, coordinate: str, limit: int = 100 * 1024 * 1024):
+    def __init__(self, s3, coordinate: str):
         if "/" in coordinate:
             [b, f] = s3_bucket_folder(coordinate)
             self._bucket_name = b
@@ -159,7 +164,6 @@ class S3Tool:
             self._bucket_path = ""
 
         self._s3 = s3
-        self._limit = limit
         self._streams: dict[str, S3Tool.S3UploadStream] = {}
 
     def key_name(self, name):
@@ -198,7 +202,7 @@ class S3Tool:
 
         stream._buffer.write(data)
 
-        if stream._buffer.tell() >= self._limit:
+        if stream._buffer.tell() >= RateLimits.S3_LIMIT:
             self.flush(stream)
 
     def complete_all(self):

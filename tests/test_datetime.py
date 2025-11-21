@@ -18,7 +18,7 @@ from tests.testools import package_root, project_root
 
 @pytest.mark.unit
 def test_datetime_in_measurement_csv(tmp_path: Path):
-    out = (tmp_path / "out")
+    out = tmp_path / "out"
     out.mkdir()
 
     i = str(package_root / "examples/test/inputs/")
