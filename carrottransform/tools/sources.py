@@ -315,6 +315,8 @@ def s3_source_object(coordinate: str, sep: str) -> SourceObject:
 def trino_source_object(connection: str, catalog: str = "memory", schema: str = "default") -> SourceObject:
     """creates a SourceObject that reads from Trino"""
     
+    raise Exception("use the sql implementation not this")
+    
     class SO(SourceObject):
         def __init__(self):
             import trino

@@ -261,9 +261,6 @@ class OutputTargetArgumentType(click.ParamType):
         if value.startswith("s3:"):
             return s3_output_target(value)
 
-        if value.startswith("trino:"):
-            return trino_output_target(value)
-            
         try:
             return sql_output_target(sqlalchemy.create_engine(value))
         except sqlalchemy.exc.ArgumentError as argumentError:
@@ -297,6 +294,8 @@ TargetArgument = OutputTargetArgumentType()
 
 def trino_output_target(connection: str, catalog: str = "memory", schema: str = "default") -> OutputTarget:
     """creates an instance of the OutputTarget that writes to Trino"""
+
+    raise Exception("use the sql implementation not this")
     
     def start(name: str, header: list[str]):
         import trino
