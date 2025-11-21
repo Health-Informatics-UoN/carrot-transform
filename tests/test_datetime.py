@@ -18,15 +18,21 @@ from tests.testools import package_root, project_root
 
 @pytest.mark.unit
 def test_datetime_in_measurement_csv(tmp_path: Path):
+    out = (tmp_path / "out")
+    out.mkdir()
+
+    i = str(package_root / "examples/test/inputs/")
+    m = str(package_root / "examples/test/rules/rules_14June2021.json")
+    o = str(out)
     testools.run_v1(
         # set the inputs directory
-        inputs=str(package_root / "examples/test/inputs/"),
+        inputs=i,
         # set the person file name
-        person="Demographics",  # str(package_root / "examples/test/inputs/" / "Demographics.csv"),
+        person="Demographics",
         # set the path to the rules file
-        mapper=str(package_root / "examples/test/rules/rules_14June2021.json"),
+        mapper=m,
         # set/up the output directory
-        output=str(tmp_path / "out"),
+        output=o,
     )
 
     testools.compare_to_tsvs(

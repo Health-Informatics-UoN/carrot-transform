@@ -138,7 +138,7 @@ class S3Tool:
     class S3UploadStream:
         """this class tracks a single upload stream. there's no download stream sibling; downloading is not streamed"""
 
-        def __init__(self, tool: S3Tool, name: str):
+        def __init__(self, tool, name: str):
             self._tool = tool
             self._name = self._tool.key_name(name)
             self._mpu = self._tool._s3.create_multipart_upload(
