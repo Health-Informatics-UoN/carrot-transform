@@ -327,7 +327,7 @@ def delete_s3_folder(coordinate):
         folder (str): Folder path to delete (e.g., 'my-folder/' or 'prefix/subfolder/')
     """
 
-    [bucket, folder] = outputs.s3BucketFolder(coordinate)
+    [bucket, folder] = outputs.s3_bucket_folder(coordinate)
 
     client = boto3.client("s3")
 
