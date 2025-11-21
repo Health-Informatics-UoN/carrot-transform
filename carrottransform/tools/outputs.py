@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class OutputTarget:
+    """the OutputTarget classes provide a common abstraction for writing tables of data out of the program. each implementation offers an identical interface to some underlying storage mechanism"""
+
     def __init__(self, start, write, close):
         self._start = start
         self._write = write
@@ -24,6 +26,10 @@ class OutputTarget:
         self._active = {}
 
     class Handle:
+        """
+        a handle is a streaming connection to an individual table or file for a given output-target implementation
+        """
+
         def __init__(self, host, name, item, shorten: bool, length: int):
             self._host = host
             self._name = name
@@ -31,13 +37,13 @@ class OutputTarget:
             self._shorten = shorten
             self._length = length
 
-        def write(self, record):
+        def write(self, record: list[str]) -> None:
             require(self._length == len(record), f"{self._length=}, {len(record)=}")
             if self._shorten:
                 record = record[:-1]
             self._host._write(self._item, record)
 
-        def close(self):
+        def close(self) -> None:
             """close a single stream"""
 
             # perform the actual close operation
@@ -46,7 +52,11 @@ class OutputTarget:
             # remove the handle fromt he list of handles
             del self._host._active[self._name]
 
-    def start(self, name: str, header: list[str]):
+    def start(self, name: str, header: list[str]) -> Handle:
+        """
+        opens a single handle to a signle table with the given column names.
+        """
+
         require(name not in self._active)
 
         length = len(header)
@@ -76,8 +86,8 @@ class OutputTarget:
             self._active[name].close()
 
 
-def csvOutputTarget(into: Path) -> OutputTarget:
-    """creates an instance of the OutputTarget that points at simple .csv files"""
+def csv_output_target(into: Path) -> OutputTarget:
+    """creates an instance of the OutputTarget that points at a folder of csv files"""
 
     def start(name: str, header: list[str]):
         path = (into / name).with_suffix(".tsv")
@@ -93,7 +103,7 @@ def csvOutputTarget(into: Path) -> OutputTarget:
     )
 
 
-def sqlOutputTarget(connection: sqlalchemy.engine.Engine) -> OutputTarget:
+def sql_output_target(connection: sqlalchemy.engine.Engine) -> OutputTarget:
     """creates an instance of the OutputTarget that points at simple .csv files"""
 
     def start(name: str, header: list[str]):
@@ -123,8 +133,12 @@ def sqlOutputTarget(connection: sqlalchemy.engine.Engine) -> OutputTarget:
 
 
 class S3Tool:
+    """this class simplifies s3 connections"""
+
     class S3UploadStream:
-        def __init__(self, tool, name):
+        """this class tracks a single upload stream. there's no download stream sibling; downloading is not streamed"""
+
+        def __init__(self, tool: S3Tool, name: str):
             self._tool = tool
             self._name = self._tool.key_name(name)
             self._mpu = self._tool._s3.create_multipart_upload(
@@ -132,12 +146,12 @@ class S3Tool:
             )
             self._upload_id = self._mpu["UploadId"]
             self._buffer = io.BytesIO()
-            self._parts = []
+            self._parts: list[dict[str, int | object]] = []
             self._part_number = 1
 
     def __init__(self, s3, coordinate: str, limit: int = 100 * 1024 * 1024):
         if "/" in coordinate:
-            [b, f] = s3BucketFolder(coordinate)
+            [b, f] = s3_bucket_folder(coordinate)
             self._bucket_name = b
             self._bucket_path = f
         else:
@@ -173,7 +187,7 @@ class S3Tool:
         self._s3.delete_object(Bucket=self._bucket_name, Key=self.key_name(name))
 
     def new_stream(self, name: str):
-        """start a stre for date we're going to upload"""
+        """start a stream for data we're going to upload"""
         require(name not in self._streams)
         self._streams[name] = S3Tool.S3UploadStream(self, name)
 
@@ -219,12 +233,14 @@ class S3Tool:
         stream._buffer = io.BytesIO()
 
 
-def s3BucketFolder(coordinate: str):
+def s3_bucket_folder(coordinate: str):
+    """splits the uri-like coordinate strings for S3 into [bucket, subfolder] data"""
+
+    require(coordinate.startswith("s3:"))
     require(
         "/" in coordinate,
-        f"need <s3>:<bucket>/<folder> at the lease but was {coordinate=}",
+        f"need the format <s3>:<bucket>/<folder> but was {coordinate=}",
     )
-    require(coordinate.startswith("s3:"))
 
     bucket = coordinate.split("/")[0]
     folder = coordinate[len(bucket) + 1 :]
@@ -234,7 +250,9 @@ def s3BucketFolder(coordinate: str):
     return [bucket[3:], folder]
 
 
-def s3OutputTarget(coordinate: str) -> OutputTarget:
+def s3_output_target(coordinate: str) -> OutputTarget:
+    """create an output target for a folder in an s3 bucket"""
+
     s3tool = S3Tool(boto3.client("s3"), coordinate)
 
     def start(name: str, header: list[str]):
@@ -252,24 +270,24 @@ def s3OutputTarget(coordinate: str) -> OutputTarget:
 
 
 class OutputTargetArgumentType(click.ParamType):
-    """"""
+    """creates an output target for a command line string parameter"""
 
     name = "a connection to the/a target (whatever that may be)"
 
     def convert(self, value: str, param, ctx):
         value = str(value)
         if value.startswith("s3:"):
-            return s3OutputTarget(value)
+            return s3_output_target(value)
 
         try:
-            return sqlOutputTarget(sqlalchemy.create_engine(value))
+            return sql_output_target(sqlalchemy.create_engine(value))
         except sqlalchemy.exc.ArgumentError as argumentError:
             require(
                 "Could not parse SQLAlchemy URL from given URL string"
                 == str(argumentError)
             )
 
-        return csvOutputTarget(Path(value))
+        return csv_output_target(Path(value))
 
 
 # create a singleton for the Click settings

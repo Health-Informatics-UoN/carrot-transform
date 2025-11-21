@@ -43,7 +43,7 @@ def test_datetime_in_measurement_sqlite(tmp_path: Path):
 
     # copy our example to the sqluite database
     testools.copy_across(
-        outputs.sqlOutputTarget(connection=sqlalchemy.create_engine(sqlite_string)),
+        outputs.sql_output_target(connection=sqlalchemy.create_engine(sqlite_string)),
         package_root / "examples/test/inputs/",
     )
 

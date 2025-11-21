@@ -304,7 +304,7 @@ class CarrotTestCase:
         # create an SQLite database and copy the contents into it
         sqlite3 = tmp_path / f"{self._label}.sqlite3"
         copy_across(
-            ot=outputs.sqlOutputTarget(
+            ot=outputs.sql_output_target(
                 sqlalchemy.create_engine(f"sqlite:///{sqlite3.absolute()}")
             ),
             so=self._folder,
@@ -357,7 +357,7 @@ def delete_s3_folder(coordinate):
         folder (str): Folder path to delete (e.g., 'my-folder/' or 'prefix/subfolder/')
     """
 
-    [bucket, folder] = outputs.s3BucketFolder(coordinate)
+    [bucket, folder] = outputs.s3_bucket_folder(coordinate)
 
     client = boto3.client("s3")
 

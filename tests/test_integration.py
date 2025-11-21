@@ -141,7 +141,7 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
         request.addfinalizer(lambda: testools.delete_s3_folder(inputs))
 
         # copy data into the thing
-        outputTarget = outputs.s3OutputTarget(inputs)
+        outputTarget = outputs.s3_output_target(inputs)
         testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
     assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
 
@@ -193,7 +193,7 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
     if "sqlite" == output_to:
         results = sources.sql_source_object(sqlalchemy.create_engine(output))
     if output_to.startswith("s3:"):
-        results = sources.s3SourceObject(output, sep="\t")
+        results = sources.s3_source_object(output, sep="\t")
 
     assert results is not None  # check output was set
 
