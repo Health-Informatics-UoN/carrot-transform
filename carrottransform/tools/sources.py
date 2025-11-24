@@ -179,6 +179,7 @@ SourceArgument = SourceObjectArgumentType()
 def sql_source_object(connection: sqlalchemy.engine.Engine | str) -> SourceObject:
     if isinstance(connection, str):
         connection = sqlalchemy.create_engine(connection)
+
     class SO(SourceObject):
         def __init__(self):
             pass
@@ -236,7 +237,9 @@ def csv_source_object(path: Path, sep: str) -> SourceObject:
             file = path / (table + ext)
 
             if not file.is_file():
-                logger.error(f"couldn't find {table=} in csvs at path {path=} // {file=}")
+                logger.error(
+                    f"couldn't find {table=} in csvs at path {path=} // {file=}"
+                )
                 raise SourceTableNotFound(table)
 
             # csvs can have trailing commas (from excel)

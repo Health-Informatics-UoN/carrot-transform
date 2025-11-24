@@ -4,8 +4,8 @@ import textwrap
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Generator
-import textwrap
+from typing import Generator, Iterable
+
 import boto3
 import docker
 import pytest
@@ -52,8 +52,8 @@ def test_compare(caplog) -> None:
 ## verification functions
 
 
-def compare_to_tsvs(subpath: str | Path, so: sources.SourceObject, items = None) -> None:
-    """scan all tsv files in a folder.
+def compare_to_tsvs(subpath: str, actual: sources.SourceObject) -> None:
+    """generate a source for the named subpath and compare all .tsv to the passed so
 
     open each .tsv in the tests subpath and compare it to the open'ed from the named SO.
 
@@ -62,40 +62,43 @@ def compare_to_tsvs(subpath: str | Path, so: sources.SourceObject, items = None)
     if the SO has extra/too few rows? fail!
     if the SO has .tsv files we don't ... pass ...
 
-    this function has become a mess
-
     """
 
     from carrottransform.tools.args import PathArg
 
     test: Path
-    if isinstance(subpath, Path):
-        test = subpath
-    elif subpath.startswith("@carrot"):
+    if subpath.startswith("@carrot"):
         test = PathArg.convert(subpath, None, None)
     else:
         test = project_root / "tests/test_data" / subpath
 
+    items = [
+        item.name[:-4]
+        for item in test.glob("*.tsv")
+        if "summary_mapstream.tsv" != item.name
+    ]
+
+    assert "summary_mapstream" not in items
+
     # open the saved .tsv file
-    so_ex = sources.csv_source_object(test, sep="\t")
+    expect = sources.csv_source_object(test, sep="\t")
 
-    person_ids_seen = items is not None
-    persons_seen = items is not None
+    assert "person_ids" in items
+    assert "person" in items
 
-    if items is None:
-        items = [item.name[:-4] for item in test.glob("*.tsv")]
+    compare_two_sources(expect=expect, actual=actual, items=items)
+    # it matches!
+    logger.info(f"all match in {subpath=}")
+
+
+def compare_two_sources(
+    expect: sources.SourceObject, actual: sources.SourceObject, items: Iterable[str]
+) -> None:
+    """compares the named entries from two SourceObject instances. does not enforce order"""
 
     for name in items:
-
-        # just skip summary_mapstream
-        if "summary_mapstream" == name:
-            continue
-
-        person_ids_seen = person_ids_seen or ("person_ids" == name)
-        persons_seen = persons_seen or ("person" == name)
-
-        expect_iter = so_ex.open(name)
-        actual_iter = so.open(name)
+        expect_iter = expect.open(name)
+        actual_iter = actual.open(name)
 
         ex_head = next(expect_iter)
         ac_head = next(actual_iter)
@@ -106,24 +109,13 @@ def compare_to_tsvs(subpath: str | Path, so: sources.SourceObject, items = None)
             rows = []
             for row in data:
                 rows.append(row)
-            rows.sort(key= lambda row: str(row))
+            rows.sort(key=lambda row: str(row))
             return rows
-
-
 
         expect_values = values(expect_iter)
         actual_values = values(actual_iter)
 
         assert expect_values == actual_values
-
-        logger.info(f"matching {subpath=} for {name=}")
-
-    assert person_ids_seen and persons_seen, (
-        "verification data missing from the test case"
-    )
-
-    # it matches!
-    logger.info(f"all match in {subpath=}")
 
 
 #### ==========================================================================
@@ -522,7 +514,7 @@ class TrinoContainer:
 def trino(docker_ip, tmp_path) -> Generator[TrinoContainer, None, None]:
     """Start a Trino container for tests"""
 
-    # it'd be cool if this was one thingie to start the server and another to start a trino db 
+    # it'd be cool if this was one thingie to start the server and another to start a trino db
 
     config = TrinoConfig(
         docker_name=f"trino_test_docker_{rand_hex()}",
@@ -606,11 +598,12 @@ def trino(docker_ip, tmp_path) -> Generator[TrinoContainer, None, None]:
     start_time = time.time()
     while time.time() - start_time < STARTUP_TIMEOUT:
         import requests
+
         response = requests.get(f"http://localhost:{config.server_port}/v1/info")
         if response.status_code != 200:
-            raise Exception('trino container stopped working during startup')
+            raise Exception("trino container stopped working during startup")
 
-        starting = response.json()['starting']
+        starting = response.json()["starting"]
         if not starting:
             break
     else:
@@ -620,26 +613,25 @@ def trino(docker_ip, tmp_path) -> Generator[TrinoContainer, None, None]:
             f"Trino server (inside container) failed to start within {STARTUP_TIMEOUT} seconds"
         )
         logger.error(f"Full container logs:\n{logs}")
-        raise Exception(f"Trino server failed to start within {STARTUP_TIMEOUT} seconds")
+        raise Exception(
+            f"Trino server failed to start within {STARTUP_TIMEOUT} seconds"
+        )
 
     # create a schema
     try:
         short_connection: str = f"trino://{config.trino_user}@localhost:{config.server_port}/{config.catalog}/information_schema"
         logger.info(f"connecting to trino engine {short_connection}")
 
-        engine = create_engine(
-            short_connection,
-            connect_args={
-                "http_scheme": "http"
-            }
-        )
+        engine = create_engine(short_connection, connect_args={"http_scheme": "http"})
 
         logger.info(f"create_engine() okay")
         with engine.connect() as conn:
             logger.info(f"engine.connect() : complete")
 
             # Now create the schema in the available catalog
-            create_schema_sql = text(f"CREATE SCHEMA IF NOT EXISTS {config.catalog}.{config.schema}")
+            create_schema_sql = text(
+                f"CREATE SCHEMA IF NOT EXISTS {config.catalog}.{config.schema}"
+            )
             conn.execute(create_schema_sql)
             conn.commit()
 

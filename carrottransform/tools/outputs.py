@@ -10,8 +10,7 @@ from pathlib import Path
 import boto3
 import click
 import sqlalchemy
-from sqlalchemy import MetaData
-from sqlalchemy import Column, Table, Text, insert
+from sqlalchemy import Column, MetaData, Table, Text, insert
 
 from carrottransform import require
 
@@ -116,7 +115,6 @@ def sql_output_target(connection: sqlalchemy.engine.Engine | str) -> OutputTarge
         connection = sqlalchemy.create_engine(connection)
 
     def start(name: str, header: list[str]):
-
         # if you're adapting this to a non-dumb database; probably best to read the DDL or something and check/match the column types
         columns = [Column(name, Text()) for name in header]
 
@@ -299,14 +297,3 @@ class OutputTargetArgumentType(click.ParamType):
 
 # create a singleton for the Click settings
 TargetArgument = OutputTargetArgumentType()
-
-
-
-
-
-
-
-
-
-
-

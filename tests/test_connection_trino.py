@@ -35,20 +35,6 @@ def test_trino_updown(trino):
 
 
 @pytest.mark.docker
-def test_ttt():
-    heights = Path(__file__).parent / "test_data/measure_weight_height/heights.csv"
-    persons = Path(__file__).parent / "test_data/measure_weight_height/persons.csv"
-    weights = Path(__file__).parent / "test_data/measure_weight_height/weights.csv"
-    "C:/Users/peter/Desktop/test_out"
-
-    source: sources.SourceObject = sources.csv_source_object(
-        Path("C:/Users/peter/Desktop/test_out"), "\t"
-    )
-
-    csv = sources.csv_source_object(heights.parent,',')
-    testools.compare_to_tsvs(Path("C:/Users/peter/Desktop/test_out"), csv, items= ["heights", "persons", "weights"])
-
-@pytest.mark.docker
 def test_targetWriter_trino(trino, tmp_path: Path):
     heights = Path(__file__).parent / "test_data/measure_weight_height/heights.csv"
     persons = Path(__file__).parent / "test_data/measure_weight_height/persons.csv"
@@ -61,7 +47,7 @@ def test_targetWriter_trino(trino, tmp_path: Path):
         Path(__file__).parent / "test_data/measure_weight_height/", ","
     )
 
-    # open the three outputs
+    # open the three outputs - we're mirrorng the way ct does it
     targets = []
     for table in ["heights", "persons", "weights"]:
         iterator = source.open(table)
@@ -69,6 +55,7 @@ def test_targetWriter_trino(trino, tmp_path: Path):
         targets.append((outputTarget.start(table, header), iterator))
 
     # randomly move records
+    # ... it should randomly use different ones to mirror how ct does it
     while 0 != len(targets):
         index = random.randint(0, len(targets) - 1)
         (target, iterator) = targets[index]
@@ -82,34 +69,10 @@ def test_targetWriter_trino(trino, tmp_path: Path):
 
         target.write(record)
 
-    # 
-
-    # create a source
-    # copy stuff back out to the test filder
-    source = sources.sql_source_object(trino.config.connection)
-    logger.info(
-        f"temp test data copy out to {(tmp_path / "test_out")}"
+    ####
+    ### assert
+    testools.compare_two_sources(
+        sources.csv_source_object(heights.parent, ","),
+        sources.sql_source_object(trino.config.connection),
+        ["heights", "persons", "weights"],
     )
-    (tmp_path / "test_out").mkdir(parents=True)
-    test_copy = outputs.csv_output_target(tmp_path / "test_out")
-    
-    testools.copy_across(ot=test_copy, so=source, names=["heights", "persons", "weights"])
-
-
-    raise Exception('?sss')
-
-    testools.compare_to_tsvs('measure_weight_height', source, items= ["heights", "persons", "weights"])
-
-    raise Exception('?sss')
-
-    # re-read and verify
-    for table in ["heights", "persons", "weights"]:
-        actual = ""
-        for line in source.open(table):
-            actual += ",".join(line) + "\n"
-        actual = actual.strip()
-
-        with open(heights.parent / f"{table}.csv", "r") as file:
-            expected = file.read().strip()
-
-        assert expected == actual, f"mismatch in {table}"
