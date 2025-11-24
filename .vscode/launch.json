@@ -14,7 +14,7 @@
       "type": "debugpy",
       "request": "launch",
       "module": "pytest",
-      "args": "-vv --log-cli-level=INFO -m \"not nothing\" tests/test_datetime.py::test_datetime_in_measurement_csv",
+      "args": "-m \"not nothing\" tests/test_datetime.py::test_datetime_in_measurement_csv",
       "justMyCode": false
     },
 
