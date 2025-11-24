@@ -236,7 +236,7 @@ def csv_source_object(path: Path, sep: str) -> SourceObject:
             file = path / (table + ext)
 
             if not file.is_file():
-                logger.error(f"couldn't find {table=} in csvs at path {path=}")
+                logger.error(f"couldn't find {table=} in csvs at path {path=} // {file=}")
                 raise SourceTableNotFound(table)
 
             # csvs can have trailing commas (from excel)

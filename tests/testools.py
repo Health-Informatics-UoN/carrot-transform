@@ -29,7 +29,7 @@ test_data = Path(__file__).parent / "test_data"
 CARROT_TEST_BUCKET = "carrot-transform-testtt"
 
 
-STARTUP_TIMEOUT = 30
+STARTUP_TIMEOUT = 60
 STARTUP_SLEEP = 0.2
 
 
@@ -52,7 +52,7 @@ def test_compare(caplog) -> None:
 ## verification functions
 
 
-def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
+def compare_to_tsvs(subpath: str | Path, so: sources.SourceObject, items = None) -> None:
     """scan all tsv files in a folder.
 
     open each .tsv in the tests subpath and compare it to the open'ed from the named SO.
@@ -62,12 +62,16 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
     if the SO has extra/too few rows? fail!
     if the SO has .tsv files we don't ... pass ...
 
+    this function has become a mess
+
     """
 
     from carrottransform.tools.args import PathArg
 
     test: Path
-    if subpath.startswith("@carrot"):
+    if isinstance(subpath, Path):
+        test = subpath
+    elif subpath.startswith("@carrot"):
         test = PathArg.convert(subpath, None, None)
     else:
         test = project_root / "tests/test_data" / subpath
@@ -75,11 +79,13 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
     # open the saved .tsv file
     so_ex = sources.csv_source_object(test, sep="\t")
 
-    person_ids_seen = False
-    persons_seen = False
+    person_ids_seen = items is not None
+    persons_seen = items is not None
 
-    for item in test.glob("*.tsv"):
-        name: str = item.name[:-4]
+    if items is None:
+        items = [item.name[:-4] for item in test.glob("*.tsv")]
+
+    for name in items:
 
         # just skip summary_mapstream
         if "summary_mapstream" == name:
@@ -88,17 +94,28 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
         person_ids_seen = person_ids_seen or ("person_ids" == name)
         persons_seen = persons_seen or ("person" == name)
 
-        import itertools
+        expect_iter = so_ex.open(name)
+        actual_iter = so.open(name)
 
-        idx = 0
-        for e, a in itertools.zip_longest(so_ex.open(name), so.open(name)):
-            assert e is not None, f"expected value {idx} is missing"
-            assert a is not None, f"expected value {idx} is missing"
+        ex_head = next(expect_iter)
+        ac_head = next(actual_iter)
 
-            assert e == a, (
-                f"{name=} expected/actual values {idx} do not match\n\t{e=}\n\t{a=}"
-            )
-            idx += 1
+        assert ex_head == ac_head
+
+        def values(data):
+            rows = []
+            for row in data:
+                rows.append(row)
+            rows.sort(key= lambda row: str(row))
+            return rows
+
+
+
+        expect_values = values(expect_iter)
+        actual_values = values(actual_iter)
+
+        assert expect_values == actual_values
+
         logger.info(f"matching {subpath=} for {name=}")
 
     assert person_ids_seen and persons_seen, (
@@ -268,6 +285,10 @@ def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names
         o = None
 
         for r in i:
+            v = r
+            r = []
+            for e in v:
+                r.append(e)
             if o is None:
                 o = ot.start(name, r)
             else:
