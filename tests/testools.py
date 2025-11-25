@@ -1,6 +1,8 @@
+import itertools
 import logging
 from itertools import product
 from pathlib import Path
+from typing import Generator, Iterable
 
 import boto3
 import pytest
@@ -17,8 +19,9 @@ logger = logging.getLogger(__name__)
 project_root: Path = Path(__file__).parent.parent
 package_root: Path = project_root / "carrottransform"
 
-# need/want to define the s3 bucket somewhere, so, let's do it here
-CARROT_TEST_BUCKET = "carrot-transform-testtt"
+# this reffers to an s3 bucket tied to the system-level credentials
+# we're going to move ot MinIO at some point
+CARROT_TEST_BUCKET = "carrot-transform-test"
 
 #### ==========================================================================
 ## unit test cases - test the test functions
@@ -39,8 +42,8 @@ def test_compare(caplog) -> None:
 ## verification functions
 
 
-def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
-    """scan all tsv files in a folder.
+def compare_to_tsvs(subpath: str, actual: sources.SourceObject) -> None:
+    """generate a source for the named subpath and compare all .tsv to the passed so
 
     open each .tsv in the tests subpath and compare it to the open'ed from the named SO.
 
@@ -59,41 +62,51 @@ def compare_to_tsvs(subpath: str, so: sources.SourceObject) -> None:
     else:
         test = project_root / "tests/test_data" / subpath
 
-    # open the saved .tsv file
-    so_ex = sources.csv_source_object(test, sep="\t")
+    # find all
+    items = [
+        item.name[:-4]
+        for item in test.glob("*.tsv")
+        if "summary_mapstream.tsv" != item.name
+    ]
 
-    person_ids_seen = False
-    persons_seen = False
-
-    for item in test.glob("*.tsv"):
-        name: str = item.name[:-4]
-
-        # just skip summary_mapstream
-        if "summary_mapstream" == name:
-            continue
-
-        person_ids_seen = person_ids_seen or ("person_ids" == name)
-        persons_seen = persons_seen or ("person" == name)
-
-        import itertools
-
-        idx = 0
-        for e, a in itertools.zip_longest(so_ex.open(name), so.open(name)):
-            assert e is not None, f"expected value {idx} is missing"
-            assert a is not None, f"expected value {idx} is missing"
-
-            assert e == a, (
-                f"{name=} expected/actual values {idx} do not match\n\t{e=}\n\t{a=}"
-            )
-            idx += 1
-        logger.info(f"matching {subpath=} for {name=}")
-
-    assert person_ids_seen and persons_seen, (
-        "verification data missing from the test case"
+    assert "person_ids" in items, (
+        "person_id.tsv verification data missing from the test case"
     )
+    assert "person" in items, "person.tsv verification data missing from the test case"
 
+    # open the saved .tsv file
+    expect = sources.csv_source_object(test, sep="\t")
+
+    compare_two_sources(expect=expect, actual=actual, items=items)
     # it matches!
     logger.info(f"all match in {subpath=}")
+
+
+def compare_two_sources(
+    expect: sources.SourceObject, actual: sources.SourceObject, items: Iterable[str]
+) -> None:
+    """compares the named entries from two SourceObject instances. does not enforce order"""
+
+    for name in items:
+        expect_iter = expect.open(name)
+        actual_iter = actual.open(name)
+
+        ex_head = next(expect_iter)
+        ac_head = next(actual_iter)
+
+        assert ex_head == ac_head
+
+        def values(data):
+            rows = []
+            for row in data:
+                rows.append(row)
+            rows.sort(key=lambda row: str(row))
+            return rows
+
+        expect_values = values(expect_iter)
+        actual_values = values(actual_iter)
+
+        assert expect_values == actual_values
 
 
 #### ==========================================================================
@@ -117,58 +130,58 @@ def variations(keys):
     """
 
     def permutations(keys):
-        c = len(keys)
-        assert c > 0
-        if c == 1:
+        count = len(keys)
+        assert count > 0
+        if count == 1:
             yield {keys[0]: True}
             yield {keys[0]: False}
         else:
-            k = keys[0]
-            for p in permutations(keys[1:]):
-                p = p.copy()
-                p[k] = True
-                yield p
-                p = p.copy()
-                p[k] = False
-                yield p
+            key = keys[0]
+            for permutation in permutations(keys[1:]):
+                permutation = permutation.copy()
+                permutation[key] = True
+                yield permutation
+                permutation = permutation.copy()
+                permutation[key] = False
+                yield permutation
 
-    for p in permutations(list(keys)):
-        values = list(p.values())
-        tc = values.count(True)
-        fc = values.count(False)
+    for permutation in permutations(list(keys)):
+        values = list(permutation.values())
+        true_count = values.count(True)
+        false_count = values.count(False)
 
-        if (tc in [0, 1]) or (fc in [0, 1]):
-            o = []
-            for k in p:
-                if p[k]:
-                    o += [k]
-            yield o
+        if (true_count in [0, 1]) or (false_count in [0, 1]):
+            output = []
+            for key in permutation:
+                if permutation[key]:
+                    output += [key]
+            yield output
 
 
 def permutations(**name_to_list):
     """given a map of lists; yield all permutations of the contents"""
 
     def loop(listing):
-        c = len(listing)
+        count = len(listing)
 
-        if 0 == c:
+        if count == 0:
             return
 
         head_key, head_items = listing[0]
 
-        if 1 == c:
-            for v in head_items:
-                yield {head_key: v}
+        if count == 1:
+            for value in head_items:
+                yield {head_key: value}
 
             return
 
-        for t in loop(listing[1:]):
+        for tail in loop(listing[1:]):
             for v in head_items:
-                t[head_key] = v
-                yield t.copy()
+                tail[head_key] = v
+                yield tail.copy()
 
-    for i in loop(list(map(lambda k: (k, name_to_list[k]), name_to_list.keys()))):
-        yield i
+    for item in loop(list(map(lambda k: (k, name_to_list[k]), name_to_list.keys()))):
+        yield item
 
 
 def zip_loop(*ar: list[dict]):
@@ -179,6 +192,7 @@ def zip_loop(*ar: list[dict]):
     max_length = max(len(a) for a in args)
 
     def loop(a):
+        """loops through a collection forever"""
         while True:
             for i in a:
                 yield i
@@ -211,16 +225,16 @@ def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names
 
     # copy all named ones across
     for name in names:
-        i = so.open(name)
-        o = None
+        input = so.open(name)
+        output = None
 
-        for r in i:
-            if o is None:
-                o = ot.start(name, r)
+        for r in input:
+            if output is None:
+                output = ot.start(name, r)
             else:
-                o.write(r)
-        # o.close()
-        # i.close()
+                output.write(r)
+        # output.close()
+        # input.close()
 
     #
     so.close()

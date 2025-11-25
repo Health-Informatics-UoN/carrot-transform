@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 
 import tests.csvrow as csvrow
-from tests.click_tools import package_root, project_root
 from tests.testools import package_root, project_root
 
 
@@ -51,11 +50,7 @@ class DockerImage:
 
 @pytest.mark.docker
 def test_dock_observations(tmp_path: Path):
-    """does one of the (v1) integration tests using the docker container
-
-    TODO; it'd be really cool to do this as another matrix/variation of the existing integration tests
-
-    """
+    """does one of the (v1) integration tests using the docker container"""
 
     # build a temp copy of the container
     with DockerImage("carrot_transform", project_root) as image_name:

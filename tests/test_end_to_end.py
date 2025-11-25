@@ -9,7 +9,6 @@ import pytest
 from click.testing import CliRunner
 
 from carrottransform.cli.subcommands.run import mapstream
-from tests.click_tools import package_root
 from tests.testools import package_root, project_root
 
 
