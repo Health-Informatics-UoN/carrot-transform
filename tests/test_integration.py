@@ -16,7 +16,8 @@ import carrottransform.tools.sources as sources
 import tests.testools as testools
 from carrottransform import require
 from carrottransform.cli.subcommands.run import mapstream
-from tests.testools import postgres
+from tests.testools import postgres, trino
+
 
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
@@ -127,6 +128,19 @@ def test_function_postgresql(
     body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as, postgres)
 
 
+
+@pytest.mark.parametrize(
+    "output_to, test_case, input_from, pass_as",
+    generate_tests(["csv", "sqlite", "trino"], ["trino"]),
+)
+@pytest.mark.docker
+def test_function_trino(
+    request, tmp_path: Path, output_to, test_case, input_from, pass_as, trino
+):
+    """dumb wrapper to make the s3 tests run as well as the integration tests"""
+    body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as, postgres = None, trino = trino)
+
+
 @pytest.mark.parametrize(
     "output_to, test_case, input_from, pass_as",
     generate_tests(["csv", "sqlite"], None),
@@ -144,6 +158,7 @@ def body_of_test(
     input_from,
     pass_as,
     postgres: testools.PostgreSQLContainer | None = None,
+    trino: testools.TrinoContainer | None = None
 ):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
 
@@ -181,6 +196,13 @@ def body_of_test(
         outputTarget = outputs.sql_output_target(sqlalchemy.create_engine(inputs))
         testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
 
+    if input_from == "trino":
+        assert trino is not None
+        inputs = trino.config.connection
+        outputTarget = outputs.sql_output_target(sqlalchemy.create_engine(inputs))
+        testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
+
+
     assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
 
     # set the output
@@ -201,6 +223,9 @@ def body_of_test(
     if "postgres" == output_to:
         assert postgres is not None
         output = postgres.config.connection
+    if "trino" == output_to:
+        assert trino is not None
+        output = trino.config.connection
 
     assert output is not None, f"couldn't use {output_to=}"  # check output was set
 
@@ -234,17 +259,11 @@ def body_of_test(
     if "csv" == output_to:
         results = sources.csv_source_object(tmp_path / "out", sep="\t")
 
-    if ("sqlite" == output_to) or ("postgres" == output_to):
+    if ( output_to== "sqlite" ) or ("postgres" == output_to) or ("trino" == output_to):
         results = sources.sql_source_object(sqlalchemy.create_engine(output))
 
     if output_to.startswith("s3:"):
         results = sources.s3_source_object(output, sep="\t")
-
-    if "postgres" == output_to:
-        assert postgres is not None
-        results = sources.sql_source_object(
-            sqlalchemy.create_engine(postgres.config.connection)
-        )
 
     assert results is not None  # check output was set
 
