@@ -10,7 +10,7 @@ from pathlib import Path
 import boto3
 import click
 import sqlalchemy
-from sqlalchemy import MetaData
+from sqlalchemy import Column, MetaData, Table, Text, insert
 
 from carrottransform import require
 
@@ -59,13 +59,13 @@ class OutputTarget:
 
     def start(self, name: str, header: list[str]) -> Handle:
         """
-        opens a single handle to a signle table with the given column names.
+        opens a single handle to a single table or file with the given column names.
         """
 
         require(name not in self._active)
 
         length = len(header)
-        shorten = "" == header[-1]
+        shorten = header[-1] == ""
 
         if shorten:
             header = header[:-1]
@@ -109,11 +109,9 @@ def csv_output_target(into: Path) -> OutputTarget:
 
 
 def sql_output_target(connection: sqlalchemy.engine.Engine) -> OutputTarget:
-    """creates an instance of the OutputTarget that points at simple .csv files"""
+    """creates an instance of the OutputTarget using the given SQLAlchemy connection"""
 
     def start(name: str, header: list[str]):
-        from sqlalchemy import Column, Table, Text, insert
-
         # if you're adapting this to a non-dumb database; probably best to read the DDL or something and check/match the column types
         columns = [Column(name, Text()) for name in header]
 

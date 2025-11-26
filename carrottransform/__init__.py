@@ -12,8 +12,11 @@ def require(con: bool, msg: str = ""):
     if con:
         return
 
-    # we're going to include a prefix to the message, so, if there's an actual message prepand a \n\t to make ir readable
-    if "" != msg:
+    # prepare the message for output
+    if msg == "":
+        pass  # if there's no message; leave it as a short string
+    else:
+        # if there is a message;
         msg = "\n\t" + msg
 
     import inspect

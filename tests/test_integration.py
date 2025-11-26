@@ -13,6 +13,7 @@ from click.testing import CliRunner
 
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
+import tests.csvrow as csvrow
 import tests.testools as testools
 from carrottransform import require
 from carrottransform.cli.subcommands.run import mapstream

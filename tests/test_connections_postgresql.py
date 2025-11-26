@@ -22,8 +22,7 @@ import tests.csvrow as csvrow
 import tests.testools as testools
 from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
-from tests.click_tools import package_root
-from tests.testools import postgres
+from tests.testools import postgres, package_root
 
 
 @pytest.mark.docker

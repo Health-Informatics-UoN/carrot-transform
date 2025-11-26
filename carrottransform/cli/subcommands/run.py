@@ -15,8 +15,8 @@ from carrottransform.tools.args import (
     OnlyOnePersonInputAllowed,
     PathArg,
     PatternStringParamType,
-    de_csv,
     person_rules_check,
+    remove_csv_extension,
 )
 from carrottransform.tools.core import get_target_records
 from carrottransform.tools.date_helpers import normalise_to8601
@@ -66,7 +66,7 @@ def mapstream(
     last_used_ids_file: Path | None,
     log_file_threshold,
 ):
-    # this doesn't make a lot of sense with s3 (or the eventual database)
+    # the write-mode needs to be reimplemented
     write_mode: str = "w"
 
     """
@@ -161,7 +161,7 @@ def mapstream(
         person_lookup, rejected_person_count = read_person_ids(
             # this is a little horrible; i'm not ready to rewrite/replace `read_person_ids()` so we just do this pointeing to a fake file
             Path(__file__) / "this-should-not-exist.txt",
-            inputs.open(de_csv(person)),
+            inputs.open(remove_csv_extension(person)),
             mappingrules,
             use_input_person_ids != "N",
         )
@@ -169,7 +169,7 @@ def mapstream(
         ## open person_ids output file with a header
         fhpout = output.start("person_ids", ["SOURCE_SUBJECT", "TARGET_SUBJECT"])
 
-        ##iterate through the id pairts and write them to the file.
+        ## write the id pair to a file or table
         for person_id, person_assigned_id in person_lookup.items():
             fhpout.write([str(person_id), str(person_assigned_id)])
         fhpout.close()
@@ -210,7 +210,7 @@ def mapstream(
     for srcfilename in rules_input_files:
         rcount = 0
 
-        csvr = inputs.open(de_csv(srcfilename))
+        csvr = inputs.open(remove_csv_extension(srcfilename))
 
         ## create dict for input file, giving the data and output file
         tgtfiles, src_to_tgt = mappingrules.parse_rules_src_to_tgt(srcfilename)

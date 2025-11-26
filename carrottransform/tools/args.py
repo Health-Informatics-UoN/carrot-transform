@@ -193,7 +193,11 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
     ... this does reopen the possibility of auto-detecting the person file from the rules file
     """
 
-    require(isinstance(person_file_name, str))
+    require(
+        isinstance(person_file_name, str)
+    )  # it should be a string (this wasn't always a requirement)
+    require("/" not in person_file_name)  # it should not have '/' or '\'
+    require("\\" not in person_file_name)  # it should not have '/' or '\'
 
     # check the rules file is real
     if not rules_file.is_file():
@@ -213,7 +217,6 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
             raise RuntimeError("the person section is not in the expected format")
 
         for rule_name, person in person_rules.items():
-            found_a_rule = True
             for col in person:
                 source_table: str = person[col]["source_table"]
                 seen_inputs.add(source_table)
@@ -225,26 +228,22 @@ def person_rules_check(person_file_name: str, rules_file: Path) -> None:
 
     # for theoretical cases when there is a `"people":{}` entry that's empty
     # ... i don't think that carrot-mapper would emit it, but, i think that it would be valid JSON
-    if not found_a_rule:
+    if len(seen_inputs) == 0:
         raise NoPersonMappings(rules_file, person_file_name)
 
     # detect too many input files
-    if 1 < len(seen_inputs):
+    if len(seen_inputs) > 1:
         raise OnlyOnePersonInputAllowed(rules_file, person_file_name, seen_inputs)
 
     # check if the seen file is correct
     seen_table: str = list(seen_inputs)[0]
 
-    # shorten to just the part we want
-    person_file_name = person_file_name.replace("\\", "/")
-    if "/" in person_file_name:
-        person_file_name = person_file_name[(person_file_name.rfind("/") + 1) :]
-
-    if de_csv(person_file_name) != de_csv(seen_table):
+    # we "don't care" if the rules or the parameter are a .csv and the other is not
+    if remove_csv_extension(person_file_name) != remove_csv_extension(seen_table):
         raise WrongInputException(rules_file, person_file_name, seen_table)
 
 
-def de_csv(name: str) -> str:
+def remove_csv_extension(name: str) -> str:
     """removes .csv from the end of file names.
 
     this is implemented as a function to avoid copying and pasting the logic"""
