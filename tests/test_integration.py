@@ -163,7 +163,7 @@ def body_of_test(
     input_from: Connection,
     pass_as,
     postgres: testools.PostgreSQLContainer | None = None,
-    trino: testools.TrinoContainer | None = None
+    trino: testools.TrinoSchema | None = None
 ):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
 
@@ -205,7 +205,7 @@ def body_of_test(
 
     elif input_from == Connection.TRINO:
         assert trino is not None
-        inputs = trino.config.connection
+        inputs = trino.connection
         outputTarget = outputs.sql_output_target(sqlalchemy.create_engine(inputs))
         testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
 
@@ -234,7 +234,7 @@ def body_of_test(
 
     elif output_to == Connection.TRINO:
         assert trino is not None
-        output = trino.config.connection
+        output = trino.connection
 
     else:
         raise Exception(f"couldn't use {output_to=}") 

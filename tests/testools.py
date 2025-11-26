@@ -414,6 +414,9 @@ def passed_as(pass_as, *args):
 
     return (env, args)
 
+#### ==========================================================================
+## PostgreSQL fixture
+
 
 @dataclass
 class PostgreSQLConfig:
@@ -484,49 +487,36 @@ def postgres(docker_ip) -> Generator[PostgreSQLContainer, None, None]:
     # Cleanup
     container.stop()
 
+#### ==========================================================================
+## Trino two-part fixture
 
 @dataclass
-class TrinoConfig:
-    """config for a Trino connection"""
+class TrinoInstance:
+    """the data for a running docker container"""
 
-    docker_name: str
-    coordinator_port: int
-    server_port: int = 8080
+    docker_name: str = f"trino_test_docker_{rand_hex()}"
+    coordinator_port: int=random.randrange(9000, 9100)
+    server_port: int = random.randrange(8080, 8180)
 
     trino_user: str = f"trino_user_{rand_hex()}"
     catalog: str = "memory"
-    schema: str = f"schema_{rand_hex()}"
 
     @property
     def connection(self) -> str:
-        return f"trino://{self.trino_user}@localhost:{self.server_port}/{self.catalog}/{self.schema}"
+        return f"trino://{self.trino_user}@localhost:{self.server_port}/{self.catalog}"
 
 
-@dataclass
-class TrinoContainer:
-    """an object used by the fixture to tell a test about their trino instance"""
+@pytest.fixture(scope="session")
+def trino_instance(docker_ip, tmp_path) -> Iterable[TrinoInstance]:
+    """Start a Trino container"""
 
-    container: docker.models.containers.Container
-    config: TrinoConfig
-
-
-@pytest.fixture(scope="function")
-def trino(docker_ip, tmp_path) -> Generator[TrinoContainer, None, None]:
-    """Start a Trino container for tests"""
-
-    # it'd be cool if this was one thingie to start the server and another to start a trino db
-
-    config = TrinoConfig(
-        docker_name=f"trino_test_docker_{rand_hex()}",
-        coordinator_port=random.randrange(9000, 9100),
-        server_port=random.randrange(8080, 8180),
-    )
-
-    # Create a simple Trino configuration
+    config = TrinoInstance()
+    
+    # Create a Trino configuration
     config_dir = tmp_path / "trino" / f"trino_config_{rand_hex()}"
     config_dir.mkdir(parents=True, exist_ok=False)
 
-    # 1. JVM Configuration - THIS WAS MISSING!
+    # 1. JVM Configuration
     (config_dir / "jvm.config").write_text(
         textwrap.dedent("""
         -server
@@ -617,9 +607,36 @@ def trino(docker_ip, tmp_path) -> Generator[TrinoContainer, None, None]:
             f"Trino server failed to start within {STARTUP_TIMEOUT} seconds"
         )
 
+    # we're ready now
+    full_start_time = time.time() - first_start_time
+    logger.info(f"Trino container is ready after {full_start_time}")
+
+    yield config
+
+    # cleanup
+    container.stop()
+
+@dataclass
+class TrinoSchema:
+    """the data for a schema within a running docker container"""
+
+    instance: TrinoInstance
+    schema: str = f"schema_{rand_hex()}"
+
+    @property
+    def connection(self) -> str:
+        return f"{self.schema.connection}/{self.schema}"
+
+
+@pytest.fixture(scope="function")
+def trino(trino_instance) -> Iterable[TrinoSchema]:
+    """Start a Trino schema"""
+
+    config = TrinoSchema(instance = trino_instance)
+
     # create a schema
     try:
-        short_connection: str = f"trino://{config.trino_user}@localhost:{config.server_port}/{config.catalog}/information_schema"
+        short_connection: str = f"trino://{config.instance.trino_user}@localhost:{config.instance.server_port}/{config.instance.catalog}/information_schema"
         logger.info(f"connecting to trino engine {short_connection}")
 
         engine = create_engine(short_connection, connect_args={"http_scheme": "http"})
@@ -630,27 +647,25 @@ def trino(docker_ip, tmp_path) -> Generator[TrinoContainer, None, None]:
 
             # Now create the schema in the available catalog
             create_schema_sql = text(
-                f"CREATE SCHEMA IF NOT EXISTS {config.catalog}.{config.schema}"
+                f"CREATE SCHEMA IF NOT EXISTS {config.instance.catalog}.{config.schema}"
             )
             conn.execute(create_schema_sql)
             conn.commit()
 
             # Verify schema was created
-            result = conn.execute(text(f"SHOW SCHEMAS FROM {config.catalog}"))
+            result = conn.execute(text(f"SHOW SCHEMAS FROM {config.instance.catalog}"))
             schemas = [row[0] for row in result]
-            logger.info(f"Available schemas in {config.catalog}: {schemas}")
+            logger.info(f"Available schemas in {config.instance.catalog}: {schemas}")
         engine.dispose()
 
-        logger.info(f"Created schema {config.catalog}.{config.schema}")
+        logger.info(f"Created schema {config.instance.catalog}.{config.schema}")
     except Exception as e:
         logger.error(f"Failed to create schema: {e}")
         container.stop()
         raise
 
-    # we're ready now
-    full_start_time = time.time() - first_start_time
-    logger.info(f"Trino is ready after {full_start_time}")
-    yield TrinoContainer(container=container, config=config)
+    
+    # the schema is ready
+    yield config
 
-    # Cleanup
-    container.stop()
+    # should we clean up the schema?

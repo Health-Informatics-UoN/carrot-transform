@@ -41,7 +41,7 @@ def test_targetWriter_trino(trino, tmp_path: Path):
     weights = Path(__file__).parent / "test_data/measure_weight_height/weights.csv"
 
     # connect to Trino
-    outputTarget = outputs.sql_output_target(trino.config.connection)
+    outputTarget = outputs.sql_output_target(trino.connection)
 
     source: sources.SourceObject = sources.csv_source_object(
         Path(__file__).parent / "test_data/measure_weight_height/", ","
@@ -73,6 +73,6 @@ def test_targetWriter_trino(trino, tmp_path: Path):
     ### assert
     testools.compare_two_sources(
         sources.csv_source_object(heights.parent, ","),
-        sources.sql_source_object(trino.config.connection),
+        sources.sql_source_object(trino.connection),
         ["heights", "persons", "weights"],
     )
