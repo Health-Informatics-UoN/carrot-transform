@@ -15,10 +15,8 @@ from carrottransform import require
 from carrottransform.tools import outputs
 from carrottransform.tools.mappingrules import MappingRules
 
-
-class NamePattern(str, Enum):
-    # only matches strings which can be used as SQL (et al) tables
-    PERSON = r"^[a-zA-Z_][a-zA-Z0-9_]*$"
+# only matches strings which can be used as SQL (et al) tables
+PERSON_TABLE_PATTERN = r"^[a-zA-Z_][a-zA-Z0-9_]*$"
 
 
 # need this for substition. this should be the folder iwth an "examples/" sub" folder
@@ -305,7 +303,7 @@ def common(func):
     func = click.option(
         "--person",
         envvar="PERSON",
-        type=PatternStringParamType(NamePattern.PERSON),
+        type=PatternStringParamType(PERSON_TABLE_PATTERN),
         required=True,
         help="File or table containing person_ids in the first column",
     )(func)
