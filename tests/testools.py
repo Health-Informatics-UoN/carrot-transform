@@ -70,7 +70,7 @@ def compare_to_tsvs(subpath: str, actual: sources.SourceObject) -> None:
     ]
 
     assert "person_ids" in items, (
-        "person_id.tsv verification data missing from the test case"
+        f"person_ids.tsv verification data missing from the test case w/{test=}"
     )
     assert "person" in items, "person.tsv verification data missing from the test case"
 
@@ -292,8 +292,9 @@ test_data = Path(__file__).parent / "test_data"
 class CarrotTestCase:
     """defines an integration test case in terms of the person file, and the optional mapper rules"""
 
-    def __init__(self, person_name: str, mapper: str = "", suffix=""):
+    def __init__(self, person_name: str, entry, mapper: str = "", suffix=""):
         self._suffix = suffix
+        self._entry = entry
         self._person_name = person_name
 
         self._folder = (test_data / person_name).parent

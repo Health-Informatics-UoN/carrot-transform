@@ -16,12 +16,10 @@ import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
 import tests.csvrow as csvrow
 import tests.testools as testools
-from carrottransform.cli.subcommands.run import mapstream
+from carrottransform.cli.subcommands.run import mapstream, div2
 
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
-
-V1TestCase = testools.CarrotTestCase
 
 
 @pytest.mark.unit  # it's an integration test ... but i need/want one that i can check quickly
@@ -33,7 +31,7 @@ def test_sql_read(tmp_path: Path):
     # this is the paramter
     testing_person_file = "measure_weight_height/persons.csv"
 
-    test_case = V1TestCase(testing_person_file)
+    test_case = testools.CarrotTestCase(testing_person_file, entry=mapstream)
 
     # run the test sourcing that SQLite database but writing to disk
     input_db = test_case.load_sqlite(tmp_path)
@@ -50,9 +48,9 @@ def test_sql_read(tmp_path: Path):
     test_case.compare_to_tsvs(actual)
 
 
-v1TestCases = list(
+test_cases = list(
     map(
-        V1TestCase,
+        lambda person: testools.CarrotTestCase(person, mapstream),
         [
             "integration_test1/src_PERSON.csv",
             "floats/src_PERSON.csv",
@@ -64,6 +62,14 @@ v1TestCases = list(
         ],
     )
 )
+
+test_cases += [
+    testools.CarrotTestCase(
+            "integration_test1/src_PERSON.csv", entry=div2, 
+            mapper= str(Path(__file__).parent / 'test_V2/rules-v2.json'),
+            suffix="/v2-out"
+    )
+]
 
 pass__arg_names = [
     "inputs",
@@ -82,7 +88,7 @@ def generate_cases(with_s3: bool):
     types = connection_types_w_s3 if with_s3 else connection_types
 
     perts = testools.permutations(
-        input_from=types, test_case=v1TestCases, output_to=types
+        input_from=types, test_case=test_cases, output_to=types
     )
     varts = list(map(lambda v: {"pass_as": v}, testools.variations(pass__arg_names)))
 
@@ -177,7 +183,7 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
     ##
     # run click
     runner = CliRunner()
-    result = runner.invoke(mapstream, args=args, env=env)
+    result = runner.invoke(test_case._entry, args=args, env=env)
 
     if result.exception is not None:
         print(result.exception)
