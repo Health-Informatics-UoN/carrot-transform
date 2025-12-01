@@ -1,35 +1,17 @@
-import io
-import logging
-import os
 import random
-import shutil
-import string
-import subprocess
-import textwrap
-import time
-from dataclasses import dataclass
 from pathlib import Path
 
-import boto3
-import docker
 import pytest
-import sqlalchemy
-from click.testing import CliRunner
-from sqlalchemy import Column, MetaData, Table, Text, create_engine, insert
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
 
-import tests.csvrow as csvrow
-import tests.testools as testools
-from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
-from tests.testools import postgres, package_root
 
 
 @pytest.mark.docker
 def test_targetWriter(postgres, tmp_path: Path):
     heights = Path(__file__).parent / "test_data/measure_weight_height/heights.csv"
-    persons = Path(__file__).parent / "test_data/measure_weight_height/persons.csv"
-    weights = Path(__file__).parent / "test_data/measure_weight_height/weights.csv"
+    # persons = Path(__file__).parent / "test_data/measure_weight_height/persons.csv"
+    # weights = Path(__file__).parent / "test_data/measure_weight_height/weights.csv"
 
     # connect to a database
     # Create engine and connection
@@ -53,7 +35,6 @@ def test_targetWriter(postgres, tmp_path: Path):
     # i want to be sure that multiple read/write things can be active at once
     while 0 != len(targets):
         # select a random index
-        import random
 
         index = random.randint(0, len(targets) - 1)
 
