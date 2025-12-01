@@ -1,6 +1,6 @@
 [project]
 name = "carrot_transform"
-version = "0.5.0"
+version = "0.6.0"
 description = ""
 authors = [{ name = "anwarfg", email = "913028+anwarfg@users.noreply.github.com" }]
 requires-python = ">=3.10"
