@@ -1,10 +1,3 @@
-
-
-import carrottransform.tools.outputs as outputs
-import carrottransform.tools.sources as sources
-from carrottransform.tools.logger import logger_setup
-from carrottransform.tools.mappingrules import MappingRules
-from carrottransform.tools.validation import valid_date_value, valid_value
 import csv
 import sys
 from pathlib import Path
@@ -14,6 +7,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.schema import MetaData, Table
 from sqlalchemy.sql.expression import select
 
+import carrottransform.tools.outputs as outputs
+import carrottransform.tools.sources as sources
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.validation import valid_date_value, valid_value
@@ -36,7 +31,6 @@ def load_person_ids_v2_inject(
     mappingrules: MappingRules,
     inputs: sources.SourceObject,
     person: str,
-    output: outputs.OutputTarget,
 ):
     # we used to try and load these, but, that's not happening now
     person_ids = {}
@@ -64,7 +58,6 @@ def load_person_ids_v2_inject(
     for column_headers in person_table_column_headers:
         person_columns[column_headers] = person_col_in_hdr_number
         person_col_in_hdr_number += 1
-    person_col_in_hdr_number = None
 
     ## check the mapping rules for person to find where to get the person data) i.e., which column in the person file contains dob, sex
     birth_datetime_source, person_id_source = mappingrules.get_person_source_field_info(

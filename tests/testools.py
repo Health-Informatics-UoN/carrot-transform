@@ -106,7 +106,23 @@ def compare_two_sources(
         expect_values = values(expect_iter)
         actual_values = values(actual_iter)
 
-        assert expect_values == actual_values
+        if expect_values == actual_values:
+            continue
+
+        expect_msg = "\texpect:"
+        n = 0
+        for each in expect_values:
+            expect_msg += f"\n\t{n}\t{each}"
+            n += 1
+        actual_msg = "\tactual:"
+        n = 0
+        for each in actual_values:
+            actual_msg += f"\n\t{n}\t{each}"
+            n += 1
+
+        assert expect_values == actual_values, (
+            f"mismatch with item {name}\n{expect_msg}\n{actual_msg}"
+        )
 
 
 #### ==========================================================================

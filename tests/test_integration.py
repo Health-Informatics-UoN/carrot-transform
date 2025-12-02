@@ -16,7 +16,7 @@ import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
 import tests.csvrow as csvrow
 import tests.testools as testools
-from carrottransform.cli.subcommands.run import mapstream, div2
+from carrottransform.cli.subcommands.run import div2, mapstream
 
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
@@ -65,11 +65,13 @@ test_cases = list(
 
 test_cases += [
     testools.CarrotTestCase(
-            "integration_test1/src_PERSON.csv", entry=div2, 
-            mapper= str(Path(__file__).parent / 'test_V2/rules-v2.json'),
-            suffix="/v2-out"
+        "integration_test1/src_PERSON.csv",
+        entry=div2,
+        mapper=str(Path(__file__).parent / "test_V2/rules-v2.json"),
+        suffix="/v2-out",
     )
 ]
+test_cases = list(test_cases)
 
 pass__arg_names = [
     "inputs",
@@ -81,25 +83,28 @@ pass__arg_names = [
 
 
 connection_types = ["csv", "sqlite"]
-connection_types_w_s3 = connection_types + [f"s3:{testools.CARROT_TEST_BUCKET}"]
+types_with_s3 = connection_types + [f"s3:{testools.CARROT_TEST_BUCKET}"]
 
 
-def generate_cases(with_s3: bool):
-    types = connection_types_w_s3 if with_s3 else connection_types
-
+def generate_cases(types):
     perts = testools.permutations(
         input_from=types, test_case=test_cases, output_to=types
     )
+
     varts = list(map(lambda v: {"pass_as": v}, testools.variations(pass__arg_names)))
 
+    # produce a list as long as the longest of these two, and, loop the shortest of them
+    all_items = list(testools.zip_loop(perts, varts))
+
+    # the list entries will be dict[] - break that up into a tuple
     return [
         (case["output_to"], case["test_case"], case["input_from"], case["pass_as"])
-        for case in testools.zip_loop(perts, varts)
+        for case in all_items
     ]
 
 
 @pytest.mark.parametrize(
-    "output_to, test_case, input_from, pass_as", generate_cases(True)
+    "output_to, test_case, input_from, pass_as", generate_cases(types_with_s3)
 )
 @pytest.mark.s3tests
 def test_function_w_s3(
@@ -110,14 +115,21 @@ def test_function_w_s3(
 
 
 @pytest.mark.parametrize(
-    "output_to, test_case, input_from, pass_as", generate_cases(False)
+    "output_to, test_case, input_from, pass_as", generate_cases(connection_types)
 )
 @pytest.mark.integration
 def test_function(request, tmp_path: Path, output_to, test_case, input_from, pass_as):
     body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
 
 
-def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass_as):
+def body_of_test(
+    request,
+    tmp_path: Path,
+    output_to,
+    test_case: testools.CarrotTestCase,
+    input_from,
+    pass_as,
+):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
 
     # generat a semi-random slug/name to group test data under
@@ -203,7 +215,11 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
     assert results is not None  # check output was set
 
     # verify that the results are good
-    test_case.compare_to_tsvs(results)
+    try:
+        test_case.compare_to_tsvs(results)
+    except:
+        logger.error(f"{tmp_path=}")
+        raise
 
 
 @pytest.mark.integration

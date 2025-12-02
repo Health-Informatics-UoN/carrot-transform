@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, TextIO
+from typing import Dict, List, Optional, TextIO, Mapping
 
 from sqlalchemy.engine import Connection
 
 import carrottransform.tools as tools
+import carrottransform.tools.outputs as outputs
 from carrottransform.tools.mapping_types import V2TableMapping
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
@@ -18,7 +19,7 @@ class ProcessingContext:
     omopcdm: OmopCDM
     person_lookup: Dict[str, str]
     record_numbers: Dict[str, int]
-    file_handles: Dict[str, TextIO]
+    file_handles: Mapping[str, TextIO]
     target_column_maps: Dict[str, Dict[str, int]]
     metrics: tools.metrics.Metrics
     input_dir: Optional[Path] = None
@@ -58,7 +59,7 @@ class RecordContext:
     metrics: tools.metrics.Metrics
     person_lookup: Dict[str, str]
     record_numbers: Dict[str, int]
-    file_handles: Dict[str, TextIO]
+    file_handles: Mapping[str, TextIO | outputs.OutputTarget.Handle]
     auto_num_col: Optional[str]
     person_id_col: str
     date_col_data: Dict[str, str]

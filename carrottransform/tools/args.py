@@ -148,6 +148,7 @@ def person_rules_check_v2_injected(person: str, mappingrules: MappingRules) -> N
         raise Exception(
             f"the entry cdm/person needs to be an object but it was a scalar/string/leaf {person__rules=}"
         )
+    assert person__rules is not None
     person_rules: dict = person__rules
     if not person_rules:
         raise Exception("Mapping rules to Person table not found")
@@ -180,6 +181,8 @@ def person_rules_check_v2_injected(person: str, mappingrules: MappingRules) -> N
         raise Exception(
             f"The source table for the OMOP table's Person data should be {person=}, but the mapping uses {named=}"
         )
+
+
 def person_rules_check_v2(
     person_file: Path | None, person_table: str | None, mappingrules: MappingRules
 ) -> None:

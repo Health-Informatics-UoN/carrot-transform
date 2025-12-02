@@ -101,9 +101,13 @@ def csv_output_target(into: Path) -> OutputTarget:
         file.write("\t".join(header) + "\n")
         return file
 
+    def write(item, record):
+        require(not isinstance(record, str))
+        item.write("\t".join(record) + "\n")
+
     return OutputTarget(
         start,
-        lambda item, record: item.write("\t".join(record) + "\n"),
+        lambda item, record: write(item, record),
         lambda item: item.close(),
     )
 
