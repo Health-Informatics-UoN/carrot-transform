@@ -13,8 +13,6 @@ import requests
 import sqlalchemy
 from botocore import client
 from click.testing import CliRunner
-from minio import Minio
-from minio.error import S3Error
 from sqlalchemy import create_engine, text
 
 import carrottransform.tools.sources as sources
@@ -57,10 +55,10 @@ def postgres(docker_ip) -> Generator[PostgreSQLContainer, None, None]:
     """Start a PostgreSQL container for tests"""
 
     config: PostgreSQLConfig = PostgreSQLConfig(
-        docker_name=f"carrot_test_docker_{rand_hex()}",
-        db_name=f"c_test_d_{rand_hex()}",
-        db_user=f"c_test_u_{rand_hex()}",
-        db_pass=f"c_test_p_{rand_hex()}",
+        docker_name=f"carrot_test_docker_{testools.rand_hex()}",
+        db_name=f"c_test_d_{testools.rand_hex()}",
+        db_user=f"c_test_u_{testools.rand_hex()}",
+        db_pass=f"c_test_p_{testools.rand_hex()}",
         db_port=5432,  # random.randrange(5200, 5400),
     )
 

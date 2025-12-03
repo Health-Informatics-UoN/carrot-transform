@@ -13,11 +13,9 @@ from click.testing import CliRunner
 
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
-import tests.csvrow as csvrow
+import tests.conftest as conftest
 import tests.testools as testools
-from carrottransform import require
 from carrottransform.cli.subcommands.run import mapstream
-from tests.testools import postgres
 
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
@@ -144,7 +142,7 @@ def body_of_test(
     test_case,
     input_from,
     pass_as,
-    postgres: testools.PostgreSQLContainer | None = None,
+    postgres: conftest.PostgreSQLContainer | None = None,
 ):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
 
