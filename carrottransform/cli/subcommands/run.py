@@ -690,5 +690,10 @@ def run():
 
 
 run.add_command(mapstream, "mapstream")
+
+# should let the user use "v1" or "v2" to run the command
+run.add_command(mapstream, "v1")
+run.add_command(div2, "v2")
+
 if __name__ == "__main__":
     run()
