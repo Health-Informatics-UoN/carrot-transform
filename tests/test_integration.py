@@ -8,10 +8,16 @@ import re
 from pathlib import Path
 
 import boto3
+import boto3
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
-
+import tests.csvrow as csvrow
+import tests.testools as testools
+from carrottransform import require
+from carrottransform.cli.subcommands.run import mapstream
+from tests.testools import postgres, trino
+from enum import Enum
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
 import tests.csvrow as csvrow
@@ -21,7 +27,11 @@ from carrottransform.cli.subcommands.run import mapstream
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
 
-V1TestCase = testools.CarrotTestCase
+class Connection(Enum):
+    CSV = "csv"
+    SQLITE = "sqlite"
+    MINIO = "minio"
+
 
 
 @pytest.mark.unit  # it's an integration test ... but i need/want one that i can check quickly
@@ -33,7 +43,7 @@ def test_sql_read(tmp_path: Path):
     # this is the paramter
     testing_person_file = "measure_weight_height/persons.csv"
 
-    test_case = V1TestCase(testing_person_file)
+    test_case = testools.CarrotTestCase(testing_person_file)
 
     # run the test sourcing that SQLite database but writing to disk
     input_db = test_case.load_sqlite(tmp_path)
@@ -52,7 +62,7 @@ def test_sql_read(tmp_path: Path):
 
 v1TestCases = list(
     map(
-        V1TestCase,
+        testools.CarrotTestCase,
         [
             "integration_test1/src_PERSON.csv",
             "floats/src_PERSON.csv",
@@ -74,12 +84,11 @@ pass__arg_names = [
 ]
 
 
-connection_types = ["csv", "sqlite"]
-connection_types_w_s3 = connection_types + [f"s3:{testools.CARROT_TEST_BUCKET}"]
+connection_types = [Connection.CSV, Connection.SQLITE]
+connection_types_w_s3 = connection_types + [Connection.MINIO]
 
 
-def generate_cases(with_s3: bool):
-    types = connection_types_w_s3 if with_s3 else connection_types
+def generate_cases(types: list[Connection]):
 
     perts = testools.permutations(
         input_from=types, test_case=v1TestCases, output_to=types
@@ -97,7 +106,7 @@ def generate_cases(with_s3: bool):
 )
 @pytest.mark.s3tests
 def test_function_w_s3(
-    request, tmp_path: Path, output_to, test_case, input_from, pass_as
+    request, tmp_path: Path, output_to: Connection, test_case, input_from: Connection, pass_as
 ):
     """dumb wrapper to make the s3 tests run as well as the integration tests"""
     body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
@@ -107,11 +116,11 @@ def test_function_w_s3(
     "output_to, test_case, input_from, pass_as", generate_cases(False)
 )
 @pytest.mark.integration
-def test_function(request, tmp_path: Path, output_to, test_case, input_from, pass_as):
+def test_function(request, tmp_path: Path, output_to: Connection, test_case, input_from: Connection, pass_as):
     body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
 
 
-def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass_as):
+def body_of_test(request, tmp_path: Path, output_to: Connection, test_case, input_from: Connection, pass_as):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
 
     # generat a semi-random slug/name to group test data under
@@ -128,20 +137,21 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
 
     # set the input
     inputs: None | str = None
-    if "sqlite" == input_from:
-        inputs = test_case.load_sqlite(tmp_path)
-    if "csv" == input_from:
-        inputs = str(test_case._folder).replace("\\", "/")
-    if input_from.startswith("s3:"):
-        # create a random s3 subfolder
-        inputs = input_from + "/" + slug + "/input"
+    match input_from:
+        case Connection.SQLITE:
+            inputs = test_case.load_sqlite(tmp_path)
+        case Connection.CSV:
+            inputs = str(test_case._folder).replace("\\", "/")
+        case Connection.MINIO:
+            # create a random s3 subfolder
+            inputs = "minio:/" + slug + "/input"
 
-        # set a task to delete the subfolder on exit
-        request.addfinalizer(lambda: testools.delete_s3_folder(inputs))
+            # set a task to delete the subfolder on exit
+            request.addfinalizer(lambda: testools.delete_s3_folder(inputs))
 
-        # copy data into the thing
-        outputTarget = outputs.s3_output_target(inputs)
-        testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
+            # copy data into the thing
+            outputTarget = outputs.s3_output_target(inputs)
+            testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
     assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
 
     # set the output
