@@ -304,7 +304,6 @@ def test_output_data_writing(omopcdm, test_rules_file, input_data):
 
     # Verify individual field mappings for person table
     for row in input_data:
-        person_id = row["person_id"]
         # Check sex mappings
         sex_value = row["sex"]
         if sex_value == "M":
@@ -349,7 +348,6 @@ def test_output_data_writing(omopcdm, test_rules_file, input_data):
 
         # Verify individual field mappings for observations
         for row in input_data:
-            person_id = row["person_id"]
             sex_value = row["sex"]
             ethnicity_value = row["ethnicity"]
 
