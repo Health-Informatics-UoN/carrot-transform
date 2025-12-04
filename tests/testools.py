@@ -15,6 +15,8 @@ from sqlalchemy import create_engine
 
 import carrottransform.tools.sources as sources
 from carrottransform.cli.subcommands.run import mapstream
+from carrottransform.tools import outputs, sources
+from carrottransform.tools.args import PathArg
 from carrottransform.tools import outputs
 
 #
@@ -59,8 +61,6 @@ def compare_to_tsvs(subpath: str, actual: sources.SourceObject) -> None:
     if the SO has .tsv files we don't ... pass ...
 
     """
-
-    from carrottransform.tools.args import PathArg
 
     test: Path
     if subpath.startswith("@carrot"):
@@ -186,23 +186,23 @@ def permutations(**name_to_list):
         yield item
 
 
-def zip_loop(*ar: list[dict]):
+def zip_loop(*arguments: list[dict]):
     # convert them all to lists so that they're "stable"
-    args = list(list(a) for a in ar)
+    args_as_lists = list(list(arg) for arg in arguments)
 
     # find the longest length
-    max_length = max(len(a) for a in args)
+    max_length = max(len(arg_list) for arg_list in args_as_lists)
 
-    def loop(a):
-        """loops through a collection forever"""
+    def loop(arg_list):
+        """loops through an arg_list forever"""
         while True:
-            for i in a:
-                yield i
+            for item in arg_list:
+                yield item
 
     # turn them all into forever loops
-    loopers = [loop(a) for a in args]
+    args_loops = [loop(arg) for arg in args_as_lists]
 
-    # now build "rows" from each
+    # now build "rows" from each. keep going until we've built "count" rows and hit everything in each arg_list
     count = 0
     while count < max_length:
         count += 1
@@ -211,8 +211,8 @@ def zip_loop(*ar: list[dict]):
         row: dict = {}
 
         # each of those inputs will contribute some {k:v} so we union them togehter
-        for c in loopers:
-            row = row | next(c).copy()
+        for arg_loop in args_loops:
+            row = row | next(arg_loop).copy()
 
         # yield this row before we continue
         yield row
@@ -329,6 +329,80 @@ def rand_hex(length: int = 16) -> str:
         out += src[random.randint(0, len(src) - 1)]
 
     return out
+
+
+test_data = Path(__file__).parent / "test_data"
+
+
+class CarrotTestCase:
+    """defines an integration test case in terms of the person file, and the optional mapper rules"""
+
+    def __init__(self, person_name: str, mapper: str = "", suffix=""):
+        self._suffix = suffix
+        self._person_name = person_name
+
+        self._folder = (test_data / person_name).parent
+
+        # find the rules mapping
+        if mapper == "":
+            for json in self._folder.glob("*.json"):
+                assert "" == mapper
+                mapper = str(json).replace("\\", "/")
+        assert "" != mapper
+        self._mapper = mapper
+
+        assert 1 == person_name.count("/")
+        [label, person] = person_name.split("/")
+        self._label = label
+        assert person.endswith(".csv")
+        self._person = person[:-4]
+
+    def load_sqlite(self, tmp_path: Path):
+        assert tmp_path.is_dir()
+
+        # create an SQLite database and copy the contents into it
+        sqlite3 = tmp_path / f"{self._label}.sqlite3"
+        copy_across(
+            ot=outputs.sql_output_target(
+                sqlalchemy.create_engine(f"sqlite:///{sqlite3.absolute()}")
+            ),
+            so=self._folder,
+        )
+        return f"sqlite:///{sqlite3.absolute()}"
+
+    def compare_to_tsvs(self, source, suffix=""):
+        compare_to_tsvs(self._label + self._suffix, source)
+
+
+##
+# build the env and arg parameters
+def passed_as(pass_as, *args):
+    args = list(args)
+
+    env = {}
+    i = 0  # index in the args list
+
+    while i < len(args):
+        # parameters should all be of the form "--name" with "value" afterwards in the array
+        parameter_key = args[i][2:]
+
+        if parameter_key not in pass_as:
+            i += 2
+            continue
+
+        # convert the key
+        parameter_key = parameter_key.upper().replace("-", "_")
+
+        # get the value
+        parameter_value = args[i + 1]
+
+        # save it to the evn vars
+        env[parameter_key] = parameter_value
+
+        # demove the key and value from teh list
+        args = args[:i] + args[(i + 2) :]
+
+    return (env, args)
 
 
 def delete_s3_folder(coordinate):

@@ -59,6 +59,9 @@ def get_target_records(
         if build_records:
             # Process each matching rule
             for dictkey in dictkeys:
+                # fixed a crash that seemed to happen when there were only Male mappings
+                if dictkey not in rulesmap.keys():
+                    continue
                 for out_data_elem in rulesmap[dictkey]:
                     valid_data_elem = True
                     ## create empty list to store the data. Populate numerical data elements with 0 instead of empty string.

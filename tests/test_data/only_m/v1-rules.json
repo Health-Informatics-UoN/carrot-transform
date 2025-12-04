@@ -1,0 +1,64 @@
+{
+      "metadata": {
+            "date_created": "2025-12-02T16:27:07.470759+00:00",
+            "dataset": "Awesome Test"
+      },
+      "cdm": {
+            "person": {
+                  "MALE 46": {
+                        "person_id": {
+                              "source_table": "patients.csv",
+                              "source_field": "ID"
+                        },
+                        "birth_datetime": {
+                              "source_table": "patients.csv",
+                              "source_field": "BIRTHDATE"
+                        },
+                        "gender_source_concept_id": {
+                              "source_table": "patients.csv",
+                              "source_field": "GENDER",
+                              "term_mapping": 8507
+                        },
+                        "gender_concept_id": {
+                              "source_table": "patients.csv",
+                              "source_field": "GENDER",
+                              "term_mapping": 8507
+                        },
+                        "gender_source_value": {
+                              "source_table": "patients.csv",
+                              "source_field": "GENDER"
+                        }
+                  }
+            },
+            "condition_occurrence": {
+                  "Cough 55": {
+                        "person_id": {
+                              "source_table": "patients.csv",
+                              "source_field": "ID"
+                        },
+                        "condition_start_datetime": {
+                              "source_table": "patients.csv",
+                              "source_field": "BIRTHDATE"
+                        },
+                        "condition_end_datetime": {
+                              "source_table": "patients.csv",
+                              "source_field": "BIRTHDATE"
+                        },
+                        "condition_source_concept_id": {
+                              "source_table": "patients.csv",
+                              "source_field": "CITY",
+                              "term_mapping": 254761
+                        },
+                        "condition_concept_id": {
+                              "source_table": "patients.csv",
+                              "source_field": "CITY",
+                              "term_mapping": 254761
+                        },
+                        "condition_source_value": {
+                              "source_table": "patients.csv",
+                              "source_field": "CITY"
+                        }
+                  }
+            }
+      }
+}
