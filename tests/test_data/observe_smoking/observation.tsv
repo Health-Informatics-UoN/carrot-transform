@@ -1,0 +1,9 @@
+observation_id	person_id	observation_concept_id	observation_date	observation_datetime	observation_type_concept_id	value_as_number	value_as_string	value_as_concept_id	qualifier_concept_id	unit_concept_id	provider_id	visit_occurrence_id	visit_detail_id	observation_source_value	observation_source_concept_id	unit_source_value	qualifier_source_value
+1	1	3959110	2018-01-01	2018-01-01 00:00:00	0		active							active	3959110		
+2	1	3959110	2018-02-01	2018-02-01 00:00:00	0		active							active	3959110		
+3	1	3957361	2018-03-01	2018-03-01 00:00:00	0		quit							quit	3957361		
+4	1	3959110	2018-04-01	2018-04-01 00:00:00	0		active							active	3959110		
+5	1	35821355	2018-05-01	2018-05-01 00:00:00	0		never							never	35821355		
+6	2	35821355	2009-01-01	2009-01-01 00:00:00	0		never							never	35821355		
+7	2	35821355	2009-02-01	2009-02-01 00:00:00	0		never							never	35821355		
+8	2	3957361	2009-03-01	2009-03-01 00:00:00	0		quit							quit	3957361		

@@ -9,6 +9,7 @@ import pytest
 import carrottransform.cli.subcommands.run as run
 import carrottransform.tools.sources as sources
 from carrottransform.tools.person_helpers import _get_person_lookup
+from tests.testools import package_root, project_root
 
 logger = logging.getLogger(__name__)
 
@@ -30,43 +31,6 @@ def test_invalid_directory(tmp_path: Path):
     assert exc_info.value.code == 1
 
 
-@pytest.mark.unit
-def test_explicit_file_path(tmp_path: Path):
-    """Test when a specific file path is provided"""
-
-    explicit_path = tmp_path / "file.tsv"
-    result = run.set_saved_person_id_file(explicit_path, tmp_path)
-    assert result == explicit_path
-
-
-@pytest.mark.unit
-def test_default_file_creation(tmp_path: Path):
-    """Test when no file is specified (None case)"""
-
-    output_dir = tmp_path
-    result = run.set_saved_person_id_file(None, output_dir)
-    expected_path = output_dir / "person_ids.tsv"
-    assert result == expected_path
-
-
-@pytest.mark.unit
-def test_existing_file_removal(tmp_path: Path):
-    """Test that existing file is removed when None is passed"""
-
-    output_dir = tmp_path
-    existing_file = output_dir / "person_ids.tsv"
-
-    # Create a dummy file
-    with existing_file.open("w") as f:
-        f.write("test")
-
-    assert os.path.exists(existing_file)  # Verify file exists
-
-    result = run.set_saved_person_id_file(None, output_dir)
-    assert result == existing_file  # Check returned path
-    assert not os.path.exists(existing_file)  # Verify file was removed
-
-
 ### check_files_in_rules_exist(rules_input_files, existing_input_files):
 @pytest.mark.unit
 def test_matching_files(caplog):
@@ -84,8 +48,10 @@ def test_successful_file_open(tmp_path: Path):
     with file_path.open("w", encoding="utf-8") as f:
         f.write(file_content)
 
-    source = sources.SourceOpener(folder=file_path.parent)
-    csv_reader = source.open(file_path.name)
+    source = sources.csv_source_object(file_path.parent, ",")
+    csv_reader = source.open(
+        file_path.name[:-4]
+    )  # need to remove the .csv fron the name
 
     assert csv_reader is not None
 
@@ -100,16 +66,14 @@ def test_nonexistent_file(tmp_path: Path):
     """Test attempting to open a non-existent file"""
 
     src = tmp_path / "nonexistent.csv"
-    print(src.is_file())
 
-    source = sources.SourceOpener(folder=tmp_path)
+    source = sources.csv_source_object(tmp_path, ",")
     try:
-        result = source.open("nonexistent.csv")
+        result = source.open("nonexistent")
 
         raise Exception(f"the test shouldn't get this far {result=}")
-    except sources.SourceFileNotFoundException as sourceException:
-        assert sourceException._name == "nonexistent.csv"
-        assert sourceException._path == (tmp_path / "nonexistent.csv")
+    except sources.SourceTableNotFound as sourceTableNotFound:
+        assert sourceTableNotFound._name == "nonexistent"
 
 
 @pytest.mark.unit
@@ -119,12 +83,12 @@ def test_directory_not_found(caplog):
     with caplog.at_level(logging.ERROR):
         folder = Path("/nonexistent/directory")
         try:
-            source = sources.SourceOpener(folder=folder)
+            source = sources.csv_source_object(folder, ",")
             raise Exception("the test shouldn't get this far")
             result = source.open("test.csv")
             assert result is None, "the result should be None"
-        except sources.SourceFolderMissingException as sourceFolderMissingException:
-            assert sourceFolderMissingException._source._folder == folder
+        except sources.SourceNotFound as sourceNotFound:
+            assert sourceNotFound._path == folder
 
 
 @pytest.mark.unit
@@ -140,8 +104,10 @@ def test_utf8_with_bom(tmp_path: Path):
         f.write(b"\xef\xbb\xbf")  # UTF-8 BOM
         f.write(content.encode("utf-8"))
 
-    source = sources.SourceOpener(folder=file_path.parent)
-    csv_reader = source.open(file_path.name)
+    source = sources.csv_source_object(file_path.parent, ",")
+    csv_reader = source.open(
+        file_path.name[:-4]
+    )  # need to remove the .csv fron the name
 
     assert csv_reader is not None
 

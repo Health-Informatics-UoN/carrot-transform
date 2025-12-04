@@ -1,0 +1,20 @@
+dsname	source	source_field	target	concept_id	additional	incount	invalid_persid	invalid_date	invalid_source	outcount
+multi_mapping	all	all	all	40618782		0	0	0	0	1
+multi_mapping	all	all	all	40637268		0	0	0	0	1
+multi_mapping	all	all	observation	40618782		0	0	0	0	1
+multi_mapping	all	all	observation	40637268		0	0	0	0	1
+multi_mapping	all	all	observation	all		0	0	0	0	2
+multi_mapping	all	all	person	all		0	0	0	0	2
+multi_mapping	demos	all	all	all		3	0	0	0	4
+multi_mapping	demos	all	observation	40618782		0	0	0	0	1
+multi_mapping	demos	all	observation	40637268		0	0	0	0	1
+multi_mapping	demos	all	observation	all		0	0	0	0	2
+multi_mapping	demos	all	person	8507		0	0	0	0	1
+multi_mapping	demos	all	person	8507	2020	0	0	0	0	1
+multi_mapping	demos	all	person	8532		0	0	0	0	1
+multi_mapping	demos	all	person	8532	2020	0	0	0	0	1
+multi_mapping	demos	all	person	all		0	0	0	0	2
+multi_mapping	demos	race	observation	40618782		0	0	0	0	1
+multi_mapping	demos	race	observation	40637268		0	0	0	0	1
+multi_mapping	demos	race	observation	all		0	0	0	1	0
+multi_mapping	demos	sex	person	all		0	0	0	1	0

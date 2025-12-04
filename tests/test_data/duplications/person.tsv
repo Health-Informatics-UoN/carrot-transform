@@ -1,0 +1,5 @@
+person_id	gender_concept_id	year_of_birth	month_of_birth	day_of_birth	birth_datetime	race_concept_id	ethnicity_concept_id	location_id	provider_id	care_site_id	person_source_value	gender_source_value	gender_source_concept_id	race_source_value	race_source_concept_id	ethnicity_source_value	ethnicity_source_concept_id
+1	8507	1950	10	31	1950-10-31 00:00:00	0	0					male	8507				
+2	8532	1981	11	19	1981-11-19 00:00:00	0	0					female	8532				
+3	8532	1985	3	1	1985-03-01 00:00:00	0	0					femail	8532				
+1	8507	1950	10	31	1950-10-31 00:00:00	0	0					male	8507				

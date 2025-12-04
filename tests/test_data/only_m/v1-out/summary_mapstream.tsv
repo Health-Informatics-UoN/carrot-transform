@@ -1,0 +1,87 @@
+dsname	source	source_field	target	concept_id	additional	incount	invalid_persid	invalid_date	invalid_source	outcount
+Awesome Test	all	all	all	254761		0	0	0	0	200
+Awesome Test	all	all	condition_occurrence	254761		0	0	0	0	200
+Awesome Test	all	all	condition_occurrence	all		0	0	0	0	200
+Awesome Test	all	all	person	all		0	0	0	0	200
+Awesome Test	patients	CITY	condition_occurrence	254761		0	0	0	0	200
+Awesome Test	patients	all	all	all		201	0	0	0	400
+Awesome Test	patients	all	condition_occurrence	254761		0	0	0	0	200
+Awesome Test	patients	all	condition_occurrence	all		0	0	0	0	200
+Awesome Test	patients	all	person	8507		0	0	0	0	200
+Awesome Test	patients	all	person	8507	1911	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1931	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1934	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1940	0	0	0	0	4
+Awesome Test	patients	all	person	8507	1941	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1942	0	0	0	0	5
+Awesome Test	patients	all	person	8507	1944	0	0	0	0	7
+Awesome Test	patients	all	person	8507	1945	0	0	0	0	2
+Awesome Test	patients	all	person	8507	1946	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1947	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1948	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1949	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1950	0	0	0	0	6
+Awesome Test	patients	all	person	8507	1951	0	0	0	0	2
+Awesome Test	patients	all	person	8507	1952	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1953	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1954	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1955	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1956	0	0	0	0	7
+Awesome Test	patients	all	person	8507	1957	0	0	0	0	4
+Awesome Test	patients	all	person	8507	1959	0	0	0	0	2
+Awesome Test	patients	all	person	8507	1960	0	0	0	0	4
+Awesome Test	patients	all	person	8507	1961	0	0	0	0	2
+Awesome Test	patients	all	person	8507	1962	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1963	0	0	0	0	2
+Awesome Test	patients	all	person	8507	1964	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1965	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1966	0	0	0	0	4
+Awesome Test	patients	all	person	8507	1967	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1969	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1970	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1971	0	0	0	0	4
+Awesome Test	patients	all	person	8507	1972	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1973	0	0	0	0	2
+Awesome Test	patients	all	person	8507	1974	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1976	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1977	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1978	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1980	0	0	0	0	2
+Awesome Test	patients	all	person	8507	1981	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1982	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1983	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1984	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1985	0	0	0	0	4
+Awesome Test	patients	all	person	8507	1986	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1987	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1988	0	0	0	0	4
+Awesome Test	patients	all	person	8507	1989	0	0	0	0	2
+Awesome Test	patients	all	person	8507	1990	0	0	0	0	4
+Awesome Test	patients	all	person	8507	1991	0	0	0	0	2
+Awesome Test	patients	all	person	8507	1992	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1993	0	0	0	0	3
+Awesome Test	patients	all	person	8507	1994	0	0	0	0	1
+Awesome Test	patients	all	person	8507	1995	0	0	0	0	4
+Awesome Test	patients	all	person	8507	1996	0	0	0	0	2
+Awesome Test	patients	all	person	8507	1997	0	0	0	0	7
+Awesome Test	patients	all	person	8507	1998	0	0	0	0	4
+Awesome Test	patients	all	person	8507	1999	0	0	0	0	2
+Awesome Test	patients	all	person	8507	2000	0	0	0	0	4
+Awesome Test	patients	all	person	8507	2001	0	0	0	0	2
+Awesome Test	patients	all	person	8507	2002	0	0	0	0	7
+Awesome Test	patients	all	person	8507	2003	0	0	0	0	2
+Awesome Test	patients	all	person	8507	2004	0	0	0	0	5
+Awesome Test	patients	all	person	8507	2005	0	0	0	0	2
+Awesome Test	patients	all	person	8507	2006	0	0	0	0	1
+Awesome Test	patients	all	person	8507	2007	0	0	0	0	2
+Awesome Test	patients	all	person	8507	2008	0	0	0	0	1
+Awesome Test	patients	all	person	8507	2009	0	0	0	0	1
+Awesome Test	patients	all	person	8507	2010	0	0	0	0	4
+Awesome Test	patients	all	person	8507	2011	0	0	0	0	4
+Awesome Test	patients	all	person	8507	2013	0	0	0	0	1
+Awesome Test	patients	all	person	8507	2014	0	0	0	0	1
+Awesome Test	patients	all	person	8507	2015	0	0	0	0	2
+Awesome Test	patients	all	person	8507	2016	0	0	0	0	1
+Awesome Test	patients	all	person	8507	2017	0	0	0	0	1
+Awesome Test	patients	all	person	8507	2018	0	0	0	0	1
+Awesome Test	patients	all	person	all		0	0	0	0	200

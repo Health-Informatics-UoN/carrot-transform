@@ -8,11 +8,15 @@ from sqlalchemy.engine import Engine
 
 import carrottransform.tools as tools
 import carrottransform.tools.sources as sources
+from carrottransform import require
+from carrottransform.tools import outputs
 from carrottransform.tools.args import (
     AlchemyConnectionArg,
     OnlyOnePersonInputAllowed,
     PathArg,
+    PatternStringParamType,
     person_rules_check,
+    remove_csv_extension,
 )
 from carrottransform.tools.core import get_target_records
 from carrottransform.tools.date_helpers import normalise_to8601
@@ -23,60 +27,15 @@ from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.person_helpers import (
     load_last_used_ids,
     read_person_ids,
-    set_saved_person_id_file,
 )
 
 logger = logger_setup()
 
+import carrottransform.tools.args as args
+
 
 @click.command()
-@click.option(
-    "--rules-file",
-    envvar="RULES_FILE",
-    type=PathArg,
-    required=True,
-    help="json file containing mapping rules",
-)
-@click.option(
-    "--output-dir",
-    envvar="OUTPUT_DIR",
-    type=PathArg,
-    default=None,
-    required=True,
-    help="define the output directory for OMOP-format tsv files",
-)
-@click.option(
-    "--write-mode",
-    default="w",
-    type=click.Choice(["w", "a"]),
-    help="force write-mode on output files",
-)
-@click.option(
-    "--person-file",
-    envvar="PERSON_FILE",
-    type=PathArg,
-    required=True,
-    help="File containing person_ids in the first column",
-)
-@click.option(
-    "--omop-ddl-file",
-    envvar="OMOP_DDL_FILE",
-    type=PathArg,
-    required=False,
-    help="File containing OHDSI ddl statements for OMOP tables",
-)
-@click.option(
-    "--omop-version",
-    required=False,
-    help="Quoted string containing omop version - eg '5.3'",
-)
-@click.option(
-    "--saved-person-id-file",
-    type=PathArg,
-    default=None,
-    required=False,
-    help="Full path to person id file used to save person_id state and share person_ids between data sets",
-)
+@args.common
 @click.option(
     "--use-input-person-ids",
     required=False,
@@ -96,34 +55,20 @@ logger = logger_setup()
     default=0,
     help="Lower outcount limit for logfile output",
 )
-@click.option(
-    "--input-dir",
-    envvar="INPUT_DIR",
-    type=PathArg,
-    required=False,
-    help="Input directories",
-)
-@click.option(
-    "--input-db-url",
-    envvar="INPUT_DB_URL",
-    type=AlchemyConnectionArg,
-    required=False,
-    help="connection string to read data from a database",
-)
 def mapstream(
     rules_file: Path,
-    output_dir: Path,
-    write_mode: str | None,
-    person_file: Path,
+    person: str,
+    inputs: sources.SourceObject,
+    output: outputs.OutputTarget,
     omop_ddl_file: Path | None,
     omop_version,
-    saved_person_id_file: Path | None,
     use_input_person_ids,
     last_used_ids_file: Path | None,
     log_file_threshold,
-    input_dir: Path | None,
-    input_db_url: Engine | None,
 ):
+    # the write-mode needs to be reimplemented
+    write_mode: str = "w"
+
     """
     Map to output using input streams
     """
@@ -143,18 +88,13 @@ def mapstream(
                 str,
                 [
                     rules_file,
-                    output_dir,
                     write_mode,
-                    person_file,
                     omop_ddl_file,
                     omop_config_file,
                     omop_version,
-                    saved_person_id_file,
                     use_input_person_ids,
                     last_used_ids_file,
                     log_file_threshold,
-                    input_dir,
-                    input_db_url,
                 ],
             )
         )
@@ -163,10 +103,10 @@ def mapstream(
     # check on the rules file
     if (rules_file is None) or (not rules_file.is_file()):
         logger.error(f"rules file was set to {rules_file=} and is missing")
-        sys.exit()
+        sys.exit(-1)
 
     ## fallback for the ddl filename
-    if omop_ddl_file is None and omop_version is not None:
+    if omop_ddl_file is None:
         omop_ddl_name = f"OMOPCDM_postgresql_{omop_version}_ddl.sql"
         omop_ddl_file = Path(
             Path(str(resources.files("carrottransform"))) / "config" / omop_ddl_name
@@ -174,40 +114,14 @@ def mapstream(
         if not omop_ddl_file.is_file():
             logger.warning(f"{omop_ddl_name=} not found")
 
-    ## create the SourceOpener object we'll use
-    if input_db_url is not None:
-        source = sources.SourceOpener(engine=input_db_url)
-        logger.info(f"Input data will be taken from {input_db_url=}")
-    else:
-        if not person_file.is_file():
-            raise click.BadArgumentUsage(
-                f"the supplied person file does not exist {person_file}"
-            )
-        if (input_dir is not None) and person_file.parent != input_dir:
-            raise click.BadArgumentUsage(
-                "the supplied person file must be in the input_dir"
-            )
-
-        source = sources.SourceOpener(folder=person_file.parent)
-
-    # TODO; this (and the fact that the `person_rules_check()` has to happen) means that the input_dir parameter is redundant - it can be inferred from the person_file parameter
-    input_dir = person_file.parent
-
-    # ## check directories are valid
-    check_dir_isvalid(
-        output_dir, create_if_missing=True
-    )  # Create output directory if needed
-
-    saved_person_id_file = set_saved_person_id_file(saved_person_id_file, output_dir)
-
     ## check on the person_file_rules
     try:
-        person_rules_check(rules_file=rules_file, person_file_name=person_file.name)
+        person_rules_check(rules_file=rules_file, person_file_name=person)
     except OnlyOnePersonInputAllowed as e:
-        inputs = list(sorted(list(e._inputs)))
+        input_list = list(sorted(list(e._inputs)))
 
         logger.error(
-            f"Person properties were mapped from ({inputs}) but can only come from the person file {person_file.name=}"
+            f"Person properties were mapped from ({input_list}) but can only come from the person file {person=}"
         )
         sys.exit(-1)
     except Exception as e:
@@ -245,36 +159,36 @@ def mapstream(
     try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
         person_lookup, rejected_person_count = read_person_ids(
-            saved_person_id_file,
-            source.open(person_file.name),
+            # this is a little horrible; i'm not ready to rewrite/replace `read_person_ids()` so we just do this pointeing to a fake file
+            Path(__file__) / "this-should-not-exist.txt",
+            inputs.open(remove_csv_extension(person)),
             mappingrules,
             use_input_person_ids != "N",
         )
 
-        ## open person_ids output file
-        with saved_person_id_file.open(mode="w") as fhpout:
-            ## write the header to the file
-            fhpout.write("SOURCE_SUBJECT\tTARGET_SUBJECT\n")
-            ##iterate through the ids and write them to the file.
-            for person_id, person_assigned_id in person_lookup.items():
-                fhpout.write(f"{str(person_id)}\t{str(person_assigned_id)}\n")
+        ## open person_ids output file with a header
+        fhpout = output.start("person_ids", ["SOURCE_SUBJECT", "TARGET_SUBJECT"])
+
+        ## write the id pair to a file or table
+        for person_id, person_assigned_id in person_lookup.items():
+            fhpout.write([str(person_id), str(person_assigned_id)])
+        fhpout.close()
 
         ## Initialise output files (adding them to a dict), output a header for each
         ## these aren't being closed deliberately
-        for tgtfile in output_files:
-            fhd[tgtfile] = (
-                (output_dir / tgtfile).with_suffix(".tsv").open(mode=write_mode)
-            )
-            if write_mode == "w":
-                outhdr = omopcdm.get_omop_column_list(tgtfile)
-                fhd[tgtfile].write("\t".join(outhdr) + "\n")
+        for target_file in output_files:
+            # if write_mode == "w":
+            out_header = omopcdm.get_omop_column_list(target_file)
+
+            fhd[target_file] = output.start(target_file, out_header)
+
             ## maps all omop columns for each file into a dict containing the column name and the index
             ## so tgtcolmaps is a dict of dicts.
-            tgtcolmaps[tgtfile] = omopcdm.get_omop_column_map(tgtfile)
+            tgtcolmaps[target_file] = omopcdm.get_omop_column_map(target_file)
 
     except IOError as e:
         logger.exception(f"I/O - error({e.errno}): {e.strerror} -> {str(e)}")
-        sys.exit()
+        sys.exit(-1)
 
     logger.info(
         f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
@@ -296,7 +210,7 @@ def mapstream(
     for srcfilename in rules_input_files:
         rcount = 0
 
-        csvr = source.open(srcfilename)
+        csvr = inputs.open(remove_csv_extension(srcfilename))
 
         ## create dict for input file, giving the data and output file
         tgtfiles, src_to_tgt = mappingrules.parse_rules_src_to_tgt(srcfilename)
@@ -396,7 +310,7 @@ def mapstream(
                                 )
 
                                 # write the line to the file
-                                fhd[tgtfile].write("\t".join(outrecord) + "\n")
+                                fhd[tgtfile].write(outrecord)
                             else:
                                 metrics.increment_key_count(
                                     source=srcfilename,
@@ -412,10 +326,10 @@ def mapstream(
                         break
 
         logger.info(
-            f"INPUT file data : {srcfilename}: input count {str(rcount)}, time since start {time.time() - start_time:.5} secs"
+            f"INPUT file data : {srcfilename}: input count {rcount}, time since start {time.time() - start_time:.5} secs"
         )
         for outtablename, count in outcounts.items():
-            logger.info(f"TARGET: {outtablename}: output count {str(count)}")
+            logger.info(f"TARGET: {outtablename}: output count {count}")
     # END main processing loop
 
     logger.info(
@@ -424,12 +338,28 @@ def mapstream(
 
     data_summary = metrics.get_mapstream_summary()
     try:
-        with (output_dir / "summary_mapstream.tsv").open(mode="w") as dsfh:
-            dsfh.write(data_summary)
+        # convert the data into like-csv lines
+        csv_like_lines = map(lambda x: x.split("\t"), data_summary.split("\n")[:-1])
+
+        # loop through the lines writing them
+        summary: None | outputs.OutputTarget.Handle = None
+        for line in csv_like_lines:
+            if summary is None:
+                # we need the column names to "open" this sort of file/table, and, that'll be the first line
+                summary = output.start("summary_mapstream", line)
+            else:
+                # once the summary is open
+                summary.write(line)
+
+        # mypy needs a typecheck
+        if summary is not None:
+            summary.close()
+            summary = None
     except IOError as e:
         logger.exception(f"I/O error({e.errno}): {e.strerror}")
         logger.exception("Unable to write file")
         raise e
+    output.close()
 
     # END mapstream
     logger.info(f"Elapsed time = {time.time() - start_time:.5f} secs")
