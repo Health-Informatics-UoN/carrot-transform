@@ -120,7 +120,6 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
 
     # generat a semi-random slug/name to group test data under
     # the files we read/write to s3 will appear in this folder
-    import re
 
     slug = (
         re.sub(r"[^a-zA-Z0-9]+", "_", request.node.name).strip("_")
