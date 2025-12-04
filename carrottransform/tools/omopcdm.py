@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import carrottransform.tools as tools
+from carrottransform import require
 from carrottransform.tools.logger import logger_setup
 
 logger = logger_setup()
@@ -17,6 +18,8 @@ class OmopCDM:
     """
 
     def __init__(self, omopddl, omopcfg):
+        require(omopddl is not None, "omopddl must not be null")
+
         self.numeric_types = ["integer", "numeric"]
         self.datetime_types = ["timestamp"]
         self.date_types = ["date"]

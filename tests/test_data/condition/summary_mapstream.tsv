@@ -1,0 +1,30 @@
+dsname	source	source_field	target	concept_id	additional	incount	invalid_persid	invalid_date	invalid_source	outcount
+sfddsaasdgfsd	all	all	all	4031244		0	0	0	0	1
+sfddsaasdgfsd	all	all	all	4031867		0	0	0	0	3
+sfddsaasdgfsd	all	all	all	4227224		0	0	0	0	4
+sfddsaasdgfsd	all	all	all	4240068		0	0	0	0	1
+sfddsaasdgfsd	all	all	condition_occurrence	4227224		0	0	0	0	4
+sfddsaasdgfsd	all	all	condition_occurrence	all		0	0	0	0	4
+sfddsaasdgfsd	all	all	observation	4031244		0	0	0	0	1
+sfddsaasdgfsd	all	all	observation	4031867		0	0	0	0	3
+sfddsaasdgfsd	all	all	observation	4240068		0	0	0	0	1
+sfddsaasdgfsd	all	all	observation	all		0	0	0	0	5
+sfddsaasdgfsd	all	all	person	all		0	0	0	0	4
+sfddsaasdgfsd	persons	all	all	all		4	0	0	0	4
+sfddsaasdgfsd	persons	all	person	8507		0	0	0	0	2
+sfddsaasdgfsd	persons	all	person	8507	1999	0	0	0	0	1
+sfddsaasdgfsd	persons	all	person	8507	2001	0	0	0	0	1
+sfddsaasdgfsd	persons	all	person	8532		0	0	0	0	2
+sfddsaasdgfsd	persons	all	person	8532	2001	0	0	0	0	2
+sfddsaasdgfsd	persons	all	person	all		0	0	0	0	4
+sfddsaasdgfsd	scans	all	all	all		7	0	0	0	9
+sfddsaasdgfsd	scans	all	condition_occurrence	4227224		0	0	0	0	4
+sfddsaasdgfsd	scans	all	condition_occurrence	all		0	0	0	0	4
+sfddsaasdgfsd	scans	all	observation	4031244		0	0	0	0	1
+sfddsaasdgfsd	scans	all	observation	4031867		0	0	0	0	3
+sfddsaasdgfsd	scans	all	observation	4240068		0	0	0	0	1
+sfddsaasdgfsd	scans	all	observation	all		0	0	0	0	5
+sfddsaasdgfsd	scans	clock	condition_occurrence	4227224		0	0	0	0	4
+sfddsaasdgfsd	scans	clock	observation	4031244		0	0	0	0	1
+sfddsaasdgfsd	scans	clock	observation	4031867		0	0	0	0	3
+sfddsaasdgfsd	scans	clock	observation	4240068		0	0	0	0	1
