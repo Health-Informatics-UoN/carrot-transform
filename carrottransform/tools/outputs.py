@@ -4,9 +4,9 @@ this file contains several "output target" classes. each class is used to write 
 
 import io
 import logging
-import re
 from enum import IntEnum
 from pathlib import Path
+import re
 
 import boto3
 import click

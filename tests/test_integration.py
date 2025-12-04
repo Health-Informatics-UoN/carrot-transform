@@ -20,6 +20,7 @@ import tests.testools as testools
 from carrottransform import require
 from carrottransform.cli.subcommands.run import mapstream
 from tests import conftest
+from carrottransform.cli.subcommands.run import mapstream
 
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
@@ -145,7 +146,6 @@ def body_of_test(
 
     # generat a semi-random slug/name to group test data under
     # the files we read/write to s3 will appear in this folder
-    import re
 
     slug = (
         re.sub(r"[^a-zA-Z0-9]+", "_", request.node.name).strip("_")
