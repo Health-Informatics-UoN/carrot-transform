@@ -73,7 +73,11 @@ v1TestCases = list(
             "condition/persons.csv",
         ],
     )
-)
+) + [
+    testools.CarrotTestCase(
+        "only_m/patients.csv", str(test_data / "only_m/v1-rules.json"), "/v1-out"
+    ),
+]
 
 pass__arg_names = [
     "inputs",
