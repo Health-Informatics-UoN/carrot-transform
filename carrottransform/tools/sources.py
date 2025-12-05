@@ -58,10 +58,9 @@ class SourceObjectArgumentType(click.ParamType):
 
     def convert(self, value: str, param, ctx):
         value = str(value)
-        if value.startswith("s3:"):
-            return s3_source_object(
-                value, "\t"
-            )  # TODO; do something else with the separators
+        if value.startswith("minio:"):
+            # TODO; do something else with the separators
+            return minio_source_object(value, "\t")
 
         if value.startswith(
             "sqlite:"

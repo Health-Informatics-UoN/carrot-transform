@@ -20,10 +20,6 @@ logger = logging.getLogger(__name__)
 project_root: Path = Path(__file__).parent.parent
 package_root: Path = project_root / "carrottransform"
 
-# this reffers to an s3 bucket tied to the system-level credentials
-# we're going to move ot MinIO at some point
-CARROT_TEST_BUCKET = "carrot-transform-test"
-
 #### ==========================================================================
 ## unit test cases - test the test functions
 
@@ -119,10 +115,6 @@ def keyed_variations(**kv):
         yield dict(zip(keys, values))
 
 
-#### ==========================================================================
-## utility functions
-
-
 def variations(keys):
     """
     computes key -> bool dicts where all, none, or only one value is true or false, then, maps those dicts to simple lists
@@ -213,6 +205,10 @@ def zip_loop(*arguments: list[dict]):
 
         # yield this row before we continue
         yield row
+
+#### ==========================================================================
+## utility functions
+
 
 
 def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names=None):
@@ -358,46 +354,3 @@ def passed_as(pass_as, *args):
 
     return (env, args)
 
-
-def delete_s3_folder(coordinate):
-    """
-    Delete a folder and all its contents from an S3 bucket.
-
-    Args:
-        bucket (str): Name of the S3 bucket
-        folder (str): Folder path to delete (e.g., 'my-folder/' or 'prefix/subfolder/')
-    """
-
-    [bucket, folder] = outputs.s3_bucket_folder(coordinate)
-
-    client = boto3.client("s3")
-
-    # Ensure the folder path ends with a slash
-    if not folder.endswith("/"):
-        folder = folder + "/"
-
-    # List all objects in the folder
-    paginator = client.get_paginator("list_objects_v2")
-    pages = paginator.paginate(Bucket=bucket, Prefix=folder)
-
-    # Collect all objects to delete
-    objects_to_delete = []
-    for page in pages:
-        if "Contents" in page:
-            for obj in page["Contents"]:
-                objects_to_delete.append({"Key": obj["Key"]})
-
-    if not objects_to_delete:
-        logger.info(f"No objects found in folder '{folder}'")
-        return
-
-    # Delete all objects in batches of 1000 (S3 API limit)
-    for i in range(0, len(objects_to_delete), 1000):
-        batch = objects_to_delete[i : i + 1000]
-        response = client.delete_objects(Bucket=bucket, Delete={"Objects": batch})
-
-        # Check for errors in deletion
-        if "Errors" in response and response["Errors"]:
-            logger.info(f"Errors deleting some objects: {response['Errors']}")
-
-    logger.info(f"Successfully deleted folder '{folder}' and its contents")

@@ -87,7 +87,6 @@ pass__arg_names = [
 
 
 connection_types = [Connection.CSV, Connection.SQLITE]
-connection_types_w_s3 = connection_types + [Connection.MINIO]
 
 
 def generate_cases(types: list[Connection]):
@@ -103,19 +102,20 @@ def generate_cases(types: list[Connection]):
 
 
 @pytest.mark.parametrize(
-    "output_to, test_case, input_from, pass_as", generate_cases(connection_types_w_s3)
+    "output_to, test_case, input_from, pass_as", generate_cases(connection_types + [Connection.MINIO])
 )
-@pytest.mark.s3tests
-def test_function_w_s3(
+@pytest.mark.docker
+def test_function_minio(
     request,
     tmp_path: Path,
     output_to: Connection,
     test_case,
     input_from: Connection,
     pass_as,
+    minio,
 ):
     """dumb wrapper to make the s3 tests run as well as the integration tests"""
-    body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
+    body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as, minio= minio)
 
 
 @pytest.mark.parametrize(
@@ -163,17 +163,13 @@ def body_of_test(
         case Connection.CSV:
             inputs = str(test_case._folder).replace("\\", "/")
         case Connection.MINIO:
-            raise Exception(f"minio test; {minio=}")
+            
+            # create the connection string
+            inputs = minio.connection
 
-            # # create a random minio subfolder
-            # inputs = "minio:/" + slug + "/input"
-
-            # # set a task to delete the subfolder on exit
-            # request.addfinalizer(lambda: testools.delete_s3_folder(inputs))
-
-            # # copy data into the thing
-            # outputTarget = outputs.s3_output_target(inputs)
-            # testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
+            # copy data into the thing
+            outputTarget = outputs.minio_output_target(inputs)
+            testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
     assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
 
     # set the output
@@ -184,12 +180,9 @@ def body_of_test(
         case Connection.CSV:
             output = str((tmp_path / "out").absolute())
         case Connection.MINIO:
-            raise Exception(f"minio test; {minio=}")
-            # create a random s3 subfolder
-            output = output_to + "/" + slug + "/output"
 
-            # set a task to delete the subfolder on exit
-            request.addfinalizer(lambda: testools.delete_s3_folder(output))
+            # just connect to it
+            output = minio.connection
 
     assert output is not None, f"couldn't use {output_to=}"  # check output was set
 
@@ -226,8 +219,7 @@ def body_of_test(
         case Connection.SQLITE:
             results = sources.sql_source_object(sqlalchemy.create_engine(output))
         case Connection.MINIO:
-            raise Exception(f"minio test; {minio=}")
-            # results = sources.s3_source_object(output, sep="\t")
+            results = sources.minio_source_object(output, sep="\t")
 
     assert results is not None  # check output was set
 

@@ -1,28 +1,11 @@
-import io
 import logging
-import os
 import random
-import shutil
-import string
-import subprocess
-import textwrap
-import time
-from dataclasses import dataclass
 from pathlib import Path
-
-import boto3
-import docker
+from tests import conftest
 import pytest
-import sqlalchemy
-from click.testing import CliRunner
-from sqlalchemy import Column, MetaData, Table, Text, create_engine, insert, text
-from sqlalchemy.orm import sessionmaker
 
-import tests.csvrow as csvrow
 import tests.testools as testools
-from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
-from tests.testools import package_root
 
 #
 logger = logging.getLogger(__name__)
@@ -51,8 +34,6 @@ def test_protocol_parser():
 @pytest.mark.docker
 def test_targetWriter_minio(minio, tmp_path: Path):
     heights = Path(__file__).parent / "test_data/measure_weight_height/heights.csv"
-    persons = Path(__file__).parent / "test_data/measure_weight_height/persons.csv"
-    weights = Path(__file__).parent / "test_data/measure_weight_height/weights.csv"
 
     # connect to Minio
     outputTarget = outputs.minio_output_target(minio.connection)
@@ -91,3 +72,37 @@ def test_targetWriter_minio(minio, tmp_path: Path):
         sources.minio_source_object(minio.connection, "\t"),
         ["heights", "persons", "weights"],
     )
+
+
+@pytest.mark.docker
+def test_connection_parsing(minio: conftest.MinIOBucket):
+    """quick check of the connection parsing thing"""
+
+    conn = minio.connection
+
+    check = outputs.MinioURL(conn)
+
+    assert minio.config.username == check._user
+    assert minio.config.password == check._pass
+    assert "http" == check._protocol
+    assert minio.config.docker_ip == check._host
+    assert minio.config.server_port == check._port
+    assert minio.name == check._bucket
+    assert "" == check._folder
+
+    assert not conn.endswith("/")
+
+    folder = f"some{testools.rand_hex()}folder/"
+    conn += f"/{folder}"
+
+    conn = conn.replace("http://", "https://")
+
+    check = outputs.MinioURL(conn)
+
+    assert minio.config.username == check._user
+    assert minio.config.password == check._pass
+    assert "https" == check._protocol
+    assert minio.config.docker_ip == check._host
+    assert minio.config.server_port == check._port
+    assert minio.name == check._bucket
+    assert folder == check._folder

@@ -61,8 +61,7 @@ build-backend = "hatchling.build"
 markers = [
     "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
     "integration: marks integration tests",
-    "docker: marks tests to run against the docker container",
-    "s3tests: marks tests that require s3 credentials and quotas",
+    "docker: marks tests to run against docker containers",
 ]
 
 # not all platforms have docker and s3 creds, so, don't run the docker tests by default
