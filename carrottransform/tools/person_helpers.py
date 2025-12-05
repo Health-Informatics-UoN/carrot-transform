@@ -7,7 +7,6 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.schema import MetaData, Table
 from sqlalchemy.sql.expression import select
 
-import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
@@ -36,13 +35,7 @@ def load_person_ids_v2_inject(
     person_ids = {}
     person_number = 1
 
-    saved_person_id_file: Path | None  # self.output_dir / "person_ids.tsv"
-    person_file: Path | None = None
-    person_table_name: str | None = None
     use_input_person_ids: str = "N"
-    delim: str = ","
-    db_connection: Optional[Connection] = None
-    schema: Optional[str] = None
 
     #
     # so now ... load all existing persons?

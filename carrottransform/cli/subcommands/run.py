@@ -4,7 +4,6 @@ import time
 from pathlib import Path
 
 import click
-from sqlalchemy.engine import Engine
 
 import carrottransform.tools as tools
 import carrottransform.tools.args as args
@@ -12,10 +11,8 @@ import carrottransform.tools.sources as sources
 from carrottransform import require
 from carrottransform.tools import outputs
 from carrottransform.tools.args import (
-    AlchemyConnectionArg,
     OnlyOnePersonInputAllowed,
     PathArg,
-    PatternStringParamType,
     person_rules_check,
     remove_csv_extension,
 )
@@ -24,9 +21,6 @@ from carrottransform.tools.args import (
 )
 from carrottransform.tools.core import get_target_records
 from carrottransform.tools.date_helpers import normalise_to8601
-from carrottransform.tools.file_helpers import (
-    check_dir_isvalid,
-)
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
@@ -39,7 +33,7 @@ from carrottransform.tools.person_helpers import (
 )
 from carrottransform.tools.record_builder import RecordBuilderFactory
 from carrottransform.tools.stream_helpers import StreamingLookupCache
-from carrottransform.tools.types import ProcessingResult, RecordContext
+from carrottransform.tools.types import RecordContext
 
 logger = logger_setup()
 
@@ -385,7 +379,6 @@ def div2(
     omop_ddl_file: None | Path,
     omop_version: None | str,
 ):
-    write_mode = "w"
     require(
         not person.endswith(".csv"),
         "don't call the person table .csv - just use the name",
@@ -655,7 +648,7 @@ def div2(
                 data_summary.write(row)
 
         require(data_summary is not None)
-        assert(data_summary is not None)
+        assert data_summary is not None
         data_summary.close()
 
         # close/flush these because we need the files on-disk for unit test valiation
@@ -667,7 +660,6 @@ def div2(
         )
 
     except Exception as e:
-        import logging
         import traceback
 
         # Get the full stack trace as a string

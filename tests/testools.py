@@ -1,8 +1,7 @@
-import itertools
 import logging
 from itertools import product
 from pathlib import Path
-from typing import Generator, Iterable
+from typing import Iterable
 
 import boto3
 import pytest
@@ -11,6 +10,7 @@ from click.testing import CliRunner
 
 from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
+from carrottransform.tools.args import PathArg
 
 #
 logger = logging.getLogger(__name__)
@@ -53,8 +53,6 @@ def compare_to_tsvs(subpath: str, actual: sources.SourceObject) -> None:
     if the SO has .tsv files we don't ... pass ...
 
     """
-
-    from carrottransform.tools.args import PathArg
 
     test: Path
     if subpath.startswith("@carrot"):
@@ -200,23 +198,23 @@ def permutations(**name_to_list):
         yield item
 
 
-def zip_loop(*ar: list[dict]):
+def zip_loop(*arguments: list[dict]):
     # convert them all to lists so that they're "stable"
-    args = list(list(a) for a in ar)
+    args_as_lists = list(list(arg) for arg in arguments)
 
     # find the longest length
-    max_length = max(len(a) for a in args)
+    max_length = max(len(arg_list) for arg_list in args_as_lists)
 
-    def loop(a):
-        """loops through a collection forever"""
+    def loop(arg_list):
+        """loops through an arg_list forever"""
         while True:
-            for i in a:
-                yield i
+            for item in arg_list:
+                yield item
 
     # turn them all into forever loops
-    loopers = [loop(a) for a in args]
+    args_loops = [loop(arg) for arg in args_as_lists]
 
-    # now build "rows" from each
+    # now build "rows" from each. keep going until we've built "count" rows and hit everything in each arg_list
     count = 0
     while count < max_length:
         count += 1
@@ -225,8 +223,8 @@ def zip_loop(*ar: list[dict]):
         row: dict = {}
 
         # each of those inputs will contribute some {k:v} so we union them togehter
-        for c in loopers:
-            row = row | next(c).copy()
+        for arg_loop in args_loops:
+            row = row | next(arg_loop).copy()
 
         # yield this row before we continue
         yield row
@@ -346,32 +344,30 @@ class CarrotTestCase:
         compare_to_tsvs(self._label + self._suffix, source)
 
 
-###
-
-
 ##
 # build the env and arg parameters
 def passed_as(pass_as, *args):
     args = list(args)
 
     env = {}
-    i = 0
+    i = 0  # index in the args list
 
     while i < len(args):
-        k = args[i][2:]
+        # parameters should all be of the form "--name" with "value" afterwards in the array
+        parameter_key = args[i][2:]
 
-        if k not in pass_as:
+        if parameter_key not in pass_as:
             i += 2
             continue
 
-        # conver the key
-        k = k.upper().replace("-", "_")
+        # convert the key
+        parameter_key = parameter_key.upper().replace("-", "_")
 
         # get the value
-        v = args[i + 1]
+        parameter_value = args[i + 1]
 
         # save it to the evn vars
-        env[k] = v
+        env[parameter_key] = parameter_value
 
         # demove the key and value from teh list
         args = args[:i] + args[(i + 2) :]
