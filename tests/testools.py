@@ -1,10 +1,8 @@
-import itertools
 import logging
 from itertools import product
 from pathlib import Path
-from typing import Generator, Iterable
+from typing import Iterable
 
-import boto3
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
@@ -206,9 +204,9 @@ def zip_loop(*arguments: list[dict]):
         # yield this row before we continue
         yield row
 
+
 #### ==========================================================================
 ## utility functions
-
 
 
 def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names=None):
@@ -353,4 +351,3 @@ def passed_as(pass_as, *args):
         args = args[:i] + args[(i + 2) :]
 
     return (env, args)
-

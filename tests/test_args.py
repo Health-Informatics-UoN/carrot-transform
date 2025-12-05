@@ -11,7 +11,6 @@ from carrottransform.tools.args import (
     object_query,
     person_rules_check,
 )
-from tests.testools import package_root, project_root
 
 
 @pytest.mark.parametrize(

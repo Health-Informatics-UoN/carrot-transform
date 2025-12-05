@@ -1,11 +1,12 @@
 import logging
 import random
 from pathlib import Path
-from tests import conftest
+
 import pytest
 
 import tests.testools as testools
 from carrottransform.tools import outputs, sources
+from tests import conftest
 
 #
 logger = logging.getLogger(__name__)

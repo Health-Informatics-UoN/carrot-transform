@@ -11,12 +11,8 @@ from pathlib import Path
 
 import pytest
 import sqlalchemy
-from click.testing import CliRunner
 
-import tests.testools as testools
-from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
-from tests.testools import package_root
 
 logger = logging.getLogger(__name__)
 
@@ -181,4 +177,3 @@ def test_join():
     header = ["a", "b", "c"]
 
     assert "a\tb\tc\n" == ("\t".join(header) + "\n")
-

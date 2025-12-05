@@ -1,25 +1,13 @@
 import logging
-import random
-import textwrap
 import time
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Generator, Iterable
+from typing import Iterable
 
 import boto3
 import docker
 import pytest
 import requests
-import sqlalchemy
-from botocore import client
-from click.testing import CliRunner
-from minio import Minio
-from minio.error import S3Error
-from sqlalchemy import create_engine, text
 
-import carrottransform.tools.sources as sources
-from carrottransform.cli.subcommands.run import mapstream
-from carrottransform.tools import outputs
 from tests import testools
 
 #
@@ -98,7 +86,7 @@ def minio_config(docker_ip) -> Iterable[MinIOContainer]:
             if response.status_code == 200:
                 log_info("found ready endpoint")
                 break
-        except:
+        except requests.exceptions.RequestException:
             time.sleep(STARTUP_SLEEP)
     else:
         # don't bother stopping the contianer if it didn't start

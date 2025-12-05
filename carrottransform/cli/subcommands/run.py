@@ -4,25 +4,19 @@ import time
 from pathlib import Path
 
 import click
-from sqlalchemy.engine import Engine
 
 import carrottransform.tools as tools
+import carrottransform.tools.args as args
 import carrottransform.tools.sources as sources
-from carrottransform import require
 from carrottransform.tools import outputs
 from carrottransform.tools.args import (
-    AlchemyConnectionArg,
     OnlyOnePersonInputAllowed,
     PathArg,
-    PatternStringParamType,
     person_rules_check,
     remove_csv_extension,
 )
 from carrottransform.tools.core import get_target_records
 from carrottransform.tools.date_helpers import normalise_to8601
-from carrottransform.tools.file_helpers import (
-    check_dir_isvalid,
-)
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.person_helpers import (
     load_last_used_ids,
@@ -30,8 +24,6 @@ from carrottransform.tools.person_helpers import (
 )
 
 logger = logger_setup()
-
-import carrottransform.tools.args as args
 
 
 @click.command()

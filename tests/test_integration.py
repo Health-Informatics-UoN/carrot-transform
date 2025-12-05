@@ -8,19 +8,15 @@ import re
 from enum import Enum
 from pathlib import Path
 
-import boto3
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
 
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
-import tests.csvrow as csvrow
 import tests.testools as testools
-from carrottransform import require
 from carrottransform.cli.subcommands.run import mapstream
 from tests import conftest
-from carrottransform.cli.subcommands.run import mapstream
 
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
@@ -102,7 +98,8 @@ def generate_cases(types: list[Connection]):
 
 
 @pytest.mark.parametrize(
-    "output_to, test_case, input_from, pass_as", generate_cases(connection_types + [Connection.MINIO])
+    "output_to, test_case, input_from, pass_as",
+    generate_cases(connection_types + [Connection.MINIO]),
 )
 @pytest.mark.docker
 def test_function_minio(
@@ -115,7 +112,9 @@ def test_function_minio(
     minio,
 ):
     """dumb wrapper to make the s3 tests run as well as the integration tests"""
-    body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as, minio= minio)
+    body_of_test(
+        request, tmp_path, output_to, test_case, input_from, pass_as, minio=minio
+    )
 
 
 @pytest.mark.parametrize(
@@ -163,7 +162,7 @@ def body_of_test(
         case Connection.CSV:
             inputs = str(test_case._folder).replace("\\", "/")
         case Connection.MINIO:
-            
+            assert minio is not None
             # create the connection string
             inputs = minio.connection
 
@@ -180,7 +179,7 @@ def body_of_test(
         case Connection.CSV:
             output = str((tmp_path / "out").absolute())
         case Connection.MINIO:
-
+            assert minio is not None
             # just connect to it
             output = minio.connection
 
