@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from itertools import product
 from pathlib import Path
 from typing import Generator, Iterable
-import random
+
 import boto3
 import docker
 import pytest
@@ -15,14 +15,6 @@ from click.testing import CliRunner
 from sqlalchemy import create_engine
 
 import carrottransform.tools.sources as sources
-from carrottransform.cli.subcommands.run import mapstream
-from carrottransform.tools import outputs, sources
-from carrottransform.tools.args import PathArg
-from carrottransform.tools import outputs
-import pytest
-import sqlalchemy
-from click.testing import CliRunner
-
 from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
 from carrottransform.tools.args import PathArg
@@ -342,46 +334,6 @@ def rand_hex(length: int = 16) -> str:
 test_data = Path(__file__).parent / "test_data"
 
 
-class CarrotTestCase:
-    """defines an integration test case in terms of the person file, and the optional mapper rules"""
-
-    def __init__(self, person_name: str, mapper: str = "", suffix=""):
-        self._suffix = suffix
-        self._person_name = person_name
-
-        self._folder = (test_data / person_name).parent
-
-        # find the rules mapping
-        if mapper == "":
-            for json in self._folder.glob("*.json"):
-                assert "" == mapper
-                mapper = str(json).replace("\\", "/")
-        assert "" != mapper
-        self._mapper = mapper
-
-        assert 1 == person_name.count("/")
-        [label, person] = person_name.split("/")
-        self._label = label
-        assert person.endswith(".csv")
-        self._person = person[:-4]
-
-    def load_sqlite(self, tmp_path: Path):
-        assert tmp_path.is_dir()
-
-        # create an SQLite database and copy the contents into it
-        sqlite3 = tmp_path / f"{self._label}.sqlite3"
-        copy_across(
-            ot=outputs.sql_output_target(
-                sqlalchemy.create_engine(f"sqlite:///{sqlite3.absolute()}")
-            ),
-            so=self._folder,
-        )
-        return f"sqlite:///{sqlite3.absolute()}"
-
-    def compare_to_tsvs(self, source, suffix=""):
-        compare_to_tsvs(self._label + self._suffix, source)
-
-
 ##
 # build the env and arg parameters
 def passed_as(pass_as, *args):
@@ -459,33 +411,3 @@ def delete_s3_folder(coordinate):
 
 #### ==========================================================================
 ##  functions specific to tests
-
-
-##
-# build the env and arg parameters
-def passed_as(pass_as, *args):
-    args = list(args)
-
-    env = {}
-    i = 0
-
-    while i < len(args):
-        k = args[i][2:]
-
-        if k not in pass_as:
-            i += 2
-            continue
-
-        # conver the key
-        k = k.upper().replace("-", "_")
-
-        # get the value
-        v = args[i + 1]
-
-        # save it to the evn vars
-        env[k] = v
-
-        # demove the key and value from teh list
-        args = args[:i] + args[(i + 2) :]
-
-    return (env, args)
