@@ -9,7 +9,7 @@ import pytest
 from click.testing import CliRunner
 
 from carrottransform.cli.subcommands.run import mapstream
-from tests.testools import package_root, project_root
+from tests.testools import package_root
 
 
 @pytest.mark.integration

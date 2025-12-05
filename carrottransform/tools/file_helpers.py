@@ -1,9 +1,8 @@
-import importlib.resources as resources
 import json
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, TextIO, Tuple, cast
+from typing import Dict, List, TextIO, Tuple, cast
 
 from carrottransform.tools.omopcdm import OmopCDM
 

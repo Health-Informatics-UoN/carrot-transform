@@ -1,17 +1,11 @@
-import re
 from pathlib import Path
 
 import pytest
 import sqlalchemy
-from click.testing import CliRunner
-from sqlalchemy import Column, MetaData, Table, Text
 
-import carrottransform.cli.subcommands.run as run
-import tests.csvrow as csvrow
 import tests.testools as testools
-from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
-from tests.testools import package_root, project_root
+from tests.testools import package_root
 
 
 @pytest.mark.unit

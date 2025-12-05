@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 import tests.csvrow as csvrow
-from tests.testools import package_root, project_root
+from tests.testools import project_root
 
 
 class DockerImage:
