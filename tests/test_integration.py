@@ -7,6 +7,7 @@ import logging
 import re
 from pathlib import Path
 
+import boto3
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
@@ -14,6 +15,7 @@ from click.testing import CliRunner
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
 import tests.conftest as conftest
+import tests.csvrow as csvrow
 import tests.testools as testools
 from carrottransform.cli.subcommands.run import mapstream
 
@@ -190,7 +192,6 @@ def body_of_test(
     output: None | str = None
     if "csv" == output_to:
         output = str((tmp_path / "out").absolute())
-
     if "sqlite" == output_to:
         output = f"sqlite:///{(tmp_path / 'output.sqlite3').absolute()}"
 

@@ -3,9 +3,10 @@ import logging
 import random
 import time
 from dataclasses import dataclass
+from itertools import product
 from pathlib import Path
 from typing import Generator, Iterable
-
+import random
 import boto3
 import docker
 import pytest
@@ -18,6 +19,13 @@ from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
 from carrottransform.tools.args import PathArg
 from carrottransform.tools import outputs
+import pytest
+import sqlalchemy
+from click.testing import CliRunner
+
+from carrottransform.cli.subcommands.run import mapstream
+from carrottransform.tools import outputs, sources
+from carrottransform.tools.args import PathArg
 
 #
 logger = logging.getLogger(__name__)
