@@ -69,9 +69,14 @@ test_cases += [
         entry=div2,
         mapper=str(Path(__file__).parent / "test_V2/rules-v2.json"),
         suffix="/v2-out",
-    )
+    ),
+    testools.CarrotTestCase(
+        "only_m/patients.csv",
+        entry=mapstream,
+        mapper=str(test_data / "only_m/v1-rules.json"),
+        suffix="/v1-out",
+    ),
 ]
-test_cases = list(test_cases)
 
 pass__arg_names = [
     "inputs",
@@ -83,28 +88,25 @@ pass__arg_names = [
 
 
 connection_types = ["csv", "sqlite"]
-types_with_s3 = connection_types + [f"s3:{testools.CARROT_TEST_BUCKET}"]
+connection_types_w_s3 = connection_types + [f"s3:{testools.CARROT_TEST_BUCKET}"]
 
 
-def generate_cases(types):
+def generate_cases(with_s3: bool):
+    types = connection_types_w_s3 if with_s3 else connection_types
+
     perts = testools.permutations(
         input_from=types, test_case=test_cases, output_to=types
     )
-
     varts = list(map(lambda v: {"pass_as": v}, testools.variations(pass__arg_names)))
 
-    # produce a list as long as the longest of these two, and, loop the shortest of them
-    all_items = list(testools.zip_loop(perts, varts))
-
-    # the list entries will be dict[] - break that up into a tuple
     return [
         (case["output_to"], case["test_case"], case["input_from"], case["pass_as"])
-        for case in all_items
+        for case in testools.zip_loop(perts, varts)
     ]
 
 
 @pytest.mark.parametrize(
-    "output_to, test_case, input_from, pass_as", generate_cases(types_with_s3)
+    "output_to, test_case, input_from, pass_as", generate_cases(True)
 )
 @pytest.mark.s3tests
 def test_function_w_s3(
@@ -115,26 +117,18 @@ def test_function_w_s3(
 
 
 @pytest.mark.parametrize(
-    "output_to, test_case, input_from, pass_as", generate_cases(connection_types)
+    "output_to, test_case, input_from, pass_as", generate_cases(False)
 )
 @pytest.mark.integration
 def test_function(request, tmp_path: Path, output_to, test_case, input_from, pass_as):
     body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
 
 
-def body_of_test(
-    request,
-    tmp_path: Path,
-    output_to,
-    test_case: testools.CarrotTestCase,
-    input_from,
-    pass_as,
-):
+def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass_as):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
 
     # generat a semi-random slug/name to group test data under
     # the files we read/write to s3 will appear in this folder
-    import re
 
     slug = (
         re.sub(r"[^a-zA-Z0-9]+", "_", request.node.name).strip("_")

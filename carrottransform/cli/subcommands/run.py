@@ -43,6 +43,8 @@ from carrottransform.tools.types import ProcessingResult, RecordContext
 
 logger = logger_setup()
 
+import carrottransform.tools.args as args
+
 
 @click.command()
 @args.common
@@ -655,7 +657,7 @@ def div2(
                 data_summary.write(row)
 
         require(data_summary is not None)
-        assert(data_summary is not None)
+        assert data_summary is not None
         data_summary.close()
 
         # close/flush these because we need the files on-disk for unit test valiation

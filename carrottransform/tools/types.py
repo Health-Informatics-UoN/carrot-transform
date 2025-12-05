@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, TextIO, Mapping
+from typing import Dict, List, Mapping, Optional, TextIO
 
 from sqlalchemy.engine import Connection
 
