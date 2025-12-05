@@ -4,14 +4,10 @@ from unittest.mock import patch
 
 import pytest
 
-import carrottransform.cli.subcommands.run as run
 import carrottransform.tools.sources as sources
 from carrottransform.tools.person_helpers import _get_person_lookup
 
 logger = logging.getLogger(__name__)
-
-
-
 
 
 ### check_files_in_rules_exist(rules_input_files, existing_input_files):

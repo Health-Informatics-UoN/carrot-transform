@@ -85,11 +85,11 @@ def test_connection_parsing(minio: conftest.MinIOBucket):
 
     assert minio.config.username == check._user
     assert minio.config.password == check._pass
-    assert "http" == check._protocol
+    assert check._protocol == "http"
     assert minio.config.docker_ip == check._host
     assert minio.config.server_port == check._port
     assert minio.name == check._bucket
-    assert "" == check._folder
+    assert check._folder == ""
 
     assert not conn.endswith("/")
 
@@ -102,7 +102,7 @@ def test_connection_parsing(minio: conftest.MinIOBucket):
 
     assert minio.config.username == check._user
     assert minio.config.password == check._pass
-    assert "https" == check._protocol
+    assert check._protocol == "https"
     assert minio.config.docker_ip == check._host
     assert minio.config.server_port == check._port
     assert minio.name == check._bucket
