@@ -403,6 +403,9 @@ def div2(
     assert omop_ddl_file is not None, "omopddl/omop_ddl_file musn't be null"
     require(omop_ddl_file.is_file())
 
+    # fixes it
+    RecordBuilderFactory.clear_person_cache()
+
     try:
         # try to open the persons
         inputs.open(person)
