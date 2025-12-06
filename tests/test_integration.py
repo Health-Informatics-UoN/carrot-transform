@@ -88,7 +88,6 @@ pass__arg_names = [
 connection_types = ["csv", "sqlite"]
 connection_types_w_s3 = connection_types + [f"s3:{testools.CARROT_TEST_BUCKET}"]
 
-
 def generate_cases(with_s3: bool):
     types = connection_types_w_s3 if with_s3 else connection_types
 
@@ -212,6 +211,41 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
     except:
         logger.error(f"{tmp_path=}")
         raise
+
+@pytest.mark.docker
+def test_v2(
+    request, tmp_path: Path
+):
+    output_to = 'csv'
+    input_from = 'sqlite'
+
+    test_case = testools.CarrotTestCase(
+        "integration_test1/src_PERSON.csv",
+        entry=div2,
+        mapper=str(Path(__file__).parent / "test_V2/rules-v2.json"),
+        suffix="/v2-out",
+    )
+    
+    pass_as = []
+    body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
+
+@pytest.mark.docker
+def test_v21(
+    request, tmp_path: Path
+):
+    output_to = 'csv'
+    input_from = 'sqlite'
+
+    test_case = testools.CarrotTestCase(
+        "integration_test1/src_PERSON.csv",
+        entry=div2,
+        mapper=str(Path(__file__).parent / "test_V2/rules-v2.json"),
+        suffix="/v2-out",
+    )
+    
+    pass_as = []
+    body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
+
 
 
 @pytest.mark.integration
