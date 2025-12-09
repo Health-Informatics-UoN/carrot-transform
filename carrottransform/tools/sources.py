@@ -4,7 +4,7 @@ import itertools
 import logging
 from pathlib import Path
 from typing import Iterator
-
+import re
 import boto3
 import click
 import sqlalchemy
@@ -57,14 +57,13 @@ class SourceObjectArgumentType(click.ParamType):
 
     def convert(self, value: str, param, ctx):
         value = str(value)
+        
         if value.startswith("s3:"):
             return s3_source_object(
                 value, "\t"
             )  # TODO; do something else with the separators
 
-        if value.startswith(
-            "sqlite:"
-        ):  # TODO; allow other sorts of database connections
+        if re.match(r"[\w]+://.+", value):
             return sql_source_object(sqlalchemy.create_engine(value))
 
         return csv_source_object(Path(value), sep=",")
@@ -74,7 +73,13 @@ class SourceObjectArgumentType(click.ParamType):
 SourceArgument = SourceObjectArgumentType()
 
 
-def sql_source_object(connection: sqlalchemy.engine.Engine) -> SourceObject:
+def sql_source_object(connection: sqlalchemy.engine.Engine | str) -> SourceObject:
+
+    if not isinstance(connection, sqlalchemy.engine.Engine):
+        # if the parameter is not a connection; make it one
+        # ... and fail-fast if it can't be used to open a connection
+        connection = sqlalchemy.create_engine(connection)
+    
     class SO(SourceObject):
         def __init__(self):
             pass

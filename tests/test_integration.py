@@ -220,6 +220,7 @@ def body_of_test(
         testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
 
     elif input_from == Connection.TRINO:
+        raise Exception('need to connect and retain conncetion to avoid deleteion')
         assert trino is not None
         inputs = trino.connection
         outputTarget = outputs.sql_output_target(sqlalchemy.create_engine(inputs))
@@ -243,6 +244,7 @@ def body_of_test(
         request.addfinalizer(lambda: testools.delete_s3_folder(output))
 
     elif output_to == Connection.TRINO:
+        raise Exception('need to connect and retain conncetion to avoid deleteion')
         assert trino is not None
         output = trino.connection
 

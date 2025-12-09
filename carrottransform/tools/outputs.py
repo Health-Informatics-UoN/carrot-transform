@@ -108,8 +108,13 @@ def csv_output_target(into: Path) -> OutputTarget:
     )
 
 
-def sql_output_target(connection: sqlalchemy.engine.Engine) -> OutputTarget:
+def sql_output_target(connection: sqlalchemy.engine.Engine | str) -> OutputTarget:
     """creates an instance of the OutputTarget using the given SQLAlchemy connection"""
+
+    if not isinstance(connection, sqlalchemy.engine.Engine):
+        # if the parameter is not a connection; make it one
+        # ... and fail-fast if it can't be used to open a connection
+        connection = sqlalchemy.create_engine(connection)
 
     def start(name: str, header: list[str]):
         # if you're adapting this to a non-dumb database; probably best to read the DDL or something and check/match the column types
