@@ -8,28 +8,22 @@ import re
 from enum import Enum
 from pathlib import Path
 
+import boto3
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
 
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
+import tests.csvrow as csvrow
 import tests.testools as testools
-from carrottransform import require
 from carrottransform.cli.subcommands.run import mapstream
-from tests.testools import postgres
 from tests.conftest import TrinoSchema
 
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
 
-
-class Connection(Enum):
-    CSV = "csv"
-    SQLITE = "sqlite"
-    S3 = "s3"
-    POSTGRES = "postgresl"
-    TRINO = "trino"
+V1TestCase = testools.CarrotTestCase
 
 
 @pytest.mark.unit  # it's an integration test ... but i need/want one that i can check quickly
@@ -41,7 +35,7 @@ def test_sql_read(tmp_path: Path):
     # this is the paramter
     testing_person_file = "measure_weight_height/persons.csv"
 
-    test_case = testools.CarrotTestCase(testing_person_file)
+    test_case = V1TestCase(testing_person_file)
 
     # run the test sourcing that SQLite database but writing to disk
     input_db = test_case.load_sqlite(tmp_path)
@@ -58,6 +52,25 @@ def test_sql_read(tmp_path: Path):
     test_case.compare_to_tsvs(actual)
 
 
+v1TestCases = list(
+    map(
+        V1TestCase,
+        [
+            "integration_test1/src_PERSON.csv",
+            "floats/src_PERSON.csv",
+            "duplications/src_PERSON.csv",
+            "mapping_person/demos.csv",
+            "observe_smoking/demos.csv",
+            "measure_weight_height/persons.csv",
+            "condition/persons.csv",
+        ],
+    )
+) + [
+    testools.CarrotTestCase(
+        "only_m/patients.csv", str(test_data / "only_m/v1-rules.json"), "/v1-out"
+    ),
+]
+
 pass__arg_names = [
     "inputs",
     "rules-file",
@@ -67,9 +80,17 @@ pass__arg_names = [
 ]
 
 
+class Connection(Enum):
+    CSV = "csv"
+    SQLITE = "sqlite"
+    TRINO = "trino"
+    S3 = "s3"
+
+
 def generate_tests(types: list[Connection], needs: None | list[Connection]):
     parameters = testools.permutations(
-        input_from=types, test_case=list(
+        input_from=types,
+        test_case=list(
             map(
                 testools.CarrotTestCase,
                 [
@@ -82,7 +103,8 @@ def generate_tests(types: list[Connection], needs: None | list[Connection]):
                     "condition/persons.csv",
                 ],
             )
-        ), output_to=types
+        ),
+        output_to=types,
     )
 
     pass_vars_as = list(
@@ -120,19 +142,8 @@ def test_function_w_s3(
     """dumb wrapper to make the s3 tests run as well as the integration tests"""
     body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
 
-
-@pytest.mark.parametrize(
-    "output_to, test_case, input_from, pass_as",
-    generate_tests(
-        [Connection.CSV, Connection.SQLITE, Connection.POSTGRES], [Connection.POSTGRES]
-    ),
-)
-@pytest.mark.docker
-def test_function_postgresql(
-    request, tmp_path: Path, output_to, test_case, input_from, pass_as, postgres
-):
-    """dumb wrapper to make the s3 tests run as well as the integration tests"""
-    body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as, postgres)
+    # generat a semi-random slug/name to group test data under
+    # the files we read/write to s3 will appear in this folder
 
 
 @pytest.mark.parametrize(
@@ -153,7 +164,6 @@ def test_function_trino(
         test_case,
         input_from,
         pass_as,
-        postgres=None,
         trino=trino,
     )
 
@@ -163,14 +173,7 @@ def test_function_trino(
     generate_tests([Connection.CSV, Connection.SQLITE], None),
 )
 @pytest.mark.integration
-def test_function(
-    request,
-    tmp_path: Path,
-    output_to: Connection,
-    test_case,
-    input_from: Connection,
-    pass_as,
-):
+def test_function(request, tmp_path: Path, output_to, test_case, input_from, pass_as):
     body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
 
 
@@ -181,7 +184,6 @@ def body_of_test(
     test_case,
     input_from: Connection,
     pass_as,
-    postgres: testools.PostgreSQLContainer | None = None,
     trino: TrinoSchema | None = None,
 ):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
@@ -199,6 +201,7 @@ def body_of_test(
 
     # set the input
     inputs: None | str = None
+
     if input_from == Connection.CSV:
         inputs = str(test_case._folder).replace("\\", "/")
 
@@ -216,21 +219,13 @@ def body_of_test(
         outputTarget = outputs.s3_output_target(inputs)
         testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
 
-    elif input_from == Connection.POSTGRES:
-        assert postgres is not None
-        inputs = postgres.config.connection
-        outputTarget = outputs.sql_output_target(sqlalchemy.create_engine(inputs))
-        testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
-
     elif input_from == Connection.TRINO:
         assert trino is not None
         inputs = trino.connection
         outputTarget = outputs.sql_output_target(sqlalchemy.create_engine(inputs))
         testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
 
-    else:
-        raise Exception(f"couldn't use {input_from=}")
-    assert inputs is not None
+    assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
 
     # set the output
     output: None | str = None
@@ -247,17 +242,11 @@ def body_of_test(
         # set a task to delete the subfolder on exit
         request.addfinalizer(lambda: testools.delete_s3_folder(output))
 
-    elif output_to == Connection.POSTGRES:
-        assert postgres is not None
-        output = postgres.config.connection
-
     elif output_to == Connection.TRINO:
         assert trino is not None
         output = trino.connection
 
-    else:
-        raise Exception(f"couldn't use {output_to=}")
-    assert output is not None
+    assert output is not None, f"couldn't use {output_to=}"  # check output was set
 
     env, args = testools.passed_as(
         pass_as,
@@ -289,11 +278,7 @@ def body_of_test(
     if output_to == Connection.CSV:
         results = sources.csv_source_object(tmp_path / "out", sep="\t")
 
-    elif (
-        (output_to == Connection.SQLITE)
-        or (output_to == Connection.POSTGRES)
-        or (output_to == Connection.TRINO)
-    ):
+    elif (output_to == Connection.SQLITE) or (output_to == Connection.TRINO):
         results = sources.sql_source_object(sqlalchemy.create_engine(output))
 
     elif output_to == Connection.S3:

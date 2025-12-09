@@ -1,21 +1,17 @@
+import itertools
 import logging
-import random
-import textwrap
-import time
-from dataclasses import dataclass
+from itertools import product
 from pathlib import Path
 from typing import Generator, Iterable
 
 import boto3
-import docker
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
-from sqlalchemy import create_engine, text
 
-import carrottransform.tools.sources as sources
 from carrottransform.cli.subcommands.run import mapstream
-from carrottransform.tools import outputs
+from carrottransform.tools import outputs, sources
+from carrottransform.tools.args import PathArg
 
 #
 logger = logging.getLogger(__name__)
@@ -23,15 +19,10 @@ logger = logging.getLogger(__name__)
 # Get the package root directory
 project_root: Path = Path(__file__).parent.parent
 package_root: Path = project_root / "carrottransform"
-test_data = Path(__file__).parent / "test_data"
 
-# need/want to define the s3 bucket somewhere, so, let's do it here
-CARROT_TEST_BUCKET = "carrot-transform-testtt"
-
-
-STARTUP_TIMEOUT = 60
-STARTUP_SLEEP = 0.2
-
+# this reffers to an s3 bucket tied to the system-level credentials
+# we're going to move ot MinIO at some point
+CARROT_TEST_BUCKET = "carrot-transform-test"
 
 #### ==========================================================================
 ## unit test cases - test the test functions
@@ -64,27 +55,26 @@ def compare_to_tsvs(subpath: str, actual: sources.SourceObject) -> None:
 
     """
 
-    from carrottransform.tools.args import PathArg
-
     test: Path
     if subpath.startswith("@carrot"):
         test = PathArg.convert(subpath, None, None)
     else:
         test = project_root / "tests/test_data" / subpath
 
+    # find all
     items = [
         item.name[:-4]
         for item in test.glob("*.tsv")
         if "summary_mapstream.tsv" != item.name
     ]
 
-    assert "summary_mapstream" not in items
+    assert "person_ids" in items, (
+        "person_id.tsv verification data missing from the test case"
+    )
+    assert "person" in items, "person.tsv verification data missing from the test case"
 
     # open the saved .tsv file
     expect = sources.csv_source_object(test, sep="\t")
-
-    assert "person_ids" in items
-    assert "person" in items
 
     compare_two_sources(expect=expect, actual=actual, items=items)
     # it matches!
@@ -119,7 +109,7 @@ def compare_two_sources(
 
 
 #### ==========================================================================
-## test case generation
+## test case functions
 
 
 def keyed_variations(**kv):
@@ -129,82 +119,87 @@ def keyed_variations(**kv):
         yield dict(zip(keys, values))
 
 
+#### ==========================================================================
+## utility functions
+
+
 def variations(keys):
     """
     computes key -> bool dicts where all, none, or only one value is true or false, then, maps those dicts to simple lists
     """
 
     def permutations(keys):
-        c = len(keys)
-        assert c > 0
-        if c == 1:
+        count = len(keys)
+        assert count > 0
+        if count == 1:
             yield {keys[0]: True}
             yield {keys[0]: False}
         else:
-            k = keys[0]
-            for p in permutations(keys[1:]):
-                p = p.copy()
-                p[k] = True
-                yield p
-                p = p.copy()
-                p[k] = False
-                yield p
+            key = keys[0]
+            for permutation in permutations(keys[1:]):
+                permutation = permutation.copy()
+                permutation[key] = True
+                yield permutation
+                permutation = permutation.copy()
+                permutation[key] = False
+                yield permutation
 
-    for p in permutations(list(keys)):
-        values = list(p.values())
-        tc = values.count(True)
-        fc = values.count(False)
+    for permutation in permutations(list(keys)):
+        values = list(permutation.values())
+        true_count = values.count(True)
+        false_count = values.count(False)
 
-        if (tc in [0, 1]) or (fc in [0, 1]):
-            o = []
-            for k in p:
-                if p[k]:
-                    o += [k]
-            yield o
+        if (true_count in [0, 1]) or (false_count in [0, 1]):
+            output = []
+            for key in permutation:
+                if permutation[key]:
+                    output += [key]
+            yield output
 
 
 def permutations(**name_to_list):
     """given a map of lists; yield all permutations of the contents"""
 
     def loop(listing):
-        c = len(listing)
+        count = len(listing)
 
-        if 0 == c:
+        if count == 0:
             return
 
         head_key, head_items = listing[0]
 
-        if 1 == c:
-            for v in head_items:
-                yield {head_key: v}
+        if count == 1:
+            for value in head_items:
+                yield {head_key: value}
 
             return
 
-        for t in loop(listing[1:]):
+        for tail in loop(listing[1:]):
             for v in head_items:
-                t[head_key] = v
-                yield t.copy()
+                tail[head_key] = v
+                yield tail.copy()
 
-    for i in loop(list(map(lambda k: (k, name_to_list[k]), name_to_list.keys()))):
-        yield i
+    for item in loop(list(map(lambda k: (k, name_to_list[k]), name_to_list.keys()))):
+        yield item
 
 
-def zip_loop(*ar: list[dict]):
+def zip_loop(*arguments: list[dict]):
     # convert them all to lists so that they're "stable"
-    args = list(list(a) for a in ar)
+    args_as_lists = list(list(arg) for arg in arguments)
 
     # find the longest length
-    max_length = max(len(a) for a in args)
+    max_length = max(len(arg_list) for arg_list in args_as_lists)
 
-    def loop(a):
+    def loop(arg_list):
+        """loops through an arg_list forever"""
         while True:
-            for i in a:
-                yield i
+            for item in arg_list:
+                yield item
 
     # turn them all into forever loops
-    loopers = [loop(a) for a in args]
+    args_loops = [loop(arg) for arg in args_as_lists]
 
-    # now build "rows" from each
+    # now build "rows" from each. keep going until we've built "count" rows and hit everything in each arg_list
     count = 0
     while count < max_length:
         count += 1
@@ -213,11 +208,84 @@ def zip_loop(*ar: list[dict]):
         row: dict = {}
 
         # each of those inputs will contribute some {k:v} so we union them togehter
-        for c in loopers:
-            row = row | next(c).copy()
+        for arg_loop in args_loops:
+            row = row | next(arg_loop).copy()
 
         # yield this row before we continue
         yield row
+
+
+def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names=None):
+    assert isinstance(so, Path) == (names is None)
+    if isinstance(so, Path):
+        names = [file.name[:-4] for file in so.glob("*.csv")]
+        so = sources.csv_source_object(path=so, sep=",")
+    assert isinstance(so, sources.SourceObject)
+
+    # copy all named ones across
+    for name in names:
+        input = so.open(name)
+        output = None
+
+        for r in input:
+            if output is None:
+                output = ot.start(name, r)
+            else:
+                output.write(r)
+        # output.close()
+        # input.close()
+
+    #
+    so.close()
+    ot.close()
+
+
+def run_v1(
+    inputs: str,
+    person: str,
+    mapper: str,
+    output: str,
+):
+    ##
+    # run click
+    runner = CliRunner()
+    result = runner.invoke(
+        mapstream,
+        [
+            "--inputs",
+            inputs,
+            "--rules-file",
+            mapper,
+            "--person",
+            person,
+            "--output",
+            output,
+            "--omop-ddl-file",
+            "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
+        ],
+    )
+
+    if result.exception is not None:
+        print(result.exception)
+        raise (result.exception)
+
+    assert 0 == result.exit_code
+
+
+def rand_hex(length: int = 16) -> str:
+    """genearttes a random hex string. used for test data"""
+    import random
+
+    out = ""
+    src = "0123456789abcdef"
+
+    for i in range(0, length):
+        out += src[random.randint(0, len(src) - 1)]
+
+    return out
+
+
+test_data = Path(__file__).parent / "test_data"
 
 
 class CarrotTestCase:
@@ -260,81 +328,35 @@ class CarrotTestCase:
         compare_to_tsvs(self._label + self._suffix, source)
 
 
-#### ==========================================================================
-## utility functions
+##
+# build the env and arg parameters
+def passed_as(pass_as, *args):
+    args = list(args)
 
+    env = {}
+    i = 0  # index in the args list
 
-def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names=None):
-    assert isinstance(so, Path) == (names is None)
-    if isinstance(so, Path):
-        names = [file.name[:-4] for file in so.glob("*.csv")]
-        so = sources.csv_source_object(path=so, sep=",")
-    assert isinstance(so, sources.SourceObject)
+    while i < len(args):
+        # parameters should all be of the form "--name" with "value" afterwards in the array
+        parameter_key = args[i][2:]
 
-    # copy all named ones across
-    for name in names:
-        i = so.open(name)
-        o = None
+        if parameter_key not in pass_as:
+            i += 2
+            continue
 
-        for r in i:
-            v = r
-            r = []
-            for e in v:
-                r.append(e)
-            if o is None:
-                o = ot.start(name, r)
-            else:
-                o.write(r)
-        # o.close()
-        # i.close()
+        # convert the key
+        parameter_key = parameter_key.upper().replace("-", "_")
 
-    #
-    so.close()
-    ot.close()
+        # get the value
+        parameter_value = args[i + 1]
 
+        # save it to the evn vars
+        env[parameter_key] = parameter_value
 
-def run_v1(
-    inputs: str,
-    person: str,
-    mapper: str,
-    output: str,
-):
-    ##
-    # run click
-    runner = CliRunner()
-    result = runner.invoke(
-        mapstream,
-        [
-            "--inputs",
-            inputs,
-            "--rules-file",
-            mapper,
-            "--person",
-            person,
-            "--output",
-            output,
-            "--omop-ddl-file",
-            "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
-        ],
-    )
+        # demove the key and value from teh list
+        args = args[:i] + args[(i + 2) :]
 
-    if result.exception is not None:
-        print(result.exception)
-        raise (result.exception)
-
-    assert 0 == result.exit_code
-
-
-def rand_hex(length: int = 16) -> str:
-    """genearttes a random hex string. used for test data"""
-
-    out = ""
-    src = "0123456789abcdef"
-
-    for i in range(0, length):
-        out += src[random.randint(0, len(src) - 1)]
-
-    return out
+    return (env, args)
 
 
 def delete_s3_folder(coordinate):
@@ -379,111 +401,3 @@ def delete_s3_folder(coordinate):
             logger.info(f"Errors deleting some objects: {response['Errors']}")
 
     logger.info(f"Successfully deleted folder '{folder}' and its contents")
-
-
-#### ==========================================================================
-##  functions specific to tests
-
-
-##
-# build the env and arg parameters
-def passed_as(pass_as, *args):
-    args = list(args)
-
-    env = {}
-    i = 0
-
-    while i < len(args):
-        k = args[i][2:]
-
-        if k not in pass_as:
-            i += 2
-            continue
-
-        # conver the key
-        k = k.upper().replace("-", "_")
-
-        # get the value
-        v = args[i + 1]
-
-        # save it to the evn vars
-        env[k] = v
-
-        # demove the key and value from teh list
-        args = args[:i] + args[(i + 2) :]
-
-    return (env, args)
-
-
-#### ==========================================================================
-## PostgreSQL fixture
-
-
-@dataclass
-class PostgreSQLConfig:
-    """config for a post-gresql connection"""
-
-    docker_name: str
-    db_name: str
-    db_user: str
-    db_pass: str
-    db_port: int
-
-    @property
-    def connection(self) -> str:
-        return f"postgresql://{self.db_user}:{self.db_pass}@localhost:{self.db_port}/{self.db_name}"
-
-
-@dataclass
-class PostgreSQLContainer:
-    """an object used by the fixture to tell a test about their postgres instance"""
-
-    container: docker.models.containers.Container
-    config: PostgreSQLConfig
-
-
-@pytest.fixture(scope="function")
-def postgres(docker_ip) -> Generator[PostgreSQLContainer, None, None]:
-    """Start a PostgreSQL container for tests"""
-
-    config: PostgreSQLConfig = PostgreSQLConfig(
-        docker_name=f"carrot_test_docker_{rand_hex()}",
-        db_name=f"c_test_d_{rand_hex()}",
-        db_user=f"c_test_u_{rand_hex()}",
-        db_pass=f"c_test_p_{rand_hex()}",
-        db_port=5432,  # random.randrange(5200, 5400),
-    )
-
-    client = docker.from_env()
-    client.images.pull("postgres:13")
-    container = client.containers.run(
-        "postgres:13",
-        name=config.docker_name,
-        environment={
-            "POSTGRES_DB": config.db_name,
-            "POSTGRES_USER": config.db_user,
-            "POSTGRES_PASSWORD": config.db_pass,
-        },
-        ports={f"{config.db_port}/tcp": ("127.0.0.1", config.db_port)},
-        detach=True,
-        remove=True,
-    )
-
-    # Wait for PostgreSQL to be ready
-    start_time = time.time()
-    while time.time() - start_time < STARTUP_TIMEOUT:
-        try:
-            engine = create_engine(config.connection)
-            conn = engine.connect()
-            conn.close()
-            break
-        except:
-            time.sleep(STARTUP_SLEEP)
-    else:
-        container.stop()
-        raise Exception("PostgreSQL container failed to start")
-
-    yield PostgreSQLContainer(container=container, config=config)
-
-    # Cleanup
-    container.stop()

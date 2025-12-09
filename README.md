@@ -86,50 +86,7 @@ The person-file parameter and carrot-mapper workflow should still be used, as if
 
 ## Release Procedure 
 
-To release a new version of `carrot-transform` follow these steps: 
-
-### 1. Prepare the repository
-  - First ensure that repository is clean and all required changes have been merged. 
-  - Pull the latest changes from `main` with `git pull origin main`. 
-
-### 2. Create a release branch 
-
-- Now create a new feature branch name `release/v<NEW-VERSION>` (e.g. `release/v0.2.0`). 
-
-### 3. Update the version number 
-- Use poetry to bump the version. For example, for a minor version update invoke: 
-```bash
-poetry version minor 
-```
-- Commit and push the changes (to the release feature branch):
-```bash 
-NEW_VERSION=$(poetry version -s)
-git add pyproject.toml
-git commit -m "Bump version to $NEW_VERSION"
-git push --set-upstream origin release/v$NEW_VERSION
-```
-
-### 4. Create pull request 
-- Open a pull request from `release/v$NEW_VERSION` to `main` and await approval.
-
-### 5. Merge and tag 
-- After approval merge the the feature branch to `main`. 
-- Checkout to `main`, pull updates, and create a tag corresponding to the new version number. 
-```bash 
-git checkout main
-git pull origin main
-git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
-git push origin "$NEW_VERSION"
-```
-
-### 6. Create a release
-
-- We must now link the tag to a release in the GitHub repository. To do this from the command line first install GitHub command line tools `gh` and then invoke: 
-```bash 
-gh release create "$TAG" --title "$TAG" --notes "Release for $VERSION"
-```
-
-- Alternatively, follow the instructions in the [GitHub documentation](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to manually create a release. 
+To release a new version of `carrot-transform` [follow the steps outlined on the documentation website.](https://carrot.ac.uk/transform/development#release) 
 
 ## License
 
