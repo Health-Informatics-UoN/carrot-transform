@@ -201,6 +201,11 @@ def body_of_test(
 
     # set the input
     inputs: None | str = None
+    source_engine: None | sqlalchemy.engine.Engine = (
+        # we need to retain a connection to a trino instance when the catalouge is in memory.
+        # if we don't then the catalouge is deleted
+        None
+    )
 
     if input_from == Connection.CSV:
         inputs = str(test_case._folder).replace("\\", "/")
@@ -220,16 +225,22 @@ def body_of_test(
         testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
 
     elif input_from == Connection.TRINO:
-        raise Exception('need to connect and retain conncetion to avoid deleteion')
         assert trino is not None
         inputs = trino.connection
-        outputTarget = outputs.sql_output_target(sqlalchemy.create_engine(inputs))
+        source_engine = sqlalchemy.create_engine(inputs)
+        outputTarget = outputs.sql_output_target(source_engine)
         testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
 
     assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
 
     # set the output
     output: None | str = None
+    output_engine: None | sqlalchemy.engine.Engine = (
+        # we need to retain a connection to a trino instance when the catalouge is in memory.
+        # if we don't then the catalouge is deleted
+        None
+    )
+
     if output_to == Connection.CSV:
         output = str((tmp_path / "out").absolute())
 
@@ -244,9 +255,9 @@ def body_of_test(
         request.addfinalizer(lambda: testools.delete_s3_folder(output))
 
     elif output_to == Connection.TRINO:
-        raise Exception('need to connect and retain conncetion to avoid deleteion')
         assert trino is not None
         output = trino.connection
+        source_engine = sqlalchemy.create_engine(output)
 
     assert output is not None, f"couldn't use {output_to=}"  # check output was set
 

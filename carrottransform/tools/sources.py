@@ -57,7 +57,7 @@ class SourceObjectArgumentType(click.ParamType):
 
     def convert(self, value: str, param, ctx):
         value = str(value)
-        
+
         if value.startswith("s3:"):
             return s3_source_object(
                 value, "\t"
@@ -93,6 +93,9 @@ def sql_source_object(connection: sqlalchemy.engine.Engine | str) -> SourceObjec
                 f"table names shouldn't have a file extension {table=}",
             )
             require("/" not in table, f"invalid table name {table=}")
+
+            # trino needs table names to be lower case to match them (sometimes) and SQL is case insensitive anyway
+            table = table.lower()
 
             def sql():
                 metadata = MetaData()
