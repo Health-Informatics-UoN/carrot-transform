@@ -235,7 +235,9 @@ MINIO_URL_PATTERN = r"^minio:([^:]+):([^@]+)@(https?)://([^:/]+):(\d+)/([^/]+)/?
 
 
 class MinioURL:
-    def __init__(self, text):
+    """parses/breaks a MinioURL up into the intended components"""
+
+    def __init__(self, text: str):
         match = re.match(MINIO_URL_PATTERN, text)
 
         if not match:
