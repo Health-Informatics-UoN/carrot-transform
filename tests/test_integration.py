@@ -197,7 +197,7 @@ def body_of_test(
         + testools.rand_hex()
     )
 
-    logger.info(f"test path is {tmp_path=}\n\t{slug=}")
+    logger.info(f"test path is {str(tmp_path)=}\n\t{slug=}")
 
     # set the input
     inputs: None | str = None

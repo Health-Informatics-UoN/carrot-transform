@@ -117,6 +117,9 @@ def sql_output_target(connection: sqlalchemy.engine.Engine | str) -> OutputTarge
         connection = sqlalchemy.create_engine(connection)
 
     def start(name: str, header: list[str]):
+
+        name = name.lower()
+
         # if you're adapting this to a non-dumb database; probably best to read the DDL or something and check/match the column types
         columns = [Column(name, Text()) for name in header]
 

@@ -139,8 +139,6 @@ def read_person_ids(
     reject_count = 0
     # Header row of the person file
     personhdr = next(csvr)
-    # TODO: not sure if this is needed
-    logger.info("Headers in Person file: %s", personhdr)
 
     # Make a dictionary of column names vs their positions
     for col in personhdr:

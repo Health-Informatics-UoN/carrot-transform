@@ -35,15 +35,12 @@ def test_trino_updown(trino):
 
 @pytest.mark.docker
 def test_targetWriter_trino(trino, tmp_path: Path):
-    heights = Path(__file__).parent / "test_data/measure_weight_height/heights.csv"
-    persons = Path(__file__).parent / "test_data/measure_weight_height/persons.csv"
-    weights = Path(__file__).parent / "test_data/measure_weight_height/weights.csv"
+    test_data = Path(__file__).parent / "test_data/measure_weight_height"
 
     # connect to Trino
     outputTarget = outputs.sql_output_target(trino.connection)
 
-    source: sources.SourceObject = sources.csv_source_object(
-        Path(__file__).parent / "test_data/measure_weight_height/", ","
+    source: sources.SourceObject = sources.csv_source_object(test_data, ","
     )
 
     # open the three outputs - we're mirrorng the way ct does it
@@ -71,7 +68,7 @@ def test_targetWriter_trino(trino, tmp_path: Path):
     ####
     ### assert
     testools.compare_two_sources(
-        sources.csv_source_object(heights.parent, ","),
+        sources.csv_source_object(test_data, ","),
         sources.sql_source_object(trino.connection),
         ["heights", "persons", "weights"],
     )
