@@ -336,13 +336,15 @@ class StreamProcessor:
         return result.record_count, rejected_count
 
 
+from carrottransform.tools import outputs
+
 class V2ProcessingOrchestrator:
     """Main orchestrator for the entire V2 processing pipeline"""
 
     def __init__(
         self,
         rules_file: Path,
-        output_dir: Path,
+        output: outputs.OutputTarget,
         input_dir: Optional[Path],
         omop_ddl_file: Optional[Path],
         omop_config_file: Optional[Path],
@@ -352,7 +354,7 @@ class V2ProcessingOrchestrator:
         db_conn_params: Optional[DBConnParams] = None,
     ):
         self.rules_file = rules_file
-        self.output_dir = output_dir
+        self._output = output
         self.input_dir = input_dir
         self.person_file = person_file
         self.person_table = person_table
@@ -381,7 +383,7 @@ class V2ProcessingOrchestrator:
                 raise e
 
         self.metrics = tools.metrics.Metrics(self.mappingrules.get_dataset_name())
-        self.output_manager = OutputFileManager(self.output_dir, self.omopcdm)
+        self.output_manager = OutputFileManager(self._output, self.omopcdm)
 
         # Pre-compute lookup cache for efficient streaming
         self.lookup_cache = StreamingLookupCache(self.mappingrules, self.omopcdm)

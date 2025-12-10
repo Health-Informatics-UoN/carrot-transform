@@ -17,11 +17,10 @@ import carrottransform.tools.sources as sources
 import tests.csvrow as csvrow
 import tests.testools as testools
 from carrottransform.cli.subcommands.run import mapstream
+from carrottransform.cli.subcommands.run_v2 import folder
 
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
-
-V1TestCase = testools.CarrotTestCase
 
 
 @pytest.mark.unit  # it's an integration test ... but i need/want one that i can check quickly
@@ -33,7 +32,7 @@ def test_sql_read(tmp_path: Path):
     # this is the paramter
     testing_person_file = "measure_weight_height/persons.csv"
 
-    test_case = V1TestCase(testing_person_file)
+    test_case = testools.CarrotTestCase(mapstream, testing_person_file)
 
     # run the test sourcing that SQLite database but writing to disk
     input_db = test_case.load_sqlite(tmp_path)
@@ -50,9 +49,9 @@ def test_sql_read(tmp_path: Path):
     test_case.compare_to_tsvs(actual)
 
 
-v1TestCases = list(
+test_cases = list(
     map(
-        V1TestCase,
+        lambda person_name: testools.CarrotTestCase(mapstream, person_name),
         [
             "integration_test1/src_PERSON.csv",
             "floats/src_PERSON.csv",
@@ -64,10 +63,25 @@ v1TestCases = list(
         ],
     )
 ) + [
-    testools.CarrotTestCase(
+    testools.CarrotTestCase(mapstream,
         "only_m/patients.csv", str(test_data / "only_m/v1-rules.json"), "/v1-out"
     ),
 ]
+
+
+print('TODO; put the old tests back in')
+
+test_cases=[
+    testools.CarrotTestCase(folder,
+        "integration_test1/src_PERSON.csv", test_data.parent / "test_V2/rules-v2.json", "/v2-out"
+    ),
+] 
+test_cases+=[
+    testools.CarrotTestCase(mapstream,
+        "only_m/patients.csv", str(test_data / "only_m/v1-rules.json"), "/v1-out"
+    ),
+]
+
 
 pass__arg_names = [
     "inputs",
@@ -86,7 +100,7 @@ def generate_cases(with_s3: bool):
     types = connection_types_w_s3 if with_s3 else connection_types
 
     perts = testools.permutations(
-        input_from=types, test_case=v1TestCases, output_to=types
+        input_from=types, test_case=test_cases, output_to=types
     )
     varts = list(map(lambda v: {"pass_as": v}, testools.variations(pass__arg_names)))
 
@@ -117,6 +131,8 @@ def test_function(request, tmp_path: Path, output_to, test_case, input_from, pas
 
 def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass_as):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
+
+    logger.setLevel(logging.DEBUG)
 
     # generat a semi-random slug/name to group test data under
     # the files we read/write to s3 will appear in this folder
@@ -163,27 +179,70 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
 
     assert output is not None, f"couldn't use {output_to=}"  # check output was set
 
-    env, args = testools.passed_as(
-        pass_as,
-        "--inputs",
-        inputs,
-        "--rules-file",
-        test_case._mapper,
-        "--person",
-        test_case._person,
-        "--output",
-        output,
-        "--omop-ddl-file",
-        "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
-    )
+    env: dict[str, str]={}
+    args: list[str]
+    if test_case._entry == mapstream:
+        args = [
+            "--inputs",
+            inputs,
+            "--rules-file",
+            test_case._mapper,
+            "--person",
+            test_case._person,
+            "--output",
+            output,
+            "--omop-ddl-file",
+            "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
+        ]
+    else:
+        assert test_case._entry == folder
+
+        args = []
+
+        print('TODO this assumes all input from .csv')
+
+        args += [
+            "--input-dir",
+            str(test_case._folder),
+        ]
+
+        # raise Exception( f'TODO; set the input {test_case._folder}')
+
+        # add the rules file
+        args += [
+            "--rules-file",
+            str(test_case._mapper),
+        ]
+
+        # set the person file
+        args += [
+            "--person-file",
+            str(test_data / test_case._person_name),
+        ]
+
+        # add the rules file
+        args += [
+            "--output",
+            output,
+        ]
+
+        args += [
+            "--omop-ddl-file",
+            "@carrot/config/OMOPCDM_postgresql_5.4_ddl.sql",
+        ]
+
+    # env, args = testools.passed_as(pass_as, *args)
+    print('TODO; renable env var passing of args')
+
+    logger.info(f"test setup {test_case._entry}\n\t{args=}\n\t{env=}")
 
     ##
     # run click
     runner = CliRunner()
-    result = runner.invoke(mapstream, args=args, env=env)
+    result = runner.invoke(test_case._entry, args=args, env=env)
 
     if result.exception is not None:
-        print(result.exception)
+        logger.error(result.exception)
         raise (result.exception)
 
     assert 0 == result.exit_code

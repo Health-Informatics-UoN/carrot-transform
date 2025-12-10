@@ -1,7 +1,8 @@
 """
 Entry point for the v2 processing system
 """
-
+import sys
+import os
 import importlib.resources as resources
 import time
 from pathlib import Path
@@ -16,6 +17,7 @@ from carrottransform.tools.file_helpers import (
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.orchestrator import V2ProcessingOrchestrator
 from carrottransform.tools.types import DBConnParams
+from carrottransform.tools import outputs
 
 logger = logger_setup()
 
@@ -29,12 +31,15 @@ def common_options(func):
         required=True,
         help="v2 json file containing mapping rules",
     )(func)
+
     func = click.option(
-        "--output-dir",
-        type=PathArg,
+        "--output",
+        envvar="OUTPUT",
+        type=outputs.TargetArgument,
         required=True,
         help="define the output directory for OMOP-format tsv files",
     )(func)
+
     func = click.option(
         "--write-mode",
         default="w",
@@ -57,7 +62,7 @@ def common_options(func):
 
 def process_common_logic(
     rules_file: Path,
-    output_dir: Path,
+    output: outputs.OutputTarget,
     write_mode: str,
     omop_ddl_file: Optional[Path],
     omop_version: Optional[str],
@@ -76,7 +81,7 @@ def process_common_logic(
         # Resolve paths (exclude None values)
         paths_to_resolve = [
             rules_file,
-            output_dir,
+            # output_dir,
             person_file,
             omop_ddl_file,
             omop_config_file,
@@ -89,13 +94,13 @@ def process_common_logic(
         # Update variables with resolved paths
         if rules_file is None:
             raise ValueError("rules_file is required")
-        if output_dir is None:
-            raise ValueError("output_dir is required")
+        # if output_dir is None:
+            # raise ValueError("output_dir is required")
 
         # validate directories
         if input_dir:
             check_dir_isvalid(input_dir)
-        check_dir_isvalid(output_dir, create_if_missing=True)
+        # check_dir_isvalid(output_dir, create_if_missing=True)
 
         ## fallback for the ddl filename
         if omop_ddl_file is None and omop_version is not None:
@@ -109,8 +114,8 @@ def process_common_logic(
         # Create orchestrator and execute processing (pass explicit kwargs to satisfy typing)
         orchestrator = V2ProcessingOrchestrator(
             rules_file=rules_file,
-            output_dir=output_dir,
-            input_dir=input_dir,
+            output=output,
+            input_dir=input_dir, 
             person_file=person_file,
             person_table=person_table,
             omop_ddl_file=omop_ddl_file,
@@ -133,7 +138,9 @@ def process_common_logic(
             logger.error(f"V2 processing failed: {result.error_message}")
 
     except Exception as e:
-        logger.error(f"V2 processing failed with error: {str(e)}")
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[0]
+        logger.error(f"V2 processing failed with error: {str(e)}  @  {fname}:{exc_tb.tb_lineno}")
         raise
 
 
@@ -154,7 +161,7 @@ def process_common_logic(
 def folder(
     input_dir: Path,
     rules_file: Path,
-    output_dir: Path,
+    output: outputs.OutputTarget,
     write_mode: str,
     person_file: Path,
     omop_ddl_file: Optional[Path],
@@ -163,7 +170,7 @@ def folder(
     """Process data from folder input"""
     process_common_logic(
         rules_file=rules_file,
-        output_dir=output_dir,
+        output=output,
         write_mode=write_mode,
         person_file=person_file,
         omop_ddl_file=omop_ddl_file,

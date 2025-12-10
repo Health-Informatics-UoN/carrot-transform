@@ -65,8 +65,8 @@ def check_files_in_rules_exist(
 class OutputFileManager:
     """Manages output file creation and cleanup"""
 
-    def __init__(self, output_dir: Path, omopcdm: OmopCDM):
-        self.output_dir = output_dir
+    def __init__(self, output, omopcdm: OmopCDM):
+        self._output = output
         self.omopcdm = omopcdm
         self.file_handles: Dict[str, TextIO] = {}
 

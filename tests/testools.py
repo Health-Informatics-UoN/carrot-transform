@@ -291,7 +291,8 @@ test_data = Path(__file__).parent / "test_data"
 class CarrotTestCase:
     """defines an integration test case in terms of the person file, and the optional mapper rules"""
 
-    def __init__(self, person_name: str, mapper: str = "", suffix=""):
+    def __init__(self, entry, person_name: str, mapper: str = "", suffix=""):
+        self._entry = entry
         self._suffix = suffix
         self._person_name = person_name
 
