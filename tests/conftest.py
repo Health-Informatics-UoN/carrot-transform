@@ -162,12 +162,13 @@ def trino_instance(docker_ip, tmp_path_factory) -> Iterable[TrinoInstance]:
 class TrinoSchema:
     """the data for a schema within a running docker container"""
 
-    instance: TrinoInstance
-    schema: str = f"schema_{testools.rand_hex()}"
+    def __init__(self, instance: TrinoInstance):
+        self._instance = instance
+        self._schema = f"schema_{testools.rand_hex()}"
 
     @property
     def connection(self) -> str:
-        return f"{self.instance.connection}/{self.schema}"
+        return f"{self._instance.connection}/{self._schema}"
 
 
 @pytest.fixture(scope="function")
@@ -178,7 +179,7 @@ def trino(trino_instance) -> Iterable[TrinoSchema]:
 
     # create a schema
     try:
-        short_connection: str = f"trino://{config.instance.trino_user}@localhost:{config.instance.server_port}/{config.instance.catalog}/information_schema"
+        short_connection: str = f"trino://{config._instance.trino_user}@localhost:{config._instance.server_port}/{config._instance.catalog}/information_schema"
         logger.info(f"connecting to trino engine {short_connection}")
 
         engine = create_engine(short_connection, connect_args={"http_scheme": "http"})
@@ -189,18 +190,18 @@ def trino(trino_instance) -> Iterable[TrinoSchema]:
 
             # Now create the schema in the available catalog
             create_schema_sql = text(
-                f"CREATE SCHEMA IF NOT EXISTS {config.instance.catalog}.{config.schema}"
+                f"CREATE SCHEMA IF NOT EXISTS {config._instance.catalog}.{config._schema}"
             )
             conn.execute(create_schema_sql)
             conn.commit()
 
             # Verify schema was created
-            result = conn.execute(text(f"SHOW SCHEMAS FROM {config.instance.catalog}"))
+            result = conn.execute(text(f"SHOW SCHEMAS FROM {config._instance.catalog}"))
             schemas = [row[0] for row in result]
-            logger.info(f"Available schemas in {config.instance.catalog}: {schemas}")
+            logger.info(f"Available schemas in {config._instance.catalog}: {schemas}")
         engine.dispose()
 
-        logger.info(f"Created schema {config.instance.catalog}.{config.schema}")
+        logger.info(f"Created schema {config._instance.catalog}.{config._schema}")
     except Exception as e:
         logger.error(f"Failed to create schema: {e}")
         raise
