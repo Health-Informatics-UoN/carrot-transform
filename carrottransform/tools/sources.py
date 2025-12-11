@@ -75,6 +75,8 @@ SourceArgument = SourceObjectArgumentType()
 
 def sql_source_object(connection: sqlalchemy.engine.Engine | str) -> SourceObject:
 
+    SQL_TO_LOWER: bool = True
+
     if not isinstance(connection, sqlalchemy.engine.Engine):
         # if the parameter is not a connection; make it one
         # ... and fail-fast if it can't be used to open a connection
@@ -95,7 +97,7 @@ def sql_source_object(connection: sqlalchemy.engine.Engine | str) -> SourceObjec
             require("/" not in table, f"invalid table name {table=}")
 
             # trino needs table names to be lower case to match them (sometimes) and SQL is case insensitive anyway
-            table = table.lower()
+            table = table.lower() if SQL_TO_LOWER else table
 
             def sql():
                 metadata = MetaData()
@@ -103,7 +105,17 @@ def sql_source_object(connection: sqlalchemy.engine.Engine | str) -> SourceObjec
                 source = metadata.tables[table]
                 with connection.connect() as conn:
                     result = conn.execute(select(source))
-                    yield result.keys()
+
+                    header: list[str]
+                    try:
+                        header = list(result.keys())
+                    except Exception as e:
+                        raise Exception(f"{table} raised error on .keys(); {e=}")
+
+                    if SQL_TO_LOWER:
+                        header = list(map(lambda a: a.lower(), header))
+
+                    yield header
 
                     for row in result:
                         yield list(row)

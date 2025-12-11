@@ -188,6 +188,8 @@ def body_of_test(
 ):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
 
+    logger.setLevel(logging.DEBUG) 
+
     # generat a semi-random slug/name to group test data under
     # the files we read/write to s3 will appear in this folder
 
