@@ -222,14 +222,14 @@ def body_of_test(
 
         # copy data into the thing
         outputTarget = outputs.s3_output_target(inputs)
-        testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
+        testools.copy_across(ot=outputs.s3_output_target(inputs), so=test_case._folder, names=None)
 
     elif input_from == Connection.TRINO:
         assert trino is not None
         inputs = trino.connection
         source_engine = sqlalchemy.create_engine(inputs)
-        outputTarget = outputs.sql_output_target(source_engine)
-        testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
+        outputTarget = outputs.sql_output_target(sqlalchemy.create_engine(inputs))
+        testools.copy_across(ot=outputs.sql_output_target(sqlalchemy.create_engine(inputs)), so=test_case._folder, names=None)
 
     assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
 
@@ -257,7 +257,7 @@ def body_of_test(
     elif output_to == Connection.TRINO:
         assert trino is not None
         output = trino.connection
-        source_engine = sqlalchemy.create_engine(output)
+        output_engine = sqlalchemy.create_engine(output)
 
     assert output is not None, f"couldn't use {output_to=}"  # check output was set
 
