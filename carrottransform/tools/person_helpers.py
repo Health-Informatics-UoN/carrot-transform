@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from typing import Iterator, Optional
 
+from case_insensitive_dict import CaseInsensitiveDict
 from sqlalchemy.engine import Connection
 from sqlalchemy.schema import MetaData, Table
 from sqlalchemy.sql.expression import select
@@ -134,7 +135,7 @@ def read_person_ids(
 
     person_ids, person_number = _get_person_lookup(saved_person_id_file)
 
-    person_columns = {}
+    person_columns = CaseInsensitiveDict()
     person_col_in_hdr_number = 0
     reject_count = 0
     # Header row of the person file

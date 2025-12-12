@@ -9,16 +9,12 @@ import sqlalchemy
 
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
-from carrottransform.tools import outputs, sources
 from tests import testools
 
 
 @pytest.mark.unit
 def test_basic_csv():
-    """opens a csv connection, reads a file, checks we got the correct data
-
-    TODO; this should use the updated SourceObject abstractions
-    """
+    """opens a csv connection, reads a file, checks we got the correct data"""
 
     folder = Path(__file__).parent / "test_data/measure_weight_height/"
 
@@ -44,15 +40,12 @@ def test_basic_csv():
 
 @pytest.mark.unit
 def test_basic_sqlite():
-    """opens a sql connection, loads data from a file, checks the correct data comes back out
-
-    TODO; this should use the updated SourceObject abstractions"""
+    """opens a sql connection, loads data from a file, checks the correct data comes back out"""
 
     ###
     # arrange
     folder = Path(__file__).parent / "test_data/measure_weight_height/"
     engine = sqlalchemy.create_engine("sqlite:///:memory:")
-    height = "heights.csv"
 
     source = sources.sql_source_object(engine)
 

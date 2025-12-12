@@ -3,20 +3,13 @@ import random
 import textwrap
 import time
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Generator, Iterable
+from typing import Iterable
 
 import docker
 import pytest
-import requests
-import sqlalchemy
-from botocore import client
-from click.testing import CliRunner
+from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout, Timeout
 from sqlalchemy import create_engine, text
 
-import carrottransform.tools.sources as sources
-from carrottransform.cli.subcommands.run import mapstream
-from carrottransform.tools import outputs
 from tests import testools
 
 #
@@ -66,7 +59,7 @@ def trino_instance(docker_ip, tmp_path_factory) -> Iterable[TrinoInstance]:
 
     # Create node.properties
     (config_dir / "node.properties").write_text(
-        textwrap.dedent(f"""
+        textwrap.dedent("""
         node.environment=test
         node.id=test-node
         node.data-dir=/var/trino/data
@@ -114,7 +107,7 @@ def trino_instance(docker_ip, tmp_path_factory) -> Iterable[TrinoInstance]:
             response = requests.get(f"http://localhost:{config.server_port}/v1/info")
             if response.status_code == 200:
                 break
-        except:
+        except (ConnectionError, Timeout, ConnectTimeout, ReadTimeout):
             time.sleep(STARTUP_SLEEP)
     else:
         # don't bother stopping the contianer if it didn't start
@@ -184,9 +177,9 @@ def trino(trino_instance) -> Iterable[TrinoSchema]:
 
         engine = create_engine(short_connection, connect_args={"http_scheme": "http"})
 
-        logger.info(f"create_engine() okay")
+        logger.info("create_engine() okay")
         with engine.connect() as conn:
-            logger.info(f"engine.connect() : complete")
+            logger.info("engine.connect() : complete")
 
             # Now create the schema in the available catalog
             create_schema_sql = text(

@@ -1,8 +1,7 @@
-import itertools
 import logging
 from itertools import product
 from pathlib import Path
-from typing import Generator, Iterable
+from typing import Iterable
 
 import boto3
 import pytest
@@ -69,7 +68,7 @@ def compare_to_tsvs(subpath: str, actual: sources.SourceObject) -> None:
     ]
 
     assert "person" in items, "person.tsv verification data missing from the test case"
-    
+
     # we can't guarantee this - but - we still need it to verify the other tables
     assert "person_ids" in items, (
         "person_id.tsv verification data missing from the test case"
@@ -79,13 +78,16 @@ def compare_to_tsvs(subpath: str, actual: sources.SourceObject) -> None:
     # open the saved .tsv file
     expect = sources.csv_source_object(test, sep="\t")
 
-    compare_two_sources(expect=expect, actual=actual, items=items, simple_check = False)
+    compare_two_sources(expect=expect, actual=actual, items=items, simple_check=False)
     # it matches!
     logger.info(f"all match in {subpath=}")
 
 
 def compare_two_sources(
-    expect: sources.SourceObject, actual: sources.SourceObject, items: Iterable[str], simple_check: bool = True
+    expect: sources.SourceObject,
+    actual: sources.SourceObject,
+    items: Iterable[str],
+    simple_check: bool = True,
 ) -> None:
     """compares the named entries from two SourceObject instances. does not enforce order. has optional `simple_check` to control wether the presonIds are mapped back and if the row ids are ignored"""
 
@@ -93,11 +95,15 @@ def compare_two_sources(
     actual_persons = {} if simple_check else person_id_mapping(actual)
 
     for name in items:
-
         # only check certain tables
         if not simple_check:
-            assert name in ['measurement', 'person', 'observation', 'condition_occurrence'], f"not allowing {name=}"
-        
+            assert name in [
+                "measurement",
+                "person",
+                "observation",
+                "condition_occurrence",
+            ], f"not allowing {name=}"
+
         expect_iter = expect.open(name)
         actual_iter = actual.open(name)
 
@@ -108,9 +114,13 @@ def compare_two_sources(
 
         # check that the column name is person_id before we start swapping values
         if not simple_check:
-            assert f'{name}_id' == ex_head[0], f'expected {name}_id as first column but was {ex_head[0]}'
-            if name != 'person':
-                assert 'person_id' == ex_head[1], f'expected person_id as second column but was {ex_head[1]}'
+            assert f"{name}_id" == ex_head[0], (
+                f"expected {name}_id as first column but was {ex_head[0]}"
+            )
+            if name != "person":
+                assert "person_id" == ex_head[1], (
+                    f"expected person_id as second column but was {ex_head[1]}"
+                )
 
         def values(data, persons):
             rows = []
@@ -118,7 +128,7 @@ def compare_two_sources(
                 if not simple_check:
                     # remove the row's id
                     # > we con't care about the speicific id value in this column, but, it changes when the records come out of the db in a random order
-                    if name != 'person':
+                    if name != "person":
                         row = row[1:]
 
                     # change the person_id back
@@ -151,16 +161,17 @@ def compare_two_sources(
         )
 
 
-
 def person_id_mapping(source: sources.SourceObject) -> dict[str, str]:
     """reads back a `person_ids` and determines how to "unmap" anonymisation"""
     persons: dict[str, str] = {}
     first: bool = True
-    for row in source.open('person_ids'):
+    for row in source.open("person_ids"):
         if first:
             first = False
             row = list(map(lambda col: col.upper(), row))
-            assert row == ['SOURCE_SUBJECT', 'TARGET_SUBJECT'], f"wrong row in person_id {row=}"
+            assert row == ["SOURCE_SUBJECT", "TARGET_SUBJECT"], (
+                f"wrong row in person_id {row=}"
+            )
         else:
             persons[row[1]] = row[0]
     assert not first

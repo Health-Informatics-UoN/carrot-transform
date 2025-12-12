@@ -8,14 +8,12 @@ import re
 from enum import Enum
 from pathlib import Path
 
-import boto3
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
 
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
-import tests.csvrow as csvrow
 import tests.testools as testools
 from carrottransform.cli.subcommands.run import mapstream
 from tests.conftest import TrinoSchema
@@ -188,7 +186,7 @@ def body_of_test(
 ):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
 
-    logger.setLevel(logging.DEBUG) 
+    logger.setLevel(logging.DEBUG)
 
     # generat a semi-random slug/name to group test data under
     # the files we read/write to s3 will appear in this folder
@@ -223,15 +221,19 @@ def body_of_test(
         request.addfinalizer(lambda: testools.delete_s3_folder(inputs))
 
         # copy data into the thing
-        outputTarget = outputs.s3_output_target(inputs)
-        testools.copy_across(ot=outputs.s3_output_target(inputs), so=test_case._folder, names=None)
+        testools.copy_across(
+            ot=outputs.s3_output_target(inputs), so=test_case._folder, names=None
+        )
 
     elif input_from == Connection.TRINO:
         assert trino is not None
         inputs = trino.connection
         source_engine = sqlalchemy.create_engine(inputs)
-        outputTarget = outputs.sql_output_target(sqlalchemy.create_engine(inputs))
-        testools.copy_across(ot=outputs.sql_output_target(sqlalchemy.create_engine(inputs)), so=test_case._folder, names=None)
+        testools.copy_across(
+            ot=outputs.sql_output_target(sqlalchemy.create_engine(inputs)),
+            so=test_case._folder,
+            names=None,
+        )
 
     assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
 
@@ -303,6 +305,12 @@ def body_of_test(
 
     # verify that the results are good
     test_case.compare_to_tsvs(results)
+
+    # dispose of these ... really *just* so we're doing something with them and the type checker is happy
+    if source_engine is not None:
+        source_engine.dispose()
+    if output_engine is not None:
+        output_engine.dispose()
 
 
 @pytest.mark.integration

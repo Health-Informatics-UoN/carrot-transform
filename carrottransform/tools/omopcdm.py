@@ -3,6 +3,8 @@ import re
 import sys
 from pathlib import Path
 
+from case_insensitive_dict import CaseInsensitiveDict
+
 import carrottransform.tools as tools
 from carrottransform import require
 from carrottransform.tools.logger import logger_setup
@@ -140,7 +142,7 @@ class OmopCDM:
         return None
 
     def get_column_map(self, colarr, delim=","):
-        colmap = {}
+        colmap = CaseInsensitiveDict()
         for i, col in enumerate(colarr):
             colmap[col] = i
         return colmap
