@@ -2,9 +2,10 @@ import csv
 import io
 import itertools
 import logging
+import re
 from pathlib import Path
 from typing import Iterator
-import re
+
 import boto3
 import click
 import sqlalchemy
