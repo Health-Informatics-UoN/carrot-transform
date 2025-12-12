@@ -135,7 +135,7 @@ def read_person_ids(
 
     person_ids, person_number = _get_person_lookup(saved_person_id_file)
 
-    person_columns = CaseInsensitiveDict()
+    person_columns: CaseInsensitiveDict = CaseInsensitiveDict()
     person_col_in_hdr_number = 0
     reject_count = 0
     # Header row of the person file
