@@ -1,0 +1,13 @@
+name: carrot-transform
+
+services:
+  transform:
+    image: ghcr.io/health-informatics-uon/carrot/transform:edge
+    container_name: carrot-transform
+    command: >
+      uv run -m carrottransform.cli.command run_v2 folder
+      --input-dir /app/carrottransform/examples/test/inputs
+      --rules-file /app/carrottransform/examples/test/rules/v2.json
+      --person-file /app/carrottransform/examples/test/inputs/Demographics.csv
+      --output-dir /app/build
+      --omop-version 5.4
