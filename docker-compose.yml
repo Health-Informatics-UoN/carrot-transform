@@ -12,3 +12,131 @@ services:
       --person-file /app/carrottransform/examples/test/inputs/Demographics.csv
       --output-dir /app/build
       --omop-version 5.4
+
+  # Postgres → MinIO using V2
+  postgres:
+    image: postgres:15
+    container_name: carrot-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: transform_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - transform-network
+
+  minio:
+    image: minio/minio
+    container_name: carrot-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # MinIO API
+      - "9001:9001" # MinIO Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - transform-network
+
+  # Seed Postgres with test data
+  postgres-seed:
+    image: postgres:15
+    container_name: carrot-postgres-seed
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: transform_db
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    volumes:
+      - ./carrottransform/examples/test/inputs:/data:ro
+    command:
+      - /bin/bash
+      - -c
+      - |
+        psql <<-EOSQL
+        CREATE TABLE IF NOT EXISTS demographics_staging ("PersonID" VARCHAR, sex VARCHAR, date_of_birth VARCHAR, ethnicity VARCHAR); 
+        CREATE TABLE IF NOT EXISTS symptoms_staging ("PersonID" VARCHAR, visit_date VARCHAR, symptom1 VARCHAR, symptom2 VARCHAR, symptom3 VARCHAR);
+        CREATE TABLE IF NOT EXISTS covid19_antibody_staging ("PersonID" VARCHAR, date VARCHAR, ABresult VARCHAR, "IgG" VARCHAR);
+        \COPY demographics_staging FROM '/data/Demographics.csv' WITH (FORMAT csv, HEADER true);
+        \COPY symptoms_staging FROM '/data/Symptoms.csv' WITH (FORMAT csv, HEADER true);
+        \COPY covid19_antibody_staging FROM '/data/covid19_antibody.csv' WITH (FORMAT csv, HEADER true);
+        CREATE TABLE IF NOT EXISTS demographics AS SELECT "PersonID" AS personid, sex, date_of_birth, ethnicity FROM demographics_staging;
+        CREATE TABLE IF NOT EXISTS symptoms AS SELECT "PersonID" AS personid, visit_date, symptom1 FROM symptoms_staging; 
+        CREATE TABLE IF NOT EXISTS covid19_antibody AS SELECT "PersonID" AS personid, date, "IgG" AS igg FROM covid19_antibody_staging; 
+        DROP TABLE demographics_staging, symptoms_staging, covid19_antibody_staging;
+        EOSQL
+        echo 'Postgres seeded'
+    networks:
+      - transform-network
+
+  # Transform from Postgres → Filesystem → MinIO (V2 hack)
+  transform-postgres-minio:
+    image: ghcr.io/health-informatics-uon/carrot/transform:edge
+    container_name: carrot-transform-pg-minio
+    depends_on:
+      postgres-seed:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+    volumes:
+      - transform_output:/app/output
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_ENDPOINT_URL: http://minio:9000
+    # Hack: V2 writes to filesystem, then we sync to MinIO
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        echo 'Running transform from Postgres...' &&
+        uv run -m carrottransform.cli.command run_v2 db \
+          --db-type postgres \
+          --username postgres \
+          --password postgres \
+          --host postgres \
+          --port 5432 \
+          --db-name transform_db \
+          --schema public \
+          --person-table demographics \
+          --rules-file @carrot/examples/test/rules/v2-db-conn.json \
+          --output-dir /app/output \
+          --omop-version 5.4 &&
+        echo 'Transform completed. Syncing to MinIO...' &&
+        apt-get update -qq && apt-get install -y -qq curl > /dev/null 2>&1 &&
+        curl -sSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc &&
+        chmod +x /usr/local/bin/mc &&
+        mc alias set myminio http://minio:9000 minioadmin minioadmin &&
+        mc mb myminio/omop-output || true &&
+        mc mirror /app/output myminio/omop-output/ &&
+        echo '✓ Files synced to MinIO bucket: omop-output'
+    networks:
+      - transform-network
+
+volumes:
+  postgres_data:
+  minio_data:
+  transform_output:
+
+networks:
+  transform-network:
+    driver: bridge
