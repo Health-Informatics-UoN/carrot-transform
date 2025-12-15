@@ -3,7 +3,6 @@ name: carrot-transform
 services:
   transform:
     image: ghcr.io/health-informatics-uon/carrot/transform:edge
-    container_name: carrot-transform
     command: >
       uv run -m carrottransform.cli.command run_v2 folder
       --input-dir /app/carrottransform/examples/test/inputs
