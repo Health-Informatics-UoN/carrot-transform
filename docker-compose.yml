@@ -16,7 +16,6 @@ services:
   # Postgres → MinIO using V2
   postgres:
     image: postgres:15
-    container_name: carrot-postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -33,30 +32,9 @@ services:
     networks:
       - transform-network
 
-  minio:
-    image: minio/minio
-    container_name: carrot-minio
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000" # MinIO API
-      - "9001:9001" # MinIO Console
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - transform-network
-
-  # Seed Postgres with test data
+  # Seed Postgres with data
   postgres-seed:
     image: postgres:15
-    container_name: carrot-postgres-seed
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,11 +62,30 @@ services:
         CREATE TABLE IF NOT EXISTS covid19_antibody AS SELECT "PersonID" AS personid, date, "IgG" AS igg FROM covid19_antibody_staging; 
         DROP TABLE demographics_staging, symptoms_staging, covid19_antibody_staging;
         EOSQL
-        echo 'Postgres seeded'
+        echo 'Postgres Database seeded'
     networks:
       - transform-network
 
-  # Transform from Postgres → Filesystem → MinIO (V2 hack)
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - transform-network
+
+  # Transform from Postgres → Filesystem → MinIO
   transform-postgres-minio:
     image: ghcr.io/health-informatics-uon/carrot/transform:edge
     container_name: carrot-transform-pg-minio
@@ -99,11 +96,7 @@ services:
         condition: service_healthy
     volumes:
       - transform_output:/app/output
-    environment:
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
-      AWS_ENDPOINT_URL: http://minio:9000
-    # Hack: V2 writes to filesystem, then we sync to MinIO
+    # Transform writes to filesystem, then sync to MinIO (V2)
     entrypoint:
       - /bin/sh
       - -c
@@ -121,14 +114,13 @@ services:
           --rules-file @carrot/examples/test/rules/v2-db-conn.json \
           --output-dir /app/output \
           --omop-version 5.4 &&
-        echo 'Transform completed. Syncing to MinIO...' &&
         apt-get update -qq && apt-get install -y -qq curl > /dev/null 2>&1 &&
         curl -sSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc &&
         chmod +x /usr/local/bin/mc &&
         mc alias set myminio http://minio:9000 minioadmin minioadmin &&
         mc mb myminio/omop-output || true &&
-        mc mirror /app/output myminio/omop-output/ &&
-        echo '✓ Files synced to MinIO bucket: omop-output'
+        mc mirror --overwrite /app/output myminio/omop-output/ &&
+        echo 'Files synced to MinIO bucket: omop-output'
     networks:
       - transform-network
 
@@ -139,4 +131,3 @@ volumes:
 
 networks:
   transform-network:
-    driver: bridge
