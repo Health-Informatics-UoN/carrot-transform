@@ -1,15 +1,12 @@
-import importlib
 import logging
-import os
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-import carrottransform.cli.subcommands.run as run
 import carrottransform.tools.sources as sources
+from carrottransform.tools import file_helpers
 from carrottransform.tools.person_helpers import _get_person_lookup
-from tests.testools import package_root, project_root
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +15,7 @@ logger = logging.getLogger(__name__)
 def test_valid_directory(tmp_path: Path):
     """Test with a valid directory path"""
 
-    run.check_dir_isvalid(tmp_path)  # Should not raise any exception
+    file_helpers.check_dir_isvalid(tmp_path)  # Should not raise any exception
 
 
 @pytest.mark.unit
@@ -27,7 +24,7 @@ def test_invalid_directory(tmp_path: Path):
 
     non_existent_dir = tmp_path / "non_existent"
     with pytest.raises(SystemExit) as exc_info:
-        run.check_dir_isvalid(non_existent_dir)
+        file_helpers.check_dir_isvalid(non_existent_dir)
     assert exc_info.value.code == 1
 
 
@@ -64,8 +61,6 @@ def test_successful_file_open(tmp_path: Path):
 @pytest.mark.unit
 def test_nonexistent_file(tmp_path: Path):
     """Test attempting to open a non-existent file"""
-
-    src = tmp_path / "nonexistent.csv"
 
     source = sources.csv_source_object(tmp_path, ",")
     try:

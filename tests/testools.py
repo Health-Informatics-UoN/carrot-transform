@@ -1,8 +1,7 @@
-import itertools
 import logging
 from itertools import product
 from pathlib import Path
-from typing import Generator, Iterable
+from typing import Iterable
 
 import boto3
 import pytest
