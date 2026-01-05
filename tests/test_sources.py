@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 import sqlalchemy
 
+import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
-from carrottransform.tools import outputs
 from tests import testools
 
 
@@ -54,8 +54,14 @@ def test_basic_sqlite():
         ["heights"],
     )
 
+    ###
+    # act
+
     # read that table back
     iterator = source.open("heights")
+
+    ###
+    # assert
 
     # first entry should be the header
     assert next(iterator) == ["pid", "date", "value"]

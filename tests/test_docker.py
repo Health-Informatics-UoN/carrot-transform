@@ -7,7 +7,8 @@ from pathlib import Path
 
 import pytest
 
-import tests.csvrow as csvrow
+import carrottransform.tools.sources as sources
+import tests.testools as testools
 from tests.testools import project_root
 
 
@@ -68,12 +69,7 @@ def test_dock_observations(tmp_path: Path):
                 continue
             shutil.copy(test_home / item, tmp_path / item)
 
-        ###
-        # act
-        ##
-
-        # invoke our process!
-
+        # this is how to run the container
         command = [
             "docker",
             "run",
@@ -89,17 +85,32 @@ def test_dock_observations(tmp_path: Path):
             "carrottransform.cli.command",
             "run",
             "mapstream",
+        ]
+        # this is how to run the container
+        command += [
             "--omop-ddl-file",
             "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
+        ]
+        command += [
             "--rules-file",
             "/run/mapping.json",
+        ]
+        command += [
             "--output",
             "/run/out",
+        ]
+        command += [
             "--person",
             "demos",
+        ]
+        command += [
             "--inputs",
             "/run/",
         ]
+
+        ###
+        # act
+        ##
 
         result = subprocess.run(
             command,
@@ -120,192 +131,11 @@ def test_dock_observations(tmp_path: Path):
         # assert
         ##
 
-        output = tmp_path / "out"
-        persons = 4
-        observations = {
-            123: {
-                "2018-01-01": {"3959110": "active"},
-                "2018-02-01": {"3959110": "active"},
-                "2018-03-01": {"3957361": "quit"},
-                "2018-04-01": {"3959110": "active"},
-                "2018-05-01": {"35821355": "never"},
-            },
-            456: {
-                "2009-01-01": {"35821355": "never"},
-                "2009-02-01": {"35821355": "never"},
-                "2009-03-01": {"3957361": "quit"},
-            },
-        }
-        measurements = None
-        conditions = None
+        # check the return code
+        assert 0 == result.returncode
 
-        validate(
-            output=output,
-            persons=persons,
-            observations=observations,
-            measurements=measurements,
-            conditions=conditions,
+        #
+        testools.compare_to_tsvs(
+            str(person_file.parent),
+            sources.csv_source_object(tmp_path / "out", sep="\t"),
         )
-
-
-def validate(
-    output: Path,
-    persons: None | int,
-    observations: None | dict,
-    measurements: None | dict,
-    conditions: None | dict,
-):
-    """reproduces the prior validation logic
-
-    TODO; merge this with the other validation logic
-    """
-
-    # get the person_ids table
-    [person_id_source2target, person_id_target2source] = csvrow.back_get(
-        output / "person_ids.tsv"
-    )
-
-    if (
-        persons is not None
-        or measurements is not None
-        or observations is not None
-        or conditions is not None
-    ):
-
-        def assert_to_int(value: str) -> int:
-            """used to convert strings to ints and double check that the conversion works both ways"""
-            result = int(value)
-            assert str(result) == value
-            return result
-
-        def record_count(collection):
-            count = 0
-            for person in collection:
-                for date in collection[person]:
-                    count += len(collection[person][date])
-            return count
-
-        if persons is None:
-            pass
-        elif isinstance(persons, int):
-            assert len(person_id_source2target) == persons
-            assert len(person_id_target2source) == persons
-        else:
-            raise Exception(f"persons check is {type(persons)=}")
-
-        # the state in observations
-        if observations is not None:
-            observations_seen: int = 0
-            for observation in csvrow.csv_rows(output / "observation.tsv", "\t"):
-                observations_seen += 1
-
-                assert assert_to_int(observation.observation_type_concept_id) == 0
-                assert observation.value_as_number == ""
-                assert (
-                    observation.observation_date
-                    == observation.observation_datetime[:10]
-                )
-                assert observation.value_as_concept_id == ""
-                assert observation.qualifier_concept_id == ""
-                assert observation.unit_concept_id == ""
-                assert observation.provider_id == ""
-                assert observation.visit_occurrence_id == ""
-                assert observation.visit_detail_id == ""
-                assert observation.unit_source_value == ""
-                assert observation.qualifier_source_value == ""
-                assert (
-                    observation.observation_concept_id
-                    == observation.observation_source_concept_id
-                )
-                assert (
-                    observation.value_as_string == observation.observation_source_value
-                )
-
-                assert observation.person_id in person_id_target2source
-                src_person_id = assert_to_int(
-                    person_id_target2source[observation.person_id]
-                )
-
-                observation_date = observation.observation_date
-                observation_concept_id = observation.observation_concept_id
-                observation_source_value = observation.observation_source_value
-
-                assert src_person_id in observations, observation
-                assert observation_date in observations[src_person_id], observation
-                assert (
-                    observation_concept_id
-                    in observations[src_person_id][observation_date]
-                ), observation
-
-                assert (
-                    observations[src_person_id][observation_date][
-                        observation_concept_id
-                    ]
-                    == observation_source_value
-                ), observation
-
-            # check to be sure we saw all the observations
-            expected_observation_count = record_count(observations)
-            assert expected_observation_count == observations_seen, (
-                "expected %d observations, got %d"
-                % expected_observation_count
-                % observations_seen
-            )
-
-        # check measurements
-        if measurements is not None:
-            measurements_seen: int = 0
-            for measurement in csvrow.csv_rows(output / "measurement.tsv", "\t"):
-                measurements_seen += 1
-
-                src_person_id = assert_to_int(
-                    person_id_target2source[measurement.person_id]
-                )
-                date = measurement.measurement_date
-                concept = assert_to_int(measurement.measurement_concept_id)
-                value = assert_to_int(measurement.value_as_number)
-
-                assert src_person_id in measurements, (
-                    f"{src_person_id=} {measurement=} "
-                )
-                assert date in measurements[src_person_id], (
-                    f"{src_person_id=} {date=} {measurement=}"
-                )
-                assert concept in measurements[src_person_id][date], (
-                    f"{src_person_id=} {date=} {concept=} {measurement=}"
-                )
-
-                assert measurements[src_person_id][date][concept] == value, (
-                    f"{date=} {concept=} {measurement=}"
-                )
-            expected_measurement_count = record_count(measurements)
-            assert measurements_seen == expected_measurement_count
-
-        # check for conditon occurences
-        if conditions is not None:
-            conditions_seen: int = 0
-            for condition in csvrow.csv_rows(output / "condition_occurrence.tsv", "\t"):
-                conditions_seen += 1
-
-                src_person_id = assert_to_int(
-                    person_id_target2source[condition.person_id]
-                )
-                src_date = condition.condition_start_datetime
-                concept_id = assert_to_int(condition.condition_concept_id)
-                src_value = assert_to_int(condition.condition_source_value)
-
-                assert condition.condition_start_date == ""
-
-                # there's a known shortcoming of the conditions that make them act like observations
-                # https://github.com/Health-Informatics-UoN/carrot-transform/issues/88
-                assert src_date == condition.condition_end_datetime
-                src_date = src_date[:10]
-
-                assert condition.condition_end_date == src_date
-
-                assert src_person_id in conditions
-                assert src_date in conditions[src_person_id]
-                assert concept_id in conditions[src_person_id][src_date]
-                assert conditions[src_person_id][src_date][concept_id] == src_value
-
-            assert record_count(conditions) == conditions_seen

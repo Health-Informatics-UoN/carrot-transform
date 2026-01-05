@@ -14,6 +14,7 @@ from click.testing import CliRunner
 
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
+import tests.conftest as conftest
 import tests.testools as testools
 from carrottransform.cli.subcommands.run import mapstream
 from tests import conftest
