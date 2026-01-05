@@ -140,6 +140,7 @@ def test_function_w_s3(
     """dumb wrapper to make the s3 tests run as well as the integration tests"""
     body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
 
+
 @pytest.mark.parametrize(
     "output_to, test_case, input_from, pass_as",
     generate_tests(

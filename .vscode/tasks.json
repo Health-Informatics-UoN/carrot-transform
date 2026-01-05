@@ -4,24 +4,23 @@
     {
       "label": "Ruff the whole project",
       "type": "shell",
-      "command": "uv run ruff check --select I --fix . && uv run ruff format .",
+      "command": "uv run ruff check --fix . && uv run ruff check --select I --fix . && uv run ruff format .",
       "group": "build",
       "presentation": {
         "reveal": "always",
         "panel": "new"
       },
-      "problemMatcher": []
-    },
-    {
-      "label": "Ruff the current file",
-      "type": "shell",
-      "command": "uv run ruff check --fix \"${file}\" && uv run ruff format \"${file}\" ",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": []
+      "problemMatcher": [],
+      "windows": {
+        "options": {
+          "shell": {
+            "executable": "cmd.exe",
+            "args": [
+              "/c"
+            ]
+          }
+        }
+      }
     },
     {
       "label": "run mypy checks",
@@ -43,7 +42,17 @@
         "reveal": "always",
         "panel": "new"
       },
-      "problemMatcher": []
+      "problemMatcher": [],
+      "windows": {
+        "options": {
+          "shell": {
+            "executable": "cmd.exe",
+            "args": [
+              "/c"
+            ]
+          }
+        }
+      }
     }
   ]
 }

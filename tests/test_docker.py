@@ -7,11 +7,9 @@ from pathlib import Path
 
 import pytest
 
-import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
-import tests.csvrow as csvrow
 import tests.testools as testools
-from tests.testools import package_root, project_root
+from tests.testools import project_root
 
 
 class DockerImage:

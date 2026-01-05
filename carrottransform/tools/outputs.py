@@ -110,7 +110,7 @@ def csv_output_target(into: Path) -> OutputTarget:
 
 def sql_output_target(connection: sqlalchemy.engine.Engine | str) -> OutputTarget:
     """creates an instance of the OutputTarget using the given SQLAlchemy connection"""
-    
+
     SQL_TO_LOWER: bool = True
 
     if not isinstance(connection, sqlalchemy.engine.Engine):
@@ -119,7 +119,6 @@ def sql_output_target(connection: sqlalchemy.engine.Engine | str) -> OutputTarge
         connection = sqlalchemy.create_engine(connection)
 
     def start(name: str, header: list[str]):
-
         if SQL_TO_LOWER:
             name = name.lower()
             header = list(map(lambda name: name.lower(), header))
@@ -146,7 +145,7 @@ def sql_output_target(connection: sqlalchemy.engine.Engine | str) -> OutputTarge
                 except Exception as e:
                     raise Exception(
                         f"failure trying to insert {rec=} into {name}({header}) // {e=}",
-                        e
+                        e,
                     )
 
         return upload

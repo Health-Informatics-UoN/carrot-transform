@@ -75,14 +75,13 @@ SourceArgument = SourceObjectArgumentType()
 
 
 def sql_source_object(connection: sqlalchemy.engine.Engine | str) -> SourceObject:
-
     SQL_TO_LOWER: bool = True
 
     if not isinstance(connection, sqlalchemy.engine.Engine):
         # if the parameter is not a connection; make it one
         # ... and fail-fast if it can't be used to open a connection
         connection = sqlalchemy.create_engine(connection)
-    
+
     class SO(SourceObject):
         def __init__(self):
             pass
