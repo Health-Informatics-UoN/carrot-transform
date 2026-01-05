@@ -241,8 +241,7 @@ class MinioURL:
         match = re.match(MINIO_URL_PATTERN, text)
 
         if not match:
-            logger.error(f"malformed minio URL {text=}")
-            exit(1)
+            raise Exception(f"malformed minio URL {text=}")
 
         self._user = match.group(1)
         self._pass = match.group(2)
