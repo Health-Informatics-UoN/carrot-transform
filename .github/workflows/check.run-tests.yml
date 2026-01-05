@@ -34,7 +34,7 @@ jobs:
           uv run pytest
 
   postgres:
-    name: Tests wiht PostgreSQL
+    name: Tests with PostgreSQL
     runs-on: ${{ matrix.os }}
 
     strategy:

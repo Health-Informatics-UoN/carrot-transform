@@ -1,22 +1,13 @@
 import logging
 import time
 from dataclasses import dataclass
-from typing import Generator
-
-import docker
-import pytest
-from sqlalchemy import create_engine
-
-from tests import testools
-import logging
-import time
-from dataclasses import dataclass
-from typing import Iterable
+from typing import Generator, Iterable
 
 import boto3
 import docker
 import pytest
 import requests
+from sqlalchemy import create_engine
 
 from tests import testools
 

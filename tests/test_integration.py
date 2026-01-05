@@ -17,7 +17,6 @@ import carrottransform.tools.sources as sources
 import tests.conftest as conftest
 import tests.testools as testools
 from carrottransform.cli.subcommands.run import mapstream
-from tests import conftest
 
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
@@ -90,8 +89,8 @@ connection_types = [Connection.CSV, Connection.SQLITE]
 def generate_cases(types: list[Connection], needs: None | list[Connection] = None):
     """generate a lot of permutations of tests.
 
-    \param types - the types of connection to read and write from/into
-    \param needs - can be used to require that a connection appears
+    @param types - the types of connection to read and write from/into
+    @param needs - if set, connections need to involve these
 
     """
 
