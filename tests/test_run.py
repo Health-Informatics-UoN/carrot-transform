@@ -5,9 +5,27 @@ from unittest.mock import patch
 import pytest
 
 import carrottransform.tools.sources as sources
+from carrottransform.tools import file_helpers
 from carrottransform.tools.person_helpers import _get_person_lookup
 
 logger = logging.getLogger(__name__)
+
+
+@pytest.mark.unit
+def test_valid_directory(tmp_path: Path):
+    """Test with a valid directory path"""
+
+    file_helpers.check_dir_isvalid(tmp_path)  # Should not raise any exception
+
+
+@pytest.mark.unit
+def test_invalid_directory(tmp_path: Path):
+    """Test with a non-existent directory"""
+
+    non_existent_dir = tmp_path / "non_existent"
+    with pytest.raises(SystemExit) as exc_info:
+        file_helpers.check_dir_isvalid(non_existent_dir)
+    assert exc_info.value.code == 1
 
 
 ### check_files_in_rules_exist(rules_input_files, existing_input_files):
