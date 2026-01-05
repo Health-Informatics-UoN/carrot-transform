@@ -9,7 +9,7 @@ import sqlalchemy
 
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
-from carrottransform.tools import outputs, sources
+from carrottransform.tools import outputs
 from tests import testools
 
 

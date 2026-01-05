@@ -4,18 +4,7 @@
     {
       "label": "Ruff the whole project",
       "type": "shell",
-      "command": "uv run ruff check --select I --fix . && uv run ruff format .",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Ruff the current file",
-      "type": "shell",
-      "command": "uv run ruff check --fix \"${file}\" && uv run ruff format \"${file}\" ",
+      "command": "uv run ruff check --fix . && uv run ruff check --select I --fix . && uv run ruff format .",
       "group": "build",
       "presentation": {
         "reveal": "always",

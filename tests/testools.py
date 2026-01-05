@@ -1,11 +1,10 @@
-import itertools
 import logging
 import random
 import time
 from dataclasses import dataclass
 from itertools import product
 from pathlib import Path
-from typing import Generator, Iterable
+from typing import Iterable
 
 import boto3
 import docker

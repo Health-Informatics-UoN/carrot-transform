@@ -7,7 +7,6 @@ import logging
 import re
 from pathlib import Path
 
-import boto3
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
