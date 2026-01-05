@@ -9,7 +9,6 @@ import sqlalchemy
 
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
-from carrottransform.tools import outputs
 from tests import testools
 
 
@@ -45,7 +44,6 @@ def test_basic_sqlite():
 
     folder = Path(__file__).parent / "test_data/measure_weight_height/"
     engine = sqlalchemy.create_engine("sqlite:///:memory:")
-    height = "heights.csv"
 
     source = sources.sql_source_object(engine)
 

@@ -1,21 +1,17 @@
 import logging
 import random
-import time
-from dataclasses import dataclass
 from itertools import product
 from pathlib import Path
 from typing import Iterable
 
 import boto3
-import docker
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
-from sqlalchemy import create_engine
 
 import carrottransform.tools.sources as sources
 from carrottransform.cli.subcommands.run import mapstream
-from carrottransform.tools import outputs, sources
+from carrottransform.tools import outputs
 from carrottransform.tools.args import PathArg
 
 #
