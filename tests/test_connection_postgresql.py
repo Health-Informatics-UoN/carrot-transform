@@ -9,20 +9,17 @@ from carrottransform.tools import outputs, sources
 
 @pytest.mark.docker
 def test_targetWriter(postgres, tmp_path: Path):
-    heights = Path(__file__).parent / "test_data/measure_weight_height/heights.csv"
-    # persons = Path(__file__).parent / "test_data/measure_weight_height/persons.csv"
-    # weights = Path(__file__).parent / "test_data/measure_weight_height/weights.csv"
+    test_data: Path = Path(__file__).parent / "test_data/measure_weight_height"
 
     # connect to a database
     # Create engine and connection
     engine = create_engine(postgres.config.connection)
 
     # create the target
-    outputTarget = outputs.sql_output_target(engine)
+    outputTarget: outputs.OutputTarget = outputs.sql_output_target(engine)
 
-    source: sources.SourceObject = sources.csv_source_object(
-        Path(__file__).parent / "test_data/measure_weight_height/", ","
-    )
+    # create the source
+    source: sources.SourceObject = sources.csv_source_object(test_data, ",")
 
     # open the three outputs
     targets = []
@@ -64,7 +61,7 @@ def test_targetWriter(postgres, tmp_path: Path):
         actual = actual.strip()
 
         # read the raw expected
-        with open(heights.parent / f"{table}.csv", "r") as file:
+        with open(test_data / f"{table}.csv", "r") as file:
             expected = file.read().strip()
 
         # compare the two values
