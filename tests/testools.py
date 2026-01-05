@@ -1,4 +1,5 @@
 import logging
+import random
 from itertools import product
 from pathlib import Path
 from typing import Iterable
@@ -8,8 +9,9 @@ import pytest
 import sqlalchemy
 from click.testing import CliRunner
 
+import carrottransform.tools.sources as sources
 from carrottransform.cli.subcommands.run import mapstream
-from carrottransform.tools import outputs, sources
+from carrottransform.tools import outputs
 from carrottransform.tools.args import PathArg
 
 #
@@ -18,6 +20,7 @@ logger = logging.getLogger(__name__)
 # Get the package root directory
 project_root: Path = Path(__file__).parent.parent
 package_root: Path = project_root / "carrottransform"
+test_data = Path(__file__).parent / "test_data"
 
 # this reffers to an s3 bucket tied to the system-level credentials
 # we're going to move ot MinIO at some point
@@ -108,7 +111,7 @@ def compare_two_sources(
 
 
 #### ==========================================================================
-## test case functions
+## test case generation
 
 
 def keyed_variations(**kv):
@@ -116,10 +119,6 @@ def keyed_variations(**kv):
     keys = kv.keys()
     for values in product(*kv.values()):
         yield dict(zip(keys, values))
-
-
-#### ==========================================================================
-## utility functions
 
 
 def variations(keys):
@@ -214,6 +213,50 @@ def zip_loop(*arguments: list[dict]):
         yield row
 
 
+class CarrotTestCase:
+    """defines an integration test case in terms of the person file, and the optional mapper rules"""
+
+    def __init__(self, person_name: str, mapper: str = "", suffix=""):
+        self._suffix = suffix
+        self._person_name = person_name
+
+        self._folder = (test_data / person_name).parent
+
+        # find the rules mapping
+        if mapper == "":
+            for json in self._folder.glob("*.json"):
+                assert "" == mapper
+                mapper = str(json).replace("\\", "/")
+        assert "" != mapper
+        self._mapper = mapper
+
+        assert 1 == person_name.count("/")
+        [label, person] = person_name.split("/")
+        self._label = label
+        assert person.endswith(".csv")
+        self._person = person[:-4]
+
+    def load_sqlite(self, tmp_path: Path):
+        assert tmp_path.is_dir()
+
+        # create an SQLite database and copy the contents into it
+        sqlite3 = tmp_path / f"{self._label}.sqlite3"
+        copy_across(
+            ot=outputs.sql_output_target(
+                sqlalchemy.create_engine(f"sqlite:///{sqlite3.absolute()}")
+            ),
+            so=self._folder,
+        )
+        return f"sqlite:///{sqlite3.absolute()}"
+
+    def compare_to_tsvs(self, source, suffix=""):
+        compare_to_tsvs(self._label + self._suffix, source)
+
+
+#### ==========================================================================
+## utility functions
+
+
 def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names=None):
     assert isinstance(so, Path) == (names is None)
     if isinstance(so, Path):
@@ -273,7 +316,6 @@ def run_v1(
 
 def rand_hex(length: int = 16) -> str:
     """genearttes a random hex string. used for test data"""
-    import random
 
     out = ""
     src = "0123456789abcdef"
@@ -285,46 +327,6 @@ def rand_hex(length: int = 16) -> str:
 
 
 test_data = Path(__file__).parent / "test_data"
-
-
-class CarrotTestCase:
-    """defines an integration test case in terms of the person file, and the optional mapper rules"""
-
-    def __init__(self, person_name: str, mapper: str = "", suffix=""):
-        self._suffix = suffix
-        self._person_name = person_name
-
-        self._folder = (test_data / person_name).parent
-
-        # find the rules mapping
-        if mapper == "":
-            for json in self._folder.glob("*.json"):
-                assert "" == mapper
-                mapper = str(json).replace("\\", "/")
-        assert "" != mapper
-        self._mapper = mapper
-
-        assert 1 == person_name.count("/")
-        [label, person] = person_name.split("/")
-        self._label = label
-        assert person.endswith(".csv")
-        self._person = person[:-4]
-
-    def load_sqlite(self, tmp_path: Path):
-        assert tmp_path.is_dir()
-
-        # create an SQLite database and copy the contents into it
-        sqlite3 = tmp_path / f"{self._label}.sqlite3"
-        copy_across(
-            ot=outputs.sql_output_target(
-                sqlalchemy.create_engine(f"sqlite:///{sqlite3.absolute()}")
-            ),
-            so=self._folder,
-        )
-        return f"sqlite:///{sqlite3.absolute()}"
-
-    def compare_to_tsvs(self, source, suffix=""):
-        compare_to_tsvs(self._label + self._suffix, source)
 
 
 ##
@@ -400,3 +402,7 @@ def delete_s3_folder(coordinate):
             logger.info(f"Errors deleting some objects: {response['Errors']}")
 
     logger.info(f"Successfully deleted folder '{folder}' and its contents")
+
+
+#### ==========================================================================
+##  functions specific to tests

@@ -13,6 +13,7 @@ from click.testing import CliRunner
 
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
+import tests.conftest as conftest
 import tests.testools as testools
 from carrottransform.cli.subcommands.run import mapstream
 
@@ -76,26 +77,38 @@ pass__arg_names = [
 ]
 
 
-connection_types = ["csv", "sqlite"]
-connection_types_w_s3 = connection_types + [f"s3:{testools.CARROT_TEST_BUCKET}"]
-
-
-def generate_cases(with_s3: bool):
-    types = connection_types_w_s3 if with_s3 else connection_types
-
-    perts = testools.permutations(
+def generate_tests(types: list[str], needs: None | list[str]):
+    parameters = testools.permutations(
         input_from=types, test_case=v1TestCases, output_to=types
     )
-    varts = list(map(lambda v: {"pass_as": v}, testools.variations(pass__arg_names)))
+
+    pass_vars_as = list(
+        map(lambda v: {"pass_as": v}, testools.variations(pass__arg_names))
+    )
+
+    def valid(p):
+        # if "needs" was defined we "need" one of the entries in it
+        has = (needs is None) or (p["output_to"] in needs) or (p["input_from"] in needs)
+
+        # to make testing easy; don't read and write to the same thing
+        dif = p["output_to"] != p["input_from"]
+
+        return has and dif
 
     return [
         (case["output_to"], case["test_case"], case["input_from"], case["pass_as"])
-        for case in testools.zip_loop(perts, varts)
+        for case in testools.zip_loop(
+            list(p for p in parameters if valid(p)), pass_vars_as
+        )
     ]
 
 
 @pytest.mark.parametrize(
-    "output_to, test_case, input_from, pass_as", generate_cases(True)
+    "output_to, test_case, input_from, pass_as",
+    generate_tests(
+        ["csv", "sqlite", f"s3:{testools.CARROT_TEST_BUCKET}"],
+        [f"s3:{testools.CARROT_TEST_BUCKET}"],
+    ),
 )
 @pytest.mark.s3tests
 def test_function_w_s3(
@@ -106,14 +119,35 @@ def test_function_w_s3(
 
 
 @pytest.mark.parametrize(
-    "output_to, test_case, input_from, pass_as", generate_cases(False)
+    "output_to, test_case, input_from, pass_as",
+    generate_tests(["csv", "sqlite", "postgres"], ["postgres"]),
+)
+@pytest.mark.docker
+def test_function_postgresql(
+    request, tmp_path: Path, output_to, test_case, input_from, pass_as, postgres
+):
+    """dumb wrapper to make the s3 tests run as well as the integration tests"""
+    body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as, postgres)
+
+
+@pytest.mark.parametrize(
+    "output_to, test_case, input_from, pass_as",
+    generate_tests(["csv", "sqlite"], None),
 )
 @pytest.mark.integration
 def test_function(request, tmp_path: Path, output_to, test_case, input_from, pass_as):
     body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
 
 
-def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass_as):
+def body_of_test(
+    request,
+    tmp_path: Path,
+    output_to,
+    test_case,
+    input_from,
+    pass_as,
+    postgres: conftest.PostgreSQLContainer | None = None,
+):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
 
     # generat a semi-random slug/name to group test data under
@@ -143,6 +177,13 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
         # copy data into the thing
         outputTarget = outputs.s3_output_target(inputs)
         testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
+
+    if "postgres" == input_from:
+        assert postgres is not None
+        inputs = postgres.config.connection
+        outputTarget = outputs.sql_output_target(sqlalchemy.create_engine(inputs))
+        testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
+
     assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
 
     # set the output
@@ -158,6 +199,10 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
 
         # set a task to delete the subfolder on exit
         request.addfinalizer(lambda: testools.delete_s3_folder(output))
+
+    if "postgres" == output_to:
+        assert postgres is not None
+        output = postgres.config.connection
 
     assert output is not None, f"couldn't use {output_to=}"  # check output was set
 
@@ -190,10 +235,18 @@ def body_of_test(request, tmp_path: Path, output_to, test_case, input_from, pass
     results = None
     if "csv" == output_to:
         results = sources.csv_source_object(tmp_path / "out", sep="\t")
-    if "sqlite" == output_to:
+
+    if ("sqlite" == output_to) or ("postgres" == output_to):
         results = sources.sql_source_object(sqlalchemy.create_engine(output))
+
     if output_to.startswith("s3:"):
         results = sources.s3_source_object(output, sep="\t")
+
+    if "postgres" == output_to:
+        assert postgres is not None
+        results = sources.sql_source_object(
+            sqlalchemy.create_engine(postgres.config.connection)
+        )
 
     assert results is not None  # check output was set
 
