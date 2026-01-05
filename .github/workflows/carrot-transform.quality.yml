@@ -31,6 +31,11 @@ jobs:
       - name: Run Ruff Checks
         uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1
         with:
+          args: "check ."
+      
+      - name: Run Ruff Checks
+        uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1
+        with:
           args: "check --select I ."
 
       - name: Run Ruff Checks (without I)

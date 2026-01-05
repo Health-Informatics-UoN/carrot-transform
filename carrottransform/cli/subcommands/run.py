@@ -8,7 +8,6 @@ import click
 import carrottransform.tools as tools
 import carrottransform.tools.args as args
 import carrottransform.tools.sources as sources
-from carrottransform import require
 from carrottransform.tools import outputs
 from carrottransform.tools.args import (
     OnlyOnePersonInputAllowed,

@@ -13,17 +13,6 @@
       "problemMatcher": []
     },
     {
-      "label": "Ruff the current file",
-      "type": "shell",
-      "command": "uv run ruff check --fix \"${file}\" && uv run ruff format \"${file}\" ",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": []
-    },
-    {
       "label": "run mypy checks",
       "type": "shell",
       "command": "uv run mypy .",
