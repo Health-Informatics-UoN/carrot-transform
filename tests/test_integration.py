@@ -27,6 +27,7 @@ class Connection(Enum):
     CSV = "csv"
     SQLITE = "sqlite"
     MINIO = "minio"
+    POSTGRES = "postgresql"
 
 
 @pytest.mark.unit  # it's an integration test ... but i need/want one that i can check quickly
@@ -82,20 +83,56 @@ pass__arg_names = [
     "omop-ddl-file",
 ]
 
-
+# the common "easy" connections
 connection_types = [Connection.CSV, Connection.SQLITE]
 
 
-def generate_cases(types: list[Connection]):
-    perts = testools.permutations(
+def generate_cases(types: list[Connection], needs: None | list[Connection] = None):
+    """generate a lot of permutations of tests.
+
+    \param types - the types of connection to read and write from/into
+    \param needs - can be used to require that a connection appears
+
+    """
+
+    # variations of the connections and test case data
+    parameters = testools.permutations(
         input_from=types, test_case=v1TestCases, output_to=types
     )
+
+    # variations of wether to pass things asn CLI or environment variables
     varts = list(map(lambda v: {"pass_as": v}, testools.variations(pass__arg_names)))
+
+    # filter function - check if a config satsifies the need
+    def valid(p):
+        # if "needs" was defined we "need" one of the entries in it
+        has = (needs is None) or (p["output_to"] in needs) or (p["input_from"] in needs)
+
+        # to make testing easy; don't read and write to the same thing
+        different = p["output_to"] != p["input_from"]
+
+        return has and different
 
     return [
         (case["output_to"], case["test_case"], case["input_from"], case["pass_as"])
-        for case in testools.zip_loop(perts, varts)
+        for case in testools.zip_loop(list(p for p in parameters if valid(p)), varts)
     ]
+
+
+@pytest.mark.parametrize(
+    "output_to, test_case, input_from, pass_as", generate_cases(connection_types)
+)
+@pytest.mark.integration
+def test_function(
+    request,
+    tmp_path: Path,
+    output_to: Connection,
+    test_case,
+    input_from: Connection,
+    pass_as,
+):
+    """performs the basic tests"""
+    body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
 
 
 @pytest.mark.parametrize(
@@ -112,25 +149,24 @@ def test_function_minio(
     pass_as,
     minio,
 ):
-    """dumb wrapper to make the s3 tests run as well as the integration tests"""
+    """performs tests with minio included"""
     body_of_test(
         request, tmp_path, output_to, test_case, input_from, pass_as, minio=minio
     )
 
 
 @pytest.mark.parametrize(
-    "output_to, test_case, input_from, pass_as", generate_cases(connection_types)
+    "output_to, test_case, input_from, pass_as",
+    generate_cases(connection_types + [Connection.POSTGRES]),
 )
-@pytest.mark.integration
-def test_function(
-    request,
-    tmp_path: Path,
-    output_to: Connection,
-    test_case,
-    input_from: Connection,
-    pass_as,
+@pytest.mark.docker
+def test_function_postgresql(
+    request, tmp_path: Path, output_to, test_case, input_from, pass_as, postgres
 ):
-    body_of_test(request, tmp_path, output_to, test_case, input_from, pass_as)
+    """performs tests with postgres included"""
+    body_of_test(
+        request, tmp_path, output_to, test_case, input_from, pass_as, postgres=postgres
+    )
 
 
 def body_of_test(
@@ -141,12 +177,12 @@ def body_of_test(
     input_from: Connection,
     pass_as,
     minio: None | conftest.MinIOBucket = None,
+    postgres: conftest.PostgreSQLContainer | None = None,
 ):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
 
     # generat a semi-random slug/name to group test data under
     # the files we read/write to s3 will appear in this folder
-
     slug = (
         re.sub(r"[^a-zA-Z0-9]+", "_", request.node.name).strip("_")
         + "__"
@@ -170,6 +206,13 @@ def body_of_test(
             # copy data into the thing
             outputTarget = outputs.minio_output_target(inputs)
             testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
+
+        case Connection.POSTGRES:
+            assert postgres is not None
+            inputs = postgres.config.connection
+            outputTarget = outputs.sql_output_target(sqlalchemy.create_engine(inputs))
+            testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
+
     assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
 
     # set the output
@@ -183,7 +226,9 @@ def body_of_test(
             assert minio is not None
             # just connect to it
             output = minio.connection
-
+        case Connection.POSTGRES:
+            assert postgres is not None
+            output = postgres.config.connection
     assert output is not None, f"couldn't use {output_to=}"  # check output was set
 
     env, args = testools.passed_as(
@@ -220,6 +265,11 @@ def body_of_test(
             results = sources.sql_source_object(sqlalchemy.create_engine(output))
         case Connection.MINIO:
             results = sources.minio_source_object(output, sep="\t")
+        case Connection.POSTGRES:
+            assert postgres is not None
+            results = sources.sql_source_object(
+                sqlalchemy.create_engine(postgres.config.connection)
+            )
 
     assert results is not None  # check output was set
 
