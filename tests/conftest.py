@@ -192,7 +192,6 @@ def trino(trino_instance) -> Iterable[TrinoSchema]:
             result = conn.execute(text(f"SHOW SCHEMAS FROM {config._instance.catalog}"))
             schemas = [row[0] for row in result]
             logger.info(f"Available schemas in {config._instance.catalog}: {schemas}")
-        engine.dispose()
 
         logger.info(f"Created schema {config._instance.catalog}.{config._schema}")
     except Exception as e:
