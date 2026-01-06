@@ -4,18 +4,12 @@ from itertools import product
 from pathlib import Path
 from typing import Iterable
 
-from typing import Iterable
-
-import boto3
 import pytest
 import sqlalchemy
 from click.testing import CliRunner
 
 import carrottransform.tools.sources as sources
 from carrottransform.cli.subcommands.run import mapstream
-from carrottransform.tools import outputs, sources
-from carrottransform.tools.args import PathArg
-
 from carrottransform.tools import outputs
 from carrottransform.tools.args import PathArg
 
@@ -26,6 +20,7 @@ logger = logging.getLogger(__name__)
 project_root: Path = Path(__file__).parent.parent
 package_root: Path = project_root / "carrottransform"
 test_data = Path(__file__).parent / "test_data"
+
 
 #### ==========================================================================
 ## unit test cases - test the test functions
@@ -396,49 +391,6 @@ def rand_hex(length: int = 16) -> str:
         out += src[random.randint(0, len(src) - 1)]
 
     return out
-
-
-test_data = Path(__file__).parent / "test_data"
-
-
-class CarrotTestCase:
-    """defines an integration test case in terms of the person file, and the optional mapper rules"""
-
-    def __init__(self, person_name: str, mapper: str = "", suffix=""):
-        self._suffix = suffix
-        self._person_name = person_name
-
-        self._folder = (test_data / person_name).parent
-
-        # find the rules mapping
-        if mapper == "":
-            for json in self._folder.glob("*.json"):
-                assert "" == mapper
-                mapper = str(json).replace("\\", "/")
-        assert "" != mapper
-        self._mapper = mapper
-
-        assert 1 == person_name.count("/")
-        [label, person] = person_name.split("/")
-        self._label = label
-        assert person.endswith(".csv")
-        self._person = person[:-4]
-
-    def load_sqlite(self, tmp_path: Path):
-        assert tmp_path.is_dir()
-
-        # create an SQLite database and copy the contents into it
-        sqlite3 = tmp_path / f"{self._label}.sqlite3"
-        copy_across(
-            ot=outputs.sql_output_target(
-                sqlalchemy.create_engine(f"sqlite:///{sqlite3.absolute()}")
-            ),
-            so=self._folder,
-        )
-        return f"sqlite:///{sqlite3.absolute()}"
-
-    def compare_to_tsvs(self, source, suffix=""):
-        compare_to_tsvs(self._label + self._suffix, source)
 
 
 ##

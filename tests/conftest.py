@@ -3,27 +3,16 @@ import random
 import textwrap
 import time
 from dataclasses import dataclass
-from typing import Iterable
-
-import docker
-import pytest
-from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout, Timeout
-from sqlalchemy import create_engine, text
-
-from tests import testools
-import logging
-import time
-from dataclasses import dataclass
 from typing import Generator, Iterable
 
 import boto3
 import docker
 import pytest
 import requests
-from sqlalchemy import create_engine
+from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout, Timeout
+from sqlalchemy import create_engine, text
 
 from tests import testools
-
 
 #
 logger = logging.getLogger(__name__)
