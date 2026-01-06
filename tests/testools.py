@@ -1,6 +1,9 @@
 import logging
+import random
 from itertools import product
 from pathlib import Path
+from typing import Iterable
+
 from typing import Iterable
 
 import boto3
@@ -8,8 +11,12 @@ import pytest
 import sqlalchemy
 from click.testing import CliRunner
 
+import carrottransform.tools.sources as sources
 from carrottransform.cli.subcommands.run import mapstream
 from carrottransform.tools import outputs, sources
+from carrottransform.tools.args import PathArg
+
+from carrottransform.tools import outputs
 from carrottransform.tools.args import PathArg
 
 #
@@ -18,10 +25,7 @@ logger = logging.getLogger(__name__)
 # Get the package root directory
 project_root: Path = Path(__file__).parent.parent
 package_root: Path = project_root / "carrottransform"
-
-# this reffers to an s3 bucket tied to the system-level credentials
-# we're going to move ot MinIO at some point
-CARROT_TEST_BUCKET = "carrot-transform-test"
+test_data = Path(__file__).parent / "test_data"
 
 #### ==========================================================================
 ## unit test cases - test the test functions
@@ -189,10 +193,6 @@ def keyed_variations(**kv):
         yield dict(zip(keys, values))
 
 
-#### ==========================================================================
-## utility functions
-
-
 def variations(keys):
     """
     computes key -> bool dicts where all, none, or only one value is true or false, then, maps those dicts to simple lists
@@ -285,6 +285,50 @@ def zip_loop(*arguments: list[dict]):
         yield row
 
 
+class CarrotTestCase:
+    """defines an integration test case in terms of the person file, and the optional mapper rules"""
+
+    def __init__(self, person_name: str, mapper: str = "", suffix=""):
+        self._suffix = suffix
+        self._person_name = person_name
+
+        self._folder = (test_data / person_name).parent
+
+        # find the rules mapping
+        if mapper == "":
+            for json in self._folder.glob("*.json"):
+                assert "" == mapper
+                mapper = str(json).replace("\\", "/")
+        assert "" != mapper
+        self._mapper = mapper
+
+        assert 1 == person_name.count("/")
+        [label, person] = person_name.split("/")
+        self._label = label
+        assert person.endswith(".csv")
+        self._person = person[:-4]
+
+    def load_sqlite(self, tmp_path: Path):
+        assert tmp_path.is_dir()
+
+        # create an SQLite database and copy the contents into it
+        sqlite3 = tmp_path / f"{self._label}.sqlite3"
+        copy_across(
+            ot=outputs.sql_output_target(
+                sqlalchemy.create_engine(f"sqlite:///{sqlite3.absolute()}")
+            ),
+            so=self._folder,
+        )
+        return f"sqlite:///{sqlite3.absolute()}"
+
+    def compare_to_tsvs(self, source, suffix=""):
+        compare_to_tsvs(self._label + self._suffix, source)
+
+
+#### ==========================================================================
+## utility functions
+
+
 def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names=None):
     assert isinstance(so, Path) == (names is None)
     if isinstance(so, Path):
@@ -344,7 +388,6 @@ def run_v1(
 
 def rand_hex(length: int = 16) -> str:
     """genearttes a random hex string. used for test data"""
-    import random
 
     out = ""
     src = "0123456789abcdef"
@@ -427,47 +470,3 @@ def passed_as(pass_as, *args):
         args = args[:i] + args[(i + 2) :]
 
     return (env, args)
-
-
-def delete_s3_folder(coordinate):
-    """
-    Delete a folder and all its contents from an S3 bucket.
-
-    Args:
-        bucket (str): Name of the S3 bucket
-        folder (str): Folder path to delete (e.g., 'my-folder/' or 'prefix/subfolder/')
-    """
-
-    [bucket, folder] = outputs.s3_bucket_folder(coordinate)
-
-    client = boto3.client("s3")
-
-    # Ensure the folder path ends with a slash
-    if not folder.endswith("/"):
-        folder = folder + "/"
-
-    # List all objects in the folder
-    paginator = client.get_paginator("list_objects_v2")
-    pages = paginator.paginate(Bucket=bucket, Prefix=folder)
-
-    # Collect all objects to delete
-    objects_to_delete = []
-    for page in pages:
-        if "Contents" in page:
-            for obj in page["Contents"]:
-                objects_to_delete.append({"Key": obj["Key"]})
-
-    if not objects_to_delete:
-        logger.info(f"No objects found in folder '{folder}'")
-        return
-
-    # Delete all objects in batches of 1000 (S3 API limit)
-    for i in range(0, len(objects_to_delete), 1000):
-        batch = objects_to_delete[i : i + 1000]
-        response = client.delete_objects(Bucket=bucket, Delete={"Objects": batch})
-
-        # Check for errors in deletion
-        if "Errors" in response and response["Errors"]:
-            logger.info(f"Errors deleting some objects: {response['Errors']}")
-
-    logger.info(f"Successfully deleted folder '{folder}' and its contents")

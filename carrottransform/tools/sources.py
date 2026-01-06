@@ -12,6 +12,7 @@ import sqlalchemy
 from sqlalchemy import MetaData, select
 
 from carrottransform import require
+from carrottransform.tools import outputs
 from carrottransform.tools.outputs import s3_bucket_folder
 
 logger = logging.getLogger(__name__)
@@ -58,11 +59,9 @@ class SourceObjectArgumentType(click.ParamType):
 
     def convert(self, value: str, param, ctx):
         value = str(value)
-
-        if value.startswith("s3:"):
-            return s3_source_object(
-                value, "\t"
-            )  # TODO; do something else with the separators
+        if value.startswith("minio:"):
+            # TODO; do something else with the separators
+            return minio_source_object(value, "\t")
 
         if re.match(r"[\w]+://.+", value):
             return sql_source_object(sqlalchemy.create_engine(value))
@@ -184,6 +183,46 @@ def s3_source_object(coordinate: str, sep: str) -> SourceObject:
             [b, f] = s3_bucket_folder(coordinate)
             self._bucket_resource = boto3.resource("s3").Bucket(b)
             self._bucket_folder = f
+
+        def close(self):
+            self._bucket_resource = None
+
+        def open(self, table: str) -> Iterator[list[str]]:
+            require(not table.endswith(".csv"))
+
+            key = self._bucket_folder + table
+
+            # Example: read CSV from S3
+            try:
+                obj = self._bucket_resource.Object(key)
+
+                # Stream the content without loading everything into memory
+                stream = obj.get()["Body"]
+                text_stream = io.TextIOWrapper(stream, encoding="utf-8")
+                reader = csv.reader(text_stream, delimiter=sep)
+
+                for row in reader:
+                    yield row
+                stream.close()
+            except Exception as e:
+                logger.error(f"Failed to read {table=} from S3: {e=} w/ {key=}")
+                exit(1)
+
+    return SO(coordinate)
+
+
+def minio_source_object(coordinate: str, sep: str) -> SourceObject:
+    class SO(SourceObject):
+        def __init__(self, coordinate: str):
+            bucket = outputs.MinioURL(coordinate)
+
+            self._bucket_resource = boto3.resource(
+                "s3",
+                endpoint_url=f"{bucket._protocol}://{bucket._host}:{bucket._port}",
+                aws_access_key_id=bucket._user,
+                aws_secret_access_key=bucket._pass,
+            ).Bucket(bucket._bucket)
+            self._bucket_folder = bucket._folder
 
         def close(self):
             self._bucket_resource = None

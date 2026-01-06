@@ -14,9 +14,7 @@
       "type": "debugpy",
       "request": "launch",
       "module": "pytest",
-      "args": [
-        "-m", "docker","tests/test_connection_trino.py::test_targetWriter_trino",
-      ],
+      "args": "-m \"not nothing\" tests/test_datetime.py::test_datetime_in_measurement_csv",
       "justMyCode": false
     },
 

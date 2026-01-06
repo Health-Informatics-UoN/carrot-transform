@@ -10,6 +10,7 @@ dependencies = [
     "boto3>=1.40.74",
     "case-insensitive-dictionary>=0.2.1",
     "click>=8.1.7,<9",
+    "minio>=7.2.20",
     "psycopg2-binary>=2.9.10",
     "sqlalchemy>=2.0.42",
     "trino>=0.335.0",
@@ -33,7 +34,7 @@ dev = [
     "mypy>=1.18.1",
     "pytest-docker>=3.2.5",
     "ruff>=0.12.0",
-    "types-docker>=7.1.0.20251009",
+    "types-docker>=7.1.0.20251202",
 ]
 
 [tool.uv]
@@ -61,8 +62,7 @@ build-backend = "hatchling.build"
 markers = [
     "unit: marks tests as unit tests (deselect with '-m \"not unit\"')",
     "integration: marks integration tests",
-    "docker: marks tests to run against the docker container",
-    "s3tests: marks tests that require s3 credentials and quotas",
+    "docker: marks tests to run against docker containers",
 ]
 
 # not all platforms have docker and s3 creds, so, don't run the docker tests by default
