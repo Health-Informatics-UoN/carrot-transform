@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Ruff the whole project",
+      "label": "Quality Checks",
       "type": "shell",
-      "command": "uv run ruff check --fix . && uv run ruff check --select I --fix . && uv run ruff format .",
+      "command": "uv run ruff check --fix . && uv run ruff check --select I --fix . && uv run ruff format . && uv run mypy .",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -21,17 +21,6 @@
           }
         }
       }
-    },
-    {
-      "label": "run mypy checks",
-      "type": "shell",
-      "command": "uv run mypy .",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": []
     },
     {
       "label": "Coverage Report",

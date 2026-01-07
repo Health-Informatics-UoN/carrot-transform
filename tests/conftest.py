@@ -2,7 +2,6 @@ import logging
 import time
 from dataclasses import dataclass
 from typing import Generator, Iterable
-from carrottransform import require
 
 import boto3
 import docker
