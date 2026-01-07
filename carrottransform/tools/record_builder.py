@@ -171,9 +171,16 @@ class TargetRecordBuilder(ABC):
             )
 
             # Write directly to output file (files are kept open)
-            self.context.file_handles[self.context.tgtfilename].write(
-                "\t".join(output_record) + "\n"
-            )
+            into = self.context.file_handles[self.context.tgtfilename]
+
+            # injection needs the records, the-old-ways expect you to tabbify the record for it
+            # ... so ... when we do "out with the old" get this https://github.com/Health-Informatics-UoN/carrot-transform/issues/159
+            import carrottransform.tools.outputs as outputs
+
+            if isinstance(into, outputs.OutputTarget.Handle):
+                into.write(output_record)
+            else:
+                into.write("\t".join(output_record) + "\n")
 
             return True
         else:

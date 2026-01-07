@@ -16,7 +16,7 @@ import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
 import tests.conftest as conftest
 import tests.testools as testools
-from carrottransform.cli.subcommands.run import mapstream
+from carrottransform.cli.subcommands.run import div2, mapstream
 
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
@@ -38,7 +38,7 @@ def test_sql_read(tmp_path: Path):
     # this is the paramter
     testing_person_file = "measure_weight_height/persons.csv"
 
-    test_case = testools.CarrotTestCase(testing_person_file)
+    test_case = testools.CarrotTestCase(testing_person_file, entry=mapstream)
 
     # run the test sourcing that SQLite database but writing to disk
     input_db = test_case.load_sqlite(tmp_path)
@@ -55,9 +55,9 @@ def test_sql_read(tmp_path: Path):
     test_case.compare_to_tsvs(actual)
 
 
-v1TestCases = list(
+test_cases = list(
     map(
-        testools.CarrotTestCase,
+        lambda person: testools.CarrotTestCase(person, mapstream),
         [
             "integration_test1/src_PERSON.csv",
             "floats/src_PERSON.csv",
@@ -68,9 +68,20 @@ v1TestCases = list(
             "condition/persons.csv",
         ],
     )
-) + [
+)
+
+test_cases += [
     testools.CarrotTestCase(
-        "only_m/patients.csv", str(test_data / "only_m/v1-rules.json"), "/v1-out"
+        "integration_test1/src_PERSON.csv",
+        entry=div2,
+        mapper=str(Path(__file__).parent / "test_V2/rules-v2.json"),
+        suffix="/v2-out",
+    ),
+    testools.CarrotTestCase(
+        "only_m/patients.csv",
+        entry=mapstream,
+        mapper=str(test_data / "only_m/v1-rules.json"),
+        suffix="/v1-out",
     ),
 ]
 
@@ -96,7 +107,7 @@ def generate_cases(types: list[Connection], needs: None | list[Connection] = Non
 
     # variations of the connections and test case data
     parameters = testools.permutations(
-        input_from=types, test_case=v1TestCases, output_to=types
+        input_from=types, test_case=test_cases, output_to=types
     )
 
     # variations of wether to pass things asn CLI or environment variables
@@ -247,7 +258,7 @@ def body_of_test(
     ##
     # run click
     runner = CliRunner()
-    result = runner.invoke(mapstream, args=args, env=env)
+    result = runner.invoke(test_case._entry, args=args, env=env)
 
     if result.exception is not None:
         print(result.exception)
@@ -273,7 +284,11 @@ def body_of_test(
     assert results is not None  # check output was set
 
     # verify that the results are good
-    test_case.compare_to_tsvs(results)
+    try:
+        test_case.compare_to_tsvs(results)
+    except:
+        logger.error(f"{tmp_path=}")
+        raise
 
 
 @pytest.mark.integration

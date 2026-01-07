@@ -21,6 +21,7 @@ project_root: Path = Path(__file__).parent.parent
 package_root: Path = project_root / "carrottransform"
 test_data = Path(__file__).parent / "test_data"
 
+
 #### ==========================================================================
 ## unit test cases - test the test functions
 
@@ -66,7 +67,7 @@ def compare_to_tsvs(subpath: str, actual: sources.SourceObject) -> None:
     ]
 
     assert "person_ids" in items, (
-        "person_id.tsv verification data missing from the test case"
+        f"person_ids.tsv verification data missing from the test case w/{test=}"
     )
     assert "person" in items, "person.tsv verification data missing from the test case"
 
@@ -102,7 +103,23 @@ def compare_two_sources(
         expect_values = values(expect_iter)
         actual_values = values(actual_iter)
 
-        assert expect_values == actual_values
+        if expect_values == actual_values:
+            continue
+
+        expect_msg = "\texpect:"
+        n = 0
+        for each in expect_values:
+            expect_msg += f"\n\t{n}\t{each}"
+            n += 1
+        actual_msg = "\tactual:"
+        n = 0
+        for each in actual_values:
+            actual_msg += f"\n\t{n}\t{each}"
+            n += 1
+
+        assert expect_values == actual_values, (
+            f"mismatch with item {name}\n{expect_msg}\n{actual_msg}"
+        )
 
 
 #### ==========================================================================
@@ -211,8 +228,9 @@ def zip_loop(*arguments: list[dict]):
 class CarrotTestCase:
     """defines an integration test case in terms of the person file, and the optional mapper rules"""
 
-    def __init__(self, person_name: str, mapper: str = "", suffix=""):
+    def __init__(self, person_name: str, entry, mapper: str = "", suffix=""):
         self._suffix = suffix
+        self._entry = entry
         self._person_name = person_name
 
         self._folder = (test_data / person_name).parent
