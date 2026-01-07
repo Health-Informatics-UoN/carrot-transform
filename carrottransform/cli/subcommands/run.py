@@ -4,11 +4,10 @@ import time
 from pathlib import Path
 
 import click
-
+from carrottransform import require
 import carrottransform.tools as tools
 import carrottransform.tools.args as args
-import carrottransform.tools.sources as sources
-from carrottransform.tools import outputs, require
+from carrottransform.tools import sources, outputs
 from carrottransform.tools.args import (
     OnlyOnePersonInputAllowed,
     PathArg,

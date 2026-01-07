@@ -33,6 +33,34 @@ jobs:
         run: |
           uv run pytest
 
+  postgres:
+    name: Tests with PostgreSQL
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          # - windows-latest # don't think it'll work here?
+        python-version:
+          - "3.10"
+          - "3.11"
+          - "3.12"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run tests
+        run: |
+          uv run pytest -m integration -m unit -m docker
+
+
   docker_tests:
     name: Docker Tests
     runs-on: ubuntu-latest
@@ -41,7 +69,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.10"
           

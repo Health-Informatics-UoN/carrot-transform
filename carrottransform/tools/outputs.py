@@ -4,6 +4,7 @@ this file contains several "output target" classes. each class is used to write 
 
 import io
 import logging
+import re
 from enum import IntEnum
 from pathlib import Path
 
@@ -156,15 +157,9 @@ class S3Tool:
             self._parts: list[dict[str, int | object]] = []
             self._part_number = 1
 
-    def __init__(self, s3, coordinate: str):
-        if "/" in coordinate:
-            [b, f] = s3_bucket_folder(coordinate)
-            self._bucket_name = b
-            self._bucket_path = f
-        else:
-            self._bucket_name = coordinate[3:]
-            self._bucket_path = ""
-
+    def __init__(self, s3, bucket_name: str, bucket_path: str):
+        self._bucket_name = bucket_name
+        self._bucket_path = bucket_path
         self._s3 = s3
         self._streams: dict[str, S3Tool.S3UploadStream] = {}
 
@@ -239,6 +234,56 @@ class S3Tool:
         stream._buffer = io.BytesIO()
 
 
+# Pattern to extract all components
+MINIO_URL_PATTERN = r"^minio:([^:]+):([^@]+)@(https?)://([^:/]+):(\d+)/([^/]+)/?(.*)$"
+
+
+class MinioURL:
+    """parses/breaks a MinioURL up into the intended components"""
+
+    def __init__(self, text: str):
+        match = re.match(MINIO_URL_PATTERN, text)
+
+        if not match:
+            raise Exception(f"malformed minio URL {text=}")
+
+        self._user = match.group(1)
+        self._pass = match.group(2)
+        self._protocol = match.group(3)
+        self._host = match.group(4)
+        self._port = match.group(5)
+        self._bucket = match.group(6)
+        self._folder = match.group(7)
+
+
+def minio_output_target(coordinate: str) -> OutputTarget:
+    """create an output target for a folder in an minio bucket"""
+
+    bucket = MinioURL(coordinate)
+
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=f"{bucket._protocol}://{bucket._host}:{bucket._port}",
+        aws_access_key_id=bucket._user,
+        aws_secret_access_key=bucket._pass,
+    )
+
+    s3_tool = S3Tool(s3_client, bucket._bucket, bucket._folder)
+
+    def start(name: str, header: list[str]):
+        s3_tool.new_stream(name)
+        s3_tool.send_chunk(name, ("\t".join(header) + "\n").encode("utf-8"))
+        return name
+
+    return OutputTarget(
+        start,
+        lambda name, record: s3_tool.send_chunk(
+            name, ("\t".join(record) + "\n").encode("utf-8")
+        ),
+        lambda name: s3_tool.complete(name),
+    )
+
+
 def s3_bucket_folder(coordinate: str):
     """splits the uri-like coordinate strings for S3 into [bucket, subfolder] data"""
 
@@ -256,25 +301,6 @@ def s3_bucket_folder(coordinate: str):
     return [bucket[3:], folder]
 
 
-def s3_output_target(coordinate: str) -> OutputTarget:
-    """create an output target for a folder in an s3 bucket"""
-
-    s3tool = S3Tool(boto3.client("s3"), coordinate)
-
-    def start(name: str, header: list[str]):
-        s3tool.new_stream(name)
-        s3tool.send_chunk(name, ("\t".join(header) + "\n").encode("utf-8"))
-        return name
-
-    return OutputTarget(
-        start,
-        lambda name, record: s3tool.send_chunk(
-            name, ("\t".join(record) + "\n").encode("utf-8")
-        ),
-        lambda name: s3tool.complete(name),
-    )
-
-
 class OutputTargetArgumentType(click.ParamType):
     """creates an output target for a command line string parameter"""
 
@@ -282,8 +308,8 @@ class OutputTargetArgumentType(click.ParamType):
 
     def convert(self, value: str, param, ctx):
         value = str(value)
-        if value.startswith("s3:"):
-            return s3_output_target(value)
+        if value.startswith("minio:"):
+            return minio_output_target(value)
 
         try:
             return sql_output_target(sqlalchemy.create_engine(value))
