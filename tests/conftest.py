@@ -9,6 +9,8 @@ import boto3
 import docker
 import pytest
 import requests
+from sqlalchemy import create_engine
+import requests
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout, Timeout
 from sqlalchemy import create_engine, text
 
