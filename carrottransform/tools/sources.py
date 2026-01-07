@@ -98,11 +98,13 @@ def sql_source_object(connection: sqlalchemy.engine.Engine | str) -> SourceObjec
             # trino needs table names to be lower case to match them (sometimes) and SQL is case insensitive anyway
             table = table.lower() if SQL_TO_LOWER else table
 
-            def sql():
-                metadata = MetaData()
-                metadata.reflect(bind=connection, only=[table])
-                source = metadata.tables[table]
+            def sql() -> Iterator[list[str]]:
+                # tell mypy that this is a connection
+                assert isinstance(connection, sqlalchemy.engine.Engine)
                 with connection.connect() as conn:
+                    metadata = MetaData()
+                    metadata.reflect(bind=conn, only=[table])
+                    source = metadata.tables[table]
                     result = conn.execute(select(source))
 
                     header: list[str]

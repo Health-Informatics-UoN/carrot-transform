@@ -132,6 +132,7 @@ pass__arg_names = [
 # the common "easy" connections
 connection_types = [Connection.CSV, Connection.SQLITE]
 
+
 def generate_cases(needs: None | list[Connection] = None):
     """generate a lot of permutations of tests.
 
