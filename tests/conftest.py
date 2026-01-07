@@ -85,6 +85,11 @@ def trino_instance(docker_ip, tmp_path_factory) -> Iterable[TrinoInstance]:
     catalog_dir.mkdir(exist_ok=True)
     (catalog_dir / "memory.properties").write_text("connector.name=memory")
 
+    # Create data directory with open permissions
+    data_dir = tmp_path / "var"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    data_dir.chmod(0o777)
+
     client = docker.from_env()
     client.images.pull("trinodb/trino:latest")
     container = client.containers.run(
@@ -93,7 +98,7 @@ def trino_instance(docker_ip, tmp_path_factory) -> Iterable[TrinoInstance]:
         ports={f"{config.server_port}/tcp": ("127.0.0.1", config.server_port)},
         volumes={
             str(config_dir): {"bind": "/etc/trino", "mode": "rw"},
-            str(tmp_path / "var"): {"bind": "/var/trino", "mode": "rw"},
+            str(data_dir): {"bind": "/var/trino", "mode": "rw"},
         },
         detach=True,
         remove=True,
