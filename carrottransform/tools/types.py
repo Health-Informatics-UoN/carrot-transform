@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, TextIO
 
+from case_insensitive_dict import CaseInsensitiveDict
 from sqlalchemy.engine import Connection
 
 import carrottransform.tools as tools
@@ -19,7 +20,7 @@ class ProcessingContext:
     person_lookup: Dict[str, str]
     record_numbers: Dict[str, int]
     file_handles: Dict[str, TextIO]
-    target_column_maps: Dict[str, Dict[str, int]]
+    target_column_maps: Dict[str, CaseInsensitiveDict[str, int]]
     metrics: tools.metrics.Metrics
     input_dir: Optional[Path] = None
     db_connection: Optional[Connection] = None
@@ -48,11 +49,11 @@ class RecordContext:
     """Context object containing all the data needed for record building"""
 
     tgtfilename: str
-    tgtcolmap: Dict[str, int]
+    tgtcolmap: CaseInsensitiveDict[str, int]
     v2_mapping: V2TableMapping
     srcfield: str
     srcdata: List[str]
-    srccolmap: Dict[str, int]
+    srccolmap: CaseInsensitiveDict[str, int]
     srcfilename: str
     omopcdm: OmopCDM
     metrics: tools.metrics.Metrics

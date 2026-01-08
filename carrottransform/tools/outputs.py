@@ -109,14 +109,25 @@ def csv_output_target(into: Path) -> OutputTarget:
     )
 
 
-def sql_output_target(connection: sqlalchemy.engine.Engine) -> OutputTarget:
+def sql_output_target(connection: sqlalchemy.engine.Engine | str) -> OutputTarget:
     """creates an instance of the OutputTarget using the given SQLAlchemy connection"""
 
+    SQL_TO_LOWER: bool = True
+
+    if not isinstance(connection, sqlalchemy.engine.Engine):
+        # if the parameter is not a connection; make it one
+        # ... and fail-fast if it can't be used to open a connection
+        connection = sqlalchemy.create_engine(connection)
+
     def start(name: str, header: list[str]):
-        # if you're adapting this to a non-dumb database; probably best to read the DDL or something and check/match the column types
+        if SQL_TO_LOWER:
+            name = name.lower()
+            header = list(map(lambda name: name.lower(), header))
+
+        # assume all columns are text - a better solution would be to lookup the ddl
         columns = [Column(name, Text()) for name in header]
 
-        # create the table
+        # create the table - a better solution would be to check wether it already exists
         metadata = MetaData()
         table = Table(
             name,
@@ -129,7 +140,14 @@ def sql_output_target(connection: sqlalchemy.engine.Engine) -> OutputTarget:
         # ... rewriting the class "smells bad" when it already works and i'm struggling with s3
         def upload(record):
             with connection.begin() as conn:
-                conn.execute(insert(table), dict(zip(header, record)))
+                try:
+                    rec = dict(zip(header, record))
+                    conn.execute(insert(table), rec)
+                except Exception as e:
+                    raise Exception(
+                        f"failure trying to insert {rec=} into {name}({header}) // {e=}",
+                        e,
+                    )
 
         return upload
 

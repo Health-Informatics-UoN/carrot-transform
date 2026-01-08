@@ -21,6 +21,7 @@ project_root: Path = Path(__file__).parent.parent
 package_root: Path = project_root / "carrottransform"
 test_data = Path(__file__).parent / "test_data"
 
+
 #### ==========================================================================
 ## unit test cases - test the test functions
 
@@ -65,48 +66,119 @@ def compare_to_tsvs(subpath: str, actual: sources.SourceObject) -> None:
         if "summary_mapstream.tsv" != item.name
     ]
 
+    assert "person" in items, "person.tsv verification data missing from the test case"
+
+    # we can't guarantee this - but - we still need it to verify the other tables
     assert "person_ids" in items, (
         "person_id.tsv verification data missing from the test case"
     )
-    assert "person" in items, "person.tsv verification data missing from the test case"
+    items.remove("person_ids")
 
     # open the saved .tsv file
     expect = sources.csv_source_object(test, sep="\t")
 
-    compare_two_sources(expect=expect, actual=actual, items=items)
+    compare_two_sources(expect=expect, actual=actual, items=items, simple_check=False)
     # it matches!
     logger.info(f"all match in {subpath=}")
 
 
 def compare_two_sources(
-    expect: sources.SourceObject, actual: sources.SourceObject, items: Iterable[str]
+    expect: sources.SourceObject,
+    actual: sources.SourceObject,
+    items: Iterable[str],
+    simple_check: bool = True,
 ) -> None:
-    """compares the named entries from two SourceObject instances. does not enforce order"""
+    """compares the named entries from two SourceObject instances. does not enforce order. has optional `simple_check` to control wether the presonIds are mapped back and if the row ids are ignored"""
+
+    expected_persons = {} if simple_check else person_id_mapping(expect)
+    actual_persons = {} if simple_check else person_id_mapping(actual)
 
     for name in items:
+        # only check certain tables
+        if not simple_check:
+            assert name in [
+                "measurement",
+                "person",
+                "observation",
+                "condition_occurrence",
+            ], f"not allowing {name=}"
+
         expect_iter = expect.open(name)
         actual_iter = actual.open(name)
 
         ex_head = next(expect_iter)
         ac_head = next(actual_iter)
 
-        assert ex_head == ac_head
+        assert ex_head == ac_head, f"mismatch in {name=}\n\t{ex_head=}\n\t{ac_head=}"
 
-        def values(data):
+        # check that the column name is person_id before we start swapping values
+        if not simple_check:
+            assert f"{name}_id" == ex_head[0], (
+                f"expected {name}_id as first column but was {ex_head[0]}"
+            )
+            if name != "person":
+                assert "person_id" == ex_head[1], (
+                    f"expected person_id as second column but was {ex_head[1]}"
+                )
+
+        def values(data, persons):
             rows = []
             for row in data:
+                if not simple_check:
+                    # remove the row's id
+                    # > we con't care about the speicific id value in this column, but, it changes when the records come out of the db in a random order
+                    if name != "person":
+                        row = row[1:]
+
+                    # change the person_id back
+                    # > trino (and likley larger systems) don't preserve insertion/extraction order of rows; so we can't rely on the anon ids popping out the same as they went in
+                    row[0] = persons[row[0]]
+
                 rows.append(row)
             rows.sort(key=lambda row: str(row))
             return rows
 
-        expect_values = values(expect_iter)
-        actual_values = values(actual_iter)
+        expect_values = values(expect_iter, expected_persons)
+        actual_values = values(actual_iter, actual_persons)
 
-        assert expect_values == actual_values
+        if expect_values == actual_values:
+            continue
+
+        expect_msg = "\texpect:"
+        n = 0
+        for each in expect_values:
+            expect_msg += f"\n\t{n}\t{each}"
+            n += 1
+        actual_msg = "\tactual:"
+        n = 0
+        for each in actual_values:
+            actual_msg += f"\n\t{n}\t{each}"
+            n += 1
+
+        assert expect_values == actual_values, (
+            f"mismatch with item {name}\n{ex_head}\n{expect_msg}\n{actual_msg}"
+        )
+
+
+def person_id_mapping(source: sources.SourceObject) -> dict[str, str]:
+    """reads back a `person_ids` and determines how to "unmap" anonymisation"""
+    persons: dict[str, str] = {}
+    first: bool = True
+    for row in source.open("person_ids"):
+        if first:
+            first = False
+            row = list(map(lambda col: col.upper(), row))
+            assert row == ["SOURCE_SUBJECT", "TARGET_SUBJECT"], (
+                f"wrong row in person_id {row=}"
+            )
+        else:
+            persons[row[1]] = row[0]
+    assert not first
+    return persons
 
 
 #### ==========================================================================
-## test case generation
+## test case functions
 
 
 def keyed_variations(**kv):

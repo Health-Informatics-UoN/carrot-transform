@@ -3,6 +3,8 @@ import re
 import sys
 from pathlib import Path
 
+from case_insensitive_dict import CaseInsensitiveDict
+
 import carrottransform.tools as tools
 from carrottransform import require
 from carrottransform.tools.logger import logger_setup
@@ -139,8 +141,10 @@ class OmopCDM:
             return self.omop_json[colkey]
         return None
 
-    def get_column_map(self, colarr, delim=","):
-        colmap = {}
+    def get_column_map(self, colarr, delim=",") -> CaseInsensitiveDict[str, int]:
+        # allow situations where SQL is case insensitive (SQL the language is case insensitive)
+        # Trino seems to flip column names around and SQL is case insensitive
+        colmap = CaseInsensitiveDict[str, int]()
         for i, col in enumerate(colarr):
             colmap[col] = i
         return colmap

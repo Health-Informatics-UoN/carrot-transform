@@ -2,6 +2,7 @@ import csv
 import io
 import itertools
 import logging
+import re
 from pathlib import Path
 from typing import Iterator
 
@@ -62,12 +63,7 @@ class SourceObjectArgumentType(click.ParamType):
             # TODO; do something else with the separators
             return minio_source_object(value, "\t")
 
-        # check for a databse prefix
-        # ... this is really only done to make the csv/file thing below simpler
-        sqlite = value.startswith("sqlite:")
-        postgresql = value.startswith("postgresql:")
-
-        if sqlite or postgresql:
+        if re.match(r"[\w]+://.+", value):
             return sql_source_object(sqlalchemy.create_engine(value))
 
         return csv_source_object(Path(value), sep=",")
@@ -77,7 +73,17 @@ class SourceObjectArgumentType(click.ParamType):
 SourceArgument = SourceObjectArgumentType()
 
 
-def sql_source_object(connection: sqlalchemy.engine.Engine) -> SourceObject:
+def sql_source_object(connection: sqlalchemy.engine.Engine | str) -> SourceObject:
+    SQL_TO_LOWER: bool = True
+
+    # if the parameter is not a connection; make it one
+    # ... and fail-fast if it can't be used to open a connection
+    engine: sqlalchemy.engine.Engine = (
+        connection
+        if isinstance(connection, sqlalchemy.engine.Engine)
+        else sqlalchemy.create_engine(connection)
+    )
+
     class SO(SourceObject):
         def __init__(self):
             pass
@@ -92,13 +98,26 @@ def sql_source_object(connection: sqlalchemy.engine.Engine) -> SourceObject:
             )
             require("/" not in table, f"invalid table name {table=}")
 
-            def sql():
-                metadata = MetaData()
-                metadata.reflect(bind=connection, only=[table])
-                source = metadata.tables[table]
-                with connection.connect() as conn:
-                    result = conn.execute(select(source))
-                    yield result.keys()
+            # trino needs table names to be lower case to match them (sometimes) and SQL is case insensitive anyway
+            table = table.lower() if SQL_TO_LOWER else table
+
+            def sql() -> Iterator[list[str]]:
+                with engine.connect() as connection:
+                    metadata = MetaData()
+                    metadata.reflect(bind=connection, only=[table])
+                    source = metadata.tables[table]
+                    result = connection.execute(select(source))
+
+                    header: list[str]
+                    try:
+                        header = list(result.keys())
+                    except Exception as e:
+                        raise Exception(f"{table} raised error on .keys(); {e=}")
+
+                    if SQL_TO_LOWER:
+                        header = list(map(lambda a: a.lower(), header))
+
+                    yield header
 
                     for row in result:
                         yield list(row)

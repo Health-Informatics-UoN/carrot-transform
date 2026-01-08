@@ -2,6 +2,7 @@ import csv
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from case_insensitive_dict import CaseInsensitiveDict
 from sqlalchemy.engine import Connection
 from sqlalchemy.schema import MetaData, Table
 from sqlalchemy.sql.expression import select
@@ -186,7 +187,7 @@ class StreamProcessor:
         self,
         source_filename: str,
         input_data: List[str],
-        input_column_map: Dict[str, int],
+        input_column_map: CaseInsensitiveDict[str, int],
         applicable_targets: Set[str],
         datetime_col_idx: int,
         file_meta: Dict[str, Any],
@@ -236,14 +237,16 @@ class StreamProcessor:
         self,
         source_filename: str,
         input_data: List[str],
-        input_column_map: Dict[str, int],
+        input_column_map: CaseInsensitiveDict[str, int],
         target_file: str,
         file_meta: Dict[str, Any],
     ) -> Tuple[int, int]:
         """Process row for specific target and write records directly"""
 
         v2_mapping = self.context.mappingrules.v2_mappings[target_file][source_filename]
-        target_column_map = self.context.target_column_maps[target_file]
+        target_column_map: CaseInsensitiveDict[str, int] = (
+            self.context.target_column_maps[target_file]
+        )
 
         # Get target metadata from cache
         target_meta = self.cache.target_metadata_cache[target_file]
@@ -287,10 +290,10 @@ class StreamProcessor:
         self,
         source_filename: str,
         input_data: List[str],
-        input_column_map: Dict[str, int],
+        input_column_map: CaseInsensitiveDict[str, int],
         target_file: str,
         v2_mapping,
-        target_column_map: Dict[str, int],
+        target_column_map: CaseInsensitiveDict[str, int],
         data_column: str,
         auto_num_col: Optional[str],
         person_id_col: str,

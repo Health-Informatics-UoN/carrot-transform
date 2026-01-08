@@ -42,6 +42,8 @@ def test_basic_csv():
 def test_basic_sqlite():
     """opens a sql connection, loads data from a file, checks the correct data comes back out"""
 
+    ###
+    # arrange
     folder = Path(__file__).parent / "test_data/measure_weight_height/"
     engine = sqlalchemy.create_engine("sqlite:///:memory:")
 
