@@ -76,10 +76,13 @@ SourceArgument = SourceObjectArgumentType()
 def sql_source_object(connection: sqlalchemy.engine.Engine | str) -> SourceObject:
     SQL_TO_LOWER: bool = True
 
-    if not isinstance(connection, sqlalchemy.engine.Engine):
-        # if the parameter is not a connection; make it one
-        # ... and fail-fast if it can't be used to open a connection
-        connection = sqlalchemy.create_engine(connection)
+    # if the parameter is not a connection; make it one
+    # ... and fail-fast if it can't be used to open a connection
+    engine: sqlalchemy.engine.Engine = (
+        connection
+        if isinstance(connection, sqlalchemy.engine.Engine)
+        else sqlalchemy.create_engine(connection)
+    )
 
     class SO(SourceObject):
         def __init__(self):
@@ -99,13 +102,11 @@ def sql_source_object(connection: sqlalchemy.engine.Engine | str) -> SourceObjec
             table = table.lower() if SQL_TO_LOWER else table
 
             def sql() -> Iterator[list[str]]:
-                # tell mypy that this is a connection
-                assert isinstance(connection, sqlalchemy.engine.Engine)
-                with connection.connect() as conn:
+                with engine.connect() as connection:
                     metadata = MetaData()
-                    metadata.reflect(bind=conn, only=[table])
+                    metadata.reflect(bind=connection, only=[table])
                     source = metadata.tables[table]
-                    result = conn.execute(select(source))
+                    result = connection.execute(select(source))
 
                     header: list[str]
                     try:
