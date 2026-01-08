@@ -6,6 +6,7 @@ from sqlalchemy.engine import Connection
 
 import carrottransform.tools as tools
 import carrottransform.tools.outputs as outputs
+import carrottransform.tools.sources as sources
 from carrottransform.tools.mapping_types import V2TableMapping
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
@@ -22,9 +23,7 @@ class ProcessingContext:
     file_handles: Mapping[str, TextIO]
     target_column_maps: Dict[str, Dict[str, int]]
     metrics: tools.metrics.Metrics
-    input_dir: Optional[Path] = None
-    db_connection: Optional[Connection] = None
-    schema: Optional[str] = None
+    inputs: sources.SourceObject
 
     @property
     def input_files(self) -> List[str]:

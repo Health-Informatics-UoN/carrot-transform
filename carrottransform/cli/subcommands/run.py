@@ -405,6 +405,25 @@ def div2(
     # fixes it
     RecordBuilderFactory.clear_person_cache()
 
+    from carrottransform.cli.subcommands.run_v2 import process_common_logic
+
+    # just do this until it passes
+    # uv run ptw . -- -v tests/test_integration.py
+
+    process_common_logic(
+        rules_file = rules_file,
+        output = output,
+        write_mode = "w",
+        omop_ddl_file = omop_ddl_file,
+        omop_version = omop_version,
+        person = person,
+        inputs = inputs,
+    )
+
+
+
+    raise Exception("now that process-common-logic works, cleanup (1) whatever wider tests now fail (2) the rest of this file (3) any unused v2 logic")
+
     try:
         # try to open the persons
         inputs.open(person)
