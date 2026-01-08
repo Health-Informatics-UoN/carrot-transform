@@ -137,7 +137,7 @@ def read_person_ids(
 
     # allow situations where SQL is case insensitive (SQL the language is case insensitive)
     # Trino seems to flip column names around and SQL is case insensitive
-    person_columns: CaseInsensitiveDict = CaseInsensitiveDict()
+    person_columns: CaseInsensitiveDict[str, int] = CaseInsensitiveDict()
 
     person_col_in_hdr_number = 0
     reject_count = 0

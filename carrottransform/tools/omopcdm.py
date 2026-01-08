@@ -141,8 +141,10 @@ class OmopCDM:
             return self.omop_json[colkey]
         return None
 
-    def get_column_map(self, colarr, delim=","):
-        colmap = CaseInsensitiveDict()
+    def get_column_map(self, colarr, delim=",") -> CaseInsensitiveDict[str, int]:
+        # allow situations where SQL is case insensitive (SQL the language is case insensitive)
+        # Trino seems to flip column names around and SQL is case insensitive
+        colmap = CaseInsensitiveDict[str, int]()
         for i, col in enumerate(colarr):
             colmap[col] = i
         return colmap

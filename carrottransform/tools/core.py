@@ -1,3 +1,5 @@
+from case_insensitive_dict import CaseInsensitiveDict
+
 import carrottransform.tools as tools
 from carrottransform.tools.date_helpers import get_datetime_value
 from carrottransform.tools.logger import logger_setup
@@ -9,11 +11,11 @@ logger = logger_setup()
 
 def get_target_records(
     tgtfilename: str,
-    tgtcolmap: dict[str, int],
+    tgtcolmap: CaseInsensitiveDict[str, int],
     rulesmap: dict[str, list[dict[str, list[str]]]],
     srcfield: str,
     srcdata: list[str],
-    srccolmap: dict[str, int],
+    srccolmap: CaseInsensitiveDict[str, int],
     srcfilename: str,
     omopcdm: OmopCDM,
     metrics: tools.metrics.Metrics,
