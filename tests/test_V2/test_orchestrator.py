@@ -11,8 +11,13 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from carrottransform.tools import outputs, sources
 from carrottransform.tools.orchestrator import StreamProcessor, V2ProcessingOrchestrator
 from carrottransform.tools.types import ProcessingContext
+
+
+def mockedSourceObject(mock_context, mock_cache) -> sources.SourceObject:
+    return sources.csv_source_object(mock_context.input_dir, sep=",")
 
 
 class TestV2ProcessingOrchestrator:
@@ -173,12 +178,13 @@ class TestV2ProcessingOrchestrator:
         """Test successful orchestrator initialization"""
         # Use the test DDL file from test_data
         ddl_file = Path("tests/test_data/test_ddl.sql")
+        from carrottransform.tools import outputs, sources
 
         orchestrator = V2ProcessingOrchestrator(
             rules_file=v2_rules_file,
-            output_dir=temp_dirs["output_dir"],
-            input_dir=temp_dirs["input_dir"],
-            person_file=person_file,
+            output=outputs.csv_output_target(temp_dirs["output_dir"]),
+            inputs=sources.csv_source_object(temp_dirs["input_dir"], sep=","),
+            person=person_file.name[:-4],
             omop_ddl_file=ddl_file,
             omop_config_file=omop_config_file,
             write_mode="w",
@@ -241,11 +247,12 @@ class TestV2ProcessingOrchestrator:
         with pytest.raises(ValueError, match="Rules file is not in v2 format!"):
             V2ProcessingOrchestrator(
                 rules_file=rules_file,
-                output_dir=temp_dirs["output_dir"],
-                input_dir=temp_dirs["input_dir"],
-                person_file=person_file,
+                output=outputs.csv_output_target(temp_dirs["output_dir"]),
+                inputs=sources.csv_source_object(temp_dirs["input_dir"], sep=","),
+                person=person_file.name[:-4],
                 omop_ddl_file=ddl_file,
                 omop_config_file=omop_config_file,
+                write_mode="w",
             )
 
     def test_setup_person_lookup(
@@ -254,13 +261,15 @@ class TestV2ProcessingOrchestrator:
         """Test person lookup setup"""
         ddl_file = Path("tests/test_data/test_ddl.sql")
 
+
         orchestrator = V2ProcessingOrchestrator(
             rules_file=v2_rules_file,
-            output_dir=temp_dirs["output_dir"],
-            input_dir=temp_dirs["input_dir"],
-            person_file=person_file,
+            output=outputs.csv_output_target(temp_dirs["output_dir"]),
+            inputs=sources.csv_source_object(temp_dirs["input_dir"], sep=","),
+            person=person_file.name[:-4],
             omop_ddl_file=ddl_file,
             omop_config_file=omop_config_file,
+            write_mode="w",
         )
 
         person_lookup, rejected_count = orchestrator.setup_person_lookup()
@@ -289,17 +298,24 @@ class TestV2ProcessingOrchestrator:
         """Test successful processing execution"""
         ddl_file = Path("tests/test_data/test_ddl.sql")
 
+        o = outputs.csv_output_target(temp_dirs["output_dir"])
+        s = sources.csv_source_object(temp_dirs["input_dir"], sep=",")
         orchestrator = V2ProcessingOrchestrator(
             rules_file=v2_rules_file,
-            output_dir=temp_dirs["output_dir"],
-            input_dir=temp_dirs["input_dir"],
-            person_file=person_file,
+            output=o,
+            inputs=s,
+            person=person_file.name[:-4],
+            write_mode="w",
             omop_ddl_file=ddl_file,
             omop_config_file=omop_config_file,
         )
 
         # Actually run the real processing
         result = orchestrator.execute_processing()
+
+        # close everything
+        s.close()
+        o.close()
 
         # Check the real results
         assert result.success is True
@@ -352,12 +368,15 @@ class TestV2ProcessingOrchestrator:
         person_file.unlink()  # Delete the person file
 
         # This should fail because the person file doesn't exist
-        with pytest.raises(Exception, match="Person file not found."):
+        with pytest.raises(
+            sources.SourceTableNotFound, match="couldn't open table name='test_persons'"
+        ):
             V2ProcessingOrchestrator(
                 rules_file=v2_rules_file,
-                output_dir=temp_dirs["output_dir"],
-                input_dir=temp_dirs["input_dir"],
-                person_file=person_file,  # This file no longer exists
+                output=outputs.csv_output_target(temp_dirs["output_dir"]),
+                inputs=sources.csv_source_object(temp_dirs["input_dir"], sep=","),
+                person=person_file.name[:-4],
+                write_mode="w",
                 omop_ddl_file=ddl_file,
                 omop_config_file=omop_config_file,
             )
@@ -377,9 +396,10 @@ class TestV2ProcessingOrchestrator:
         with pytest.raises(KeyError):
             V2ProcessingOrchestrator(
                 rules_file=invalid_rules_file,
-                output_dir=temp_dirs["output_dir"],
-                input_dir=temp_dirs["input_dir"],
-                person_file=person_file,
+                output=outputs.csv_output_target(temp_dirs["output_dir"]),
+                inputs=sources.csv_source_object(temp_dirs["input_dir"], sep=","),
+                person=person_file.name[:-4],
+                write_mode="w",
                 omop_ddl_file=ddl_file,
                 omop_config_file=omop_config_file,
             )
@@ -426,44 +446,65 @@ class TestStreamProcessor:
         }
         return cache
 
-    def test_stream_processor_initialization(self, mock_context, mock_cache):
+    def test_stream_processor_initialization(self, tmp_path, mock_context, mock_cache):
         """Test StreamProcessor initialization"""
-        processor = StreamProcessor(mock_context, mock_cache)
+
+        # sources can only work with real folders
+        mock_context.input_dir = tmp_path
+
+        # create a source
+        sources = mockedSourceObject(mock_context, mock_cache)
+
+        processor = StreamProcessor(mock_context, mock_cache, sources)
 
         assert processor.context == mock_context
         assert processor.cache == mock_cache
 
-    def test_process_input_file_stream_success(self, mock_context, mock_cache):
+    def test_process_input_file_stream_success(
+        self, tmp_path, mock_context, mock_cache
+    ):
         """Test successful input file processing"""
-        processor = StreamProcessor(mock_context, mock_cache)
 
-        # Create a more direct test by mocking at a higher level
-        with patch.object(processor, "_process_single_row_stream") as mock_process_row:
-            # Mock the return value for processing one row
+        # sources can only work with real folders
+        mock_context.input_dir = tmp_path
+        source = mockedSourceObject(mock_context, mock_cache)
+
+        ##
+        # arrange
+        ###
+        processor = StreamProcessor(mock_context, mock_cache, source)
+
+        # patch the two methods used to rpcess rows
+        with (
+            patch.object(processor, "_process_single_row_stream") as mock_process_row,
+            patch.object(processor, "source_open") as mock_source_open,
+        ):
+            # return a successful result
             mock_process_row.return_value = ({"person.tsv": 1}, 0)
 
-            # Patch the file operations and CSV reading in one go
+            # return a ver simple person file
             mock_csv_data = [
                 ["person_id", "birth_date"],  # Headers
                 ["1", "1990-01-01"],  # Data row
             ]
+            mock_source_open.return_value = iter(mock_csv_data)
 
-            with (
-                patch("pathlib.Path.exists", return_value=True),
-                patch("pathlib.Path.open"),
-                patch("csv.reader") as mock_csv_reader,
-            ):
-                # Set up CSV reader to return our test data
-                mock_csv_reader.return_value = iter(mock_csv_data)
+            ##
+            # act
+            ###
+            output_counts, rejected_count = processor._process_input_file_stream(
+                "test.csv"
+            )
 
-                output_counts, rejected_count = processor._process_input_file_stream(
-                    "test.csv"
-                )
+            ##
+            # assert
+            ###
+            assert output_counts == {"person.tsv": 1}
+            assert rejected_count == 0
 
-                assert output_counts == {"person.tsv": 1}
-                assert rejected_count == 0
-                # Verify that our mocked method was called
-                mock_process_row.assert_called_once()
+            # Verify that our mocked methods were called
+            mock_process_row.assert_called_once()
+            mock_source_open.assert_called_once()
 
     def test_process_input_file_stream_no_file(self, mock_context, mock_cache):
         """Test processing when input file doesn't exist"""
@@ -473,7 +514,9 @@ class TestStreamProcessor:
         mock_input_dir.__truediv__ = Mock(return_value=mock_file)
         mock_context.input_dir = mock_input_dir
 
-        processor = StreamProcessor(mock_context, mock_cache)
+        processor = StreamProcessor(
+            mock_context, mock_cache, mockedSourceObject(mock_context, mock_cache)
+        )
 
         output_counts, rejected_count = processor._process_input_file_stream(
             "nonexistent.csv"
@@ -482,20 +525,32 @@ class TestStreamProcessor:
         assert output_counts == {}
         assert rejected_count == 0
 
-    def test_process_input_file_stream_no_mappings(self, mock_context, mock_cache):
+    def test_process_input_file_stream_no_mappings(
+        self, tmp_path, mock_context, mock_cache
+    ):
         """Test processing when no mappings exist for file"""
+
+        # sources can only work with real folders
+        mock_context.input_dir = tmp_path
+        source = mockedSourceObject(mock_context, mock_cache)
+
         mock_cache.input_to_outputs = {}  # No mappings
 
-        processor = StreamProcessor(mock_context, mock_cache)
+        processor = StreamProcessor(mock_context, mock_cache, source)
 
         output_counts, rejected_count = processor._process_input_file_stream("test.csv")
 
         assert output_counts == {}
         assert rejected_count == 0
 
-    def test_process_all_data_success(self, mock_context, mock_cache):
+    def test_process_all_data_success(self, tmp_path, mock_context, mock_cache):
         """Test complete data processing"""
-        processor = StreamProcessor(mock_context, mock_cache)
+
+        # sources can only work with real folders
+        mock_context.input_dir = tmp_path
+        source = mockedSourceObject(mock_context, mock_cache)
+
+        processor = StreamProcessor(mock_context, mock_cache, source)
 
         with patch.object(processor, "_process_input_file_stream") as mock_process_file:
             # Return counts that match the output files in mock_context
@@ -508,22 +563,33 @@ class TestStreamProcessor:
             assert result.rejected_id_counts == {"test.csv": 0}
             # Verify the method was called with the correct input file
             mock_process_file.assert_called_once_with(
-                "test.csv",
-                mock_context.db_connection,  # None for no db connection
-                mock_context.schema,  # None for no schema
+                "test.csv"
             )
 
-    def test_process_all_data_with_error(self, mock_context, mock_cache):
+    def test_process_all_data_with_error(self, tmp_path, mock_context, mock_cache):
         """Test data processing with error"""
-        processor = StreamProcessor(mock_context, mock_cache)
+
+        # sources can only work with real folders
+        mock_context.input_dir = tmp_path
+        source = mockedSourceObject(mock_context, mock_cache)
+
+        processor = StreamProcessor(
+            context=mock_context,
+            lookup_cache=mock_cache,
+            source=source,
+        )
 
         with patch.object(processor, "_process_input_file_stream") as mock_process_file:
+
+            # mark that the method should raise an error ... whenver it's called
             mock_process_file.side_effect = Exception("Test error")
 
-            result = processor.process_all_data()
-
-            assert result.success is False
-            assert "Test error" in result.error_message
+            # run the function
+            with pytest.raises(Exception) as test_error:
+                processor.process_all_data()
+            
+            # check to see if the correct error was raised
+            assert "Test error" == test_error.value.args[0]
 
 
 @pytest.mark.integration

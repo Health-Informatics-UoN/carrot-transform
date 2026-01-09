@@ -129,28 +129,41 @@ class ObjectStructureError(Exception):
     """Raised when the object path format points to inaccessible elements."""
 
 
-def person_rules_check_v2_injected(person: str, mappingrules: MappingRules) -> None:
+def person_rules_check_v2_injected(
+    person: str, mappingrules: MappingRules, sources: sources.SourceObject
+):
     """ensure that the person rules ONLY reffer to the named table/csv"""
 
+    ##
+    # guard against using <name.csv> instead of <name>
     if "." in person:
         raise Exception(
             f"Can't have a table named {person=} (if it's csv, remove the file extension)"
         )
 
-    # grab the indicated section
-    person__rules: dict | str | None = object_query(
+    ##
+    # try to open the person table/file/source - this should detect a missing one
+    # ... won't work if the SourceObject changes and isn't "keen" about reading the first row ASAP
+    sources.open(person)
+
+    ##
+    # get the person rules object
+    person_rules: dict | str | None = object_query(
         mappingrules.rules_data, "cdm/person"
     )
-    if isinstance(person__rules, str):
-        # this is unlikely, but, mypy flags it.
-        # ... will probably write a test at some point to cover this exception
+
+    # check to be sure it's there
+    if person_rules is None:
+        raise Exception("No cdm/person mapping rules for the person were found")
+
+    if isinstance(person_rules, str):
+        # this is unlikely to happen with carrot-mapper's output, but, mypy flags it.
         raise Exception(
-            f"the entry cdm/person needs to be an object but it was a scalar/string/leaf {person__rules=}"
+            f"the entry cdm/person needs to be an object but it was a scalar/string/leaf {person_rules=}"
         )
-    assert person__rules is not None
-    person_rules: dict = person__rules
-    if not person_rules:
-        raise Exception("Mapping rules to Person table not found")
+
+    ##
+    # check the contents of the person rules
 
     #
     if len(person_rules) > 1:

@@ -16,7 +16,7 @@ import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
 import tests.conftest as conftest
 import tests.testools as testools
-from carrottransform.cli.subcommands.run import div2, mapstream
+from carrottransform.cli.subcommands.run import launch_v2, mapstream
 
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
@@ -73,7 +73,7 @@ test_cases = list(
 test_cases += [
     testools.CarrotTestCase(
         "integration_test1/src_PERSON.csv",
-        entry=div2,
+        entry=launch_v2,
         mapper=str(Path(__file__).parent / "test_V2/rules-v2.json"),
         suffix="/v2-out",
     ),
@@ -97,7 +97,7 @@ pass__arg_names = [
 connection_types = [Connection.CSV, Connection.SQLITE]
 
 
-def generate_cases(types: list[Connection], needs: None | list[Connection] = None):
+def generate_cases(types: list[Connection], needs: list[Connection] | None = None):
     """generate a lot of permutations of tests.
 
     @param types - the types of connection to read and write from/into
@@ -186,7 +186,7 @@ def body_of_test(
     test_case,
     input_from: Connection,
     pass_as,
-    minio: None | conftest.MinIOBucket = None,
+    minio: conftest.MinIOBucket | None = None,
     postgres: conftest.PostgreSQLContainer | None = None,
 ):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
@@ -202,7 +202,7 @@ def body_of_test(
     logger.info(f"test path is {tmp_path=}\n\t{slug=}")
 
     # set the input
-    inputs: None | str = None
+    inputs: str | None = None
     match input_from:
         case Connection.SQLITE:
             inputs = test_case.load_sqlite(tmp_path)
@@ -226,7 +226,7 @@ def body_of_test(
     assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
 
     # set the output
-    output: None | str = None
+    output: str | None = None
     match output_to:
         case Connection.SQLITE:
             output = f"sqlite:///{(tmp_path / 'output.sqlite3').absolute()}"

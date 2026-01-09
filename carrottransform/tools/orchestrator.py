@@ -1,35 +1,23 @@
-import csv
-from carrottransform.tools import outputs, sources
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
-from carrottransform import require
-from sqlalchemy.engine import Connection
-from sqlalchemy.schema import MetaData, Table
-from sqlalchemy.sql.expression import select
-from carrottransform.tools.args import remove_csv_extension
+from typing import Any, Set, Tuple
+
 import carrottransform.tools as tools
-from carrottransform.tools.args import person_rules_check_v2
+from carrottransform import require
+from carrottransform.tools import args, outputs, person_helpers, sources
+from carrottransform.tools.args import person_rules_check_v2, remove_csv_extension
 from carrottransform.tools.date_helpers import normalise_to8601
-from carrottransform.tools.db import EngineConnection
 from carrottransform.tools.file_helpers import OutputFileManager
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
-from carrottransform.tools.person_helpers import (
-    load_person_ids_v2,
-    set_saved_person_id_file,
-)
 from carrottransform.tools.record_builder import RecordBuilderFactory
 from carrottransform.tools.stream_helpers import StreamingLookupCache
 from carrottransform.tools.types import (
-    DBConnParams,
     ProcessingContext,
     ProcessingResult,
     RecordContext,
 )
-from carrottransform import log_traceback
-
-from carrottransform.tools import person_helpers
 
 logger = logger_setup()
 
@@ -37,8 +25,12 @@ logger = logger_setup()
 class StreamProcessor:
     """Efficient single-pass streaming processor"""
 
-    def __init__(self, context: ProcessingContext, lookup_cache: StreamingLookupCache,
-    source:sources.SourceObject):
+    def __init__(
+        self,
+        context: ProcessingContext,
+        lookup_cache: StreamingLookupCache,
+        source: sources.SourceObject,
+    ):
         self.context = context
         self.cache = lookup_cache
         self._source = source
@@ -63,26 +55,20 @@ class StreamProcessor:
 
             except Exception as e:
                 logger.error(f"Error processing file {source_filename}: {str(e)}")
-                return ProcessingResult(
-                    total_output_counts,
-                    total_rejected_counts,
-                    success=False,
-                    error_message=str(e),
-                )
+                raise
 
         return ProcessingResult(total_output_counts, total_rejected_counts)
+
+    def source_open(self, source_filename: str) -> Iterator[list[str]]:
+        return self._source.open(remove_csv_extension(source_filename))
 
     def _process_input_file_stream(
         self,
         source_filename: str,
-        
-    ) -> Tuple[Dict[str, int], int]:
+    ) -> Tuple[dict[str, int], int]:
         """Stream process a single input file with direct output writing"""
-        source = self._source.open(remove_csv_extension(source_filename))
-        logger.info(f"Streaming input file: {source_filename}")
 
-        db_connection: Optional[Connection] = None,
-        schema: Optional[str] = None,
+        logger.info(f"Streaming input file: {source_filename}")
 
         # Get which output tables this input file can map to
         applicable_targets = self.cache.input_to_outputs.get(source_filename, set())
@@ -100,35 +86,32 @@ class StreamProcessor:
             return output_counts, rejected_count
 
         try:
-                column_headers = next(source)
-                input_column_map = self_omopcdm.get_column_map(
-                    column_headers
+            source = self.source_open(source_filename)
+            column_headers = next(source)
+            input_column_map = self.context.omopcdm.get_column_map(column_headers)
+
+            # Validate required columns exist
+            datetime_col_idx = input_column_map.get(file_meta["datetime_source"])
+            if datetime_col_idx is None:
+                logger.warning(
+                    f"Date field {file_meta['datetime_source']} not found in {source_filename}"
+                )
+                return output_counts, rejected_count
+
+            # Stream process each row
+            for input_data in source:
+                row_counts, row_rejected = self._process_single_row_stream(
+                    source_filename,
+                    input_data,
+                    input_column_map,
+                    applicable_targets,
+                    datetime_col_idx,
+                    file_meta,
                 )
 
-                # Validate required columns exist
-                datetime_col_idx = input_column_map.get(
-                    file_meta["datetime_source"]
-                )
-                if datetime_col_idx is None:
-                    logger.warning(
-                        f"Date field {file_meta['datetime_source']} not found in {source_filename}"
-                    )
-                    return output_counts, rejected_count
-
-                # Stream process each row
-                for input_data in source:
-                    row_counts, row_rejected = self._process_single_row_stream(
-                        source_filename,
-                        input_data,
-                        input_column_map,
-                        applicable_targets,
-                        datetime_col_idx,
-                        file_meta,
-                    )
-
-                    for target, count in row_counts.items():
-                        output_counts[target] += count
-                    rejected_count += row_rejected
+                for target, count in row_counts.items():
+                    output_counts[target] += count
+                rejected_count += row_rejected
 
         except Exception as e:
             logger.error(f"Error streaming file {source_filename}: {str(e)}")
@@ -139,12 +122,12 @@ class StreamProcessor:
     def _process_single_row_stream(
         self,
         source_filename: str,
-        input_data: List[str],
-        input_column_map: Dict[str, int],
+        input_data: list[str],
+        input_column_map: dict[str, int],
         applicable_targets: Set[str],
         datetime_col_idx: int,
-        file_meta: Dict[str, Any],
-    ) -> Tuple[Dict[str, int], int]:
+        file_meta: dict[str, Any],
+    ) -> Tuple[dict[str, int], int]:
         """Process single row and write directly to all applicable output files"""
 
         # Increment input count
@@ -189,10 +172,10 @@ class StreamProcessor:
     def _process_row_for_target_stream(
         self,
         source_filename: str,
-        input_data: List[str],
-        input_column_map: Dict[str, int],
+        input_data: list[str],
+        input_column_map: dict[str, int],
         target_file: str,
-        file_meta: Dict[str, Any],
+        file_meta: dict[str, Any],
     ) -> Tuple[int, int]:
         """Process row for specific target and write records directly"""
 
@@ -240,17 +223,17 @@ class StreamProcessor:
     def _process_data_column_stream(
         self,
         source_filename: str,
-        input_data: List[str],
-        input_column_map: Dict[str, int],
+        input_data: list[str],
+        input_column_map: dict[str, int],
         target_file: str,
         v2_mapping,
-        target_column_map: Dict[str, int],
+        target_column_map: dict[str, int],
         data_column: str,
-        auto_num_col: Optional[str],
+        auto_num_col: str | None,
         person_id_col: str,
-        date_col_data: Dict[str, str],
-        date_component_data: Dict[str, Dict[str, str]],
-        notnull_numeric_fields: List[str],
+        date_col_data: dict[str, str],
+        date_component_data: dict[str, dict[str, str]],
+        notnull_numeric_fields: list[str],
     ) -> Tuple[int, int]:
         """Process data column and write records directly to output"""
 
@@ -323,14 +306,17 @@ class V2ProcessingOrchestrator:
             raise ValueError("Rules file is not in v2 format!")
         else:
             try:
+                args.person_rules_check_v2_injected(
+                    self._person, self.mappingrules, sources=self._inputs
+                )
                 person_rules_check_v2(
-                    person_file= None,
-                    person_table =self._person,
-                    mappingrules=self.mappingrules
+                    person_file=None,
+                    person_table=self._person,
+                    mappingrules=self.mappingrules,
                 )
             except Exception as e:
                 logger.exception(f"Validation for person rules failed: {e}")
-                raise e
+                raise
 
         self.metrics = tools.metrics.Metrics(self.mappingrules.get_dataset_name())
         self.output_manager = OutputFileManager(self._output, self.omopcdm)
@@ -340,13 +326,11 @@ class V2ProcessingOrchestrator:
 
         self.engine_connection = None
 
-    def setup_person_lookup(self) -> (dict[str, str], int):
+    def setup_person_lookup(self) -> Tuple[dict[str, str], int]:
         """Setup person ID lookup and save mapping"""
 
         person_lookup, rejected_person_count = person_helpers.load_person_ids_v2_inject(
-            mappingrules=self.mappingrules,
-            inputs=self._inputs,
-            person=self._person
+            mappingrules=self.mappingrules, inputs=self._inputs, person=self._person
         )
 
         # now save the IDs
@@ -370,7 +354,6 @@ class V2ProcessingOrchestrator:
                 f"person_id stats: total loaded {len(person_lookup)}, reject count {rejected_person_count}"
             )
 
-
             # Setup output files - keep all open for streaming
             output_files = self.mappingrules.get_all_outfile_names()
             target_column_maps = {}
@@ -384,9 +367,10 @@ class V2ProcessingOrchestrator:
                 if target_column_map is None:
                     raise Exception(f"need column map for {output_name=}")
 
-                file_handles[output_name] = self._output.start(output_name, output_header)
+                file_handles[output_name] = self._output.start(
+                    output_name, output_header
+                )
                 target_column_maps[output_name] = target_column_map
-
 
             # Create processing context
             context = ProcessingContext(
@@ -401,13 +385,11 @@ class V2ProcessingOrchestrator:
             )
 
             # Process data using efficient streaming approach
-            processor = StreamProcessor(context, self.lookup_cache,self._inputs)
+            processor = StreamProcessor(context, self.lookup_cache, self._inputs)
             result = processor.process_all_data()
 
             for target_file, count in result.output_counts.items():
                 logger.info(f"TARGET: {target_file}: output count {count}")
-
-
 
             # Write summary
             data_summary = None
@@ -423,8 +405,6 @@ class V2ProcessingOrchestrator:
             if data_summary is not None:
                 data_summary.close()
                 data_summary = None
-
-
 
             return result
 

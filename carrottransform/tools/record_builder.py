@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Set, Tuple
 
 from carrottransform.tools.concept_helpers import (
     generate_combinations,
@@ -25,7 +25,7 @@ class TargetRecordBuilder(ABC):
         """Build target records - must be implemented by subclasses"""
         pass
 
-    def create_empty_record(self) -> List[str]:
+    def create_empty_record(self) -> list[str]:
         """Create an empty target record with proper initialization"""
         tgtarray = [""] * len(self.context.tgtcolmap)
 
@@ -36,21 +36,21 @@ class TargetRecordBuilder(ABC):
 
         return tgtarray
 
-    def apply_concept_mapping(self, tgtarray: List[str], concept_combo: Dict[str, int]):
+    def apply_concept_mapping(self, tgtarray: list[str], concept_combo: dict[str, int]):
         """Apply a single concept combination to target array"""
         for dest_field, concept_id in concept_combo.items():
             if dest_field in self.context.tgtcolmap:
                 tgtarray[self.context.tgtcolmap[dest_field]] = str(concept_id)
 
     def apply_original_value_mappings(
-        self, tgtarray: List[str], original_value_fields: List[str], source_value: str
+        self, tgtarray: list[str], original_value_fields: list[str], source_value: str
     ):
         """Apply original value mappings (direct field copying)"""
         for dest_field in original_value_fields:
             if dest_field in self.context.tgtcolmap:
                 tgtarray[self.context.tgtcolmap[dest_field]] = source_value
 
-    def apply_person_id_mapping(self, tgtarray: List[str]):
+    def apply_person_id_mapping(self, tgtarray: list[str]):
         """Apply person ID mapping"""
         if not self.context.v2_mapping.person_id_mapping:
             return
@@ -65,7 +65,7 @@ class TargetRecordBuilder(ABC):
             ]
             tgtarray[self.context.tgtcolmap[person_id_mapping.dest_field]] = person_id
 
-    def apply_date_mappings(self, tgtarray: List[str]) -> bool:
+    def apply_date_mappings(self, tgtarray: list[str]) -> bool:
         """Apply date mappings with proper error handling"""
         if not self.context.v2_mapping.date_mapping:
             return True
@@ -90,7 +90,7 @@ class TargetRecordBuilder(ABC):
         return True
 
     def _apply_single_date_field(
-        self, tgtarray: List[str], dest_field: str, source_date: str
+        self, tgtarray: list[str], dest_field: str, source_date: str
     ) -> bool:
         """Apply a single date field mapping"""
         # Handle date component fields (birth dates with year/month/day)
@@ -146,7 +146,7 @@ class TargetRecordBuilder(ABC):
 
         return True
 
-    def write_record_directly(self, output_record: List[str]) -> bool:
+    def write_record_directly(self, output_record: list[str]) -> bool:
         """Write single record directly to output file with all necessary processing"""
         # Set auto-increment ID
         if self.context.auto_num_col is not None:
@@ -246,7 +246,7 @@ class PersonRecordBuilder(TargetRecordBuilder):
 
         return RecordResult(record_count > 0, record_count, self.context.metrics)
 
-    def _collect_all_mappings(self) -> Tuple[Dict[str, List[int]], Dict[str, str]]:
+    def _collect_all_mappings(self) -> Tuple[dict[str, list[int]], dict[str, str]]:
         """Collect all concept mappings and original values from all fields"""
         all_concept_mappings = {}
         all_original_values = {}
@@ -279,8 +279,8 @@ class PersonRecordBuilder(TargetRecordBuilder):
         return all_concept_mappings, all_original_values
 
     def _build_single_person_record(
-        self, concept_combo: Dict[str, int], all_original_values: Dict[str, str]
-    ) -> Optional[List[str]]:
+        self, concept_combo: dict[str, int], all_original_values: dict[str, str]
+    ) -> list[str] | None:
         """Build a single person record"""
         tgtarray = self.create_empty_record()
 
@@ -368,10 +368,10 @@ class StandardRecordBuilder(TargetRecordBuilder):
 
     def _build_single_standard_record(
         self,
-        concept_combo: Dict[str, int],
+        concept_combo: dict[str, int],
         concept_mapping: ConceptMapping,
         source_value: str,
-    ) -> Optional[List[str]]:
+    ) -> list[str] | None:
         """Build a single standard record"""
         tgtarray = self.create_empty_record()
 
