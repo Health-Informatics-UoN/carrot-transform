@@ -2,7 +2,7 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, TextIO, Tuple, cast
+from typing import TextIO, cast
 
 from carrottransform.tools.omopcdm import OmopCDM
 
@@ -16,7 +16,7 @@ def load_json(f_in: Path):
     try:
         data = json.load(f_in.open())
     except Exception:
-        logger.exception("{0} not found. Or cannot parse as json".format(f_in))
+        logger.exception(f"{f_in} not found. Or cannot parse as json")
         sys.exit()
 
     return data
@@ -49,15 +49,11 @@ def check_files_in_rules_exist(
 ) -> None:
     for infile in existing_input_files:
         if infile not in rules_input_files:
-            msg = (
-                "WARNING: no mapping rules found for existing input file - {0}".format(
-                    infile
-                )
-            )
+            msg = f"WARNING: no mapping rules found for existing input file - {infile}"
             logger.warning(msg)
     for infile in rules_input_files:
         if infile not in existing_input_files:
-            msg = "WARNING: no data for mapped input file - {0}".format(infile)
+            msg = f"WARNING: no data for mapped input file - {infile}"
             logger.warning(msg)
 
 
@@ -67,11 +63,11 @@ class OutputFileManager:
     def __init__(self, output_dir: Path, omopcdm: OmopCDM):
         self.output_dir = output_dir
         self.omopcdm = omopcdm
-        self.file_handles: Dict[str, TextIO] = {}
+        self.file_handles: dict[str, TextIO] = {}
 
     def setup_output_files(
-        self, output_files: List[str], write_mode: str
-    ) -> Tuple[Dict[str, TextIO], Dict[str, Dict[str, int]]]:
+        self, output_files: list[str], write_mode: str
+    ) -> tuple[dict[str, TextIO], dict[str, dict[str, int]]]:
         """Setup output files and return file handles and column maps"""
         target_column_maps = {}
 

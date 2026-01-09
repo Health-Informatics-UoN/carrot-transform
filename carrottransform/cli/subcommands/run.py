@@ -178,7 +178,7 @@ def mapstream(
             ## so tgtcolmaps is a dict of dicts.
             tgtcolmaps[target_file] = omopcdm.get_omop_column_map(target_file)
 
-    except IOError as e:
+    except OSError as e:
         logger.exception(f"I/O - error({e.errno}): {e.strerror} -> {str(e)}")
         sys.exit(-1)
 
@@ -347,7 +347,7 @@ def mapstream(
         if summary is not None:
             summary.close()
             summary = None
-    except IOError as e:
+    except OSError as e:
         logger.exception(f"I/O error({e.errno}): {e.strerror}")
         logger.exception("Unable to write file")
         raise e

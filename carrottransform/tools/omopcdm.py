@@ -43,7 +43,7 @@ class OmopCDM:
         try:
             fp = omopddl.open("r")
         except Exception:
-            logger.exception("OMOP ddl file ({0}) not found".format(omopddl))
+            logger.exception(f"OMOP ddl file ({omopddl}) not found")
             sys.exit()
 
         return self.process_ddl(fp)

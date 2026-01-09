@@ -48,6 +48,17 @@ include = [
   "LICENSE",
 ]
 
+[tool.ruff]
+select = [
+    "I",
+    "I001",
+    "UP",
+    "UP006",
+    "UP007",
+    "UP008",
+    "UP040",
+]
+
 [tool.hatch.build.targets.sdist]
 include = ["carrottransform"]
 

@@ -82,7 +82,7 @@ def test_connection(postgres, tmp_path: Path):
         actual = actual.strip()
 
         # read the raw expected data as a big string
-        with open(test_data / f"{table}.csv", "r") as file:
+        with open(test_data / f"{table}.csv") as file:
             expected = file.read().strip()
 
         # compare the two values

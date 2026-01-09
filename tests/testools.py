@@ -1,8 +1,8 @@
 import logging
 import random
+from collections.abc import Iterable
 from itertools import product
 from pathlib import Path
-from typing import Iterable
 
 import pytest
 import sqlalchemy
@@ -244,8 +244,7 @@ def permutations(**name_to_list):
                 tail[head_key] = v
                 yield tail.copy()
 
-    for item in loop(list(map(lambda k: (k, name_to_list[k]), name_to_list.keys()))):
-        yield item
+    yield from loop(list(map(lambda k: (k, name_to_list[k]), name_to_list.keys())))
 
 
 def zip_loop(*arguments: list[dict]):
@@ -258,8 +257,7 @@ def zip_loop(*arguments: list[dict]):
     def loop(arg_list):
         """loops through an arg_list forever"""
         while True:
-            for item in arg_list:
-                yield item
+            yield from arg_list
 
     # turn them all into forever loops
     args_loops = [loop(arg) for arg in args_as_lists]

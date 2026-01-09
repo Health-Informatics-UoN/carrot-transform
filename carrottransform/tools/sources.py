@@ -3,8 +3,8 @@ import io
 import itertools
 import logging
 import re
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 import boto3
 import click
@@ -204,8 +204,8 @@ def s3_source_object(coordinate: str, sep: str) -> SourceObject:
                 text_stream = io.TextIOWrapper(stream, encoding="utf-8")
                 reader = csv.reader(text_stream, delimiter=sep)
 
-                for row in reader:
-                    yield row
+                yield from reader
+
                 stream.close()
             except Exception as e:
                 logger.error(f"Failed to read {table=} from S3: {e=} w/ {key=}")
@@ -244,8 +244,8 @@ def minio_source_object(coordinate: str, sep: str) -> SourceObject:
                 text_stream = io.TextIOWrapper(stream, encoding="utf-8")
                 reader = csv.reader(text_stream, delimiter=sep)
 
-                for row in reader:
-                    yield row
+                yield from reader
+
                 stream.close()
             except Exception as e:
                 logger.error(f"Failed to read {table=} from S3: {e=} w/ {key=}")

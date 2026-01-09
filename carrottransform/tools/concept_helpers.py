@@ -1,11 +1,9 @@
-from typing import Dict, List, Optional
-
 from carrottransform.tools.mapping_types import ConceptMapping
 
 
 def generate_combinations(
-    value_mapping: Optional[Dict[str, List[int]]],
-) -> List[Dict[str, int]]:
+    value_mapping: dict[str, list[int]] | None,
+) -> list[dict[str, int]]:
     """
     Generate all concept combinations for multiple concept IDs
     NOTE: this logic can handle un-even number of concept IDs across fields, even though this scenario needs more investigation.
@@ -46,7 +44,7 @@ def generate_combinations(
 
 def get_value_mapping(
     concept_mapping: ConceptMapping, source_value: str
-) -> Optional[Dict[str, List[int]]]:
+) -> dict[str, list[int]] | None:
     """
     Get value mapping for a source value, handling wildcards
 

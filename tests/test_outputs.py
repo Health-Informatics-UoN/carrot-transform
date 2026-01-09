@@ -28,7 +28,7 @@ def test_csv_output_target(tmp_path: Path):
 
     csv.close()
 
-    with open(tmp_path / "foo.tsv", "r") as file:
+    with open(tmp_path / "foo.tsv") as file:
         text = file.read().strip()
         assert (
             text
@@ -99,7 +99,7 @@ def test_sqliteTargetWriter(tmp_path: Path):
         actual = actual.strip()
 
         # read the raw expected
-        with open(heights.parent / f"{table}.csv", "r") as file:
+        with open(heights.parent / f"{table}.csv") as file:
             expected = file.read().strip()
 
         # compare the two values
@@ -165,7 +165,7 @@ def test_in_and_out_sqlite(tmp_path: Path):
         actual = actual.strip()
 
         # read the raw expected
-        with open(heights.parent / f"{table}.csv", "r") as file:
+        with open(heights.parent / f"{table}.csv") as file:
             expected = file.read().strip()
 
         # compare the two values

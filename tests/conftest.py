@@ -2,8 +2,8 @@ import logging
 import random
 import textwrap
 import time
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
-from typing import Generator, Iterable
 
 import boto3
 import docker

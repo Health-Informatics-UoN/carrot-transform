@@ -1,6 +1,5 @@
 import csv
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
 
 from case_insensitive_dict import CaseInsensitiveDict
 from sqlalchemy.engine import Connection
@@ -72,9 +71,9 @@ class StreamProcessor:
     def _process_input_file_stream(
         self,
         source_filename: str,
-        db_connection: Optional[Connection] = None,
-        schema: Optional[str] = None,
-    ) -> Tuple[Dict[str, int], int]:
+        db_connection: Connection | None = None,
+        schema: str | None = None,
+    ) -> tuple[dict[str, int], int]:
         """Stream process a single input file with direct output writing"""
         logger.info(f"Streaming input file: {source_filename}")
         if db_connection is None:
@@ -186,12 +185,12 @@ class StreamProcessor:
     def _process_single_row_stream(
         self,
         source_filename: str,
-        input_data: List[str],
+        input_data: list[str],
         input_column_map: CaseInsensitiveDict[str, int],
-        applicable_targets: Set[str],
+        applicable_targets: set[str],
         datetime_col_idx: int,
-        file_meta: Dict[str, Any],
-    ) -> Tuple[Dict[str, int], int]:
+        file_meta: dict[str, object],
+    ) -> tuple[dict[str, int], int]:
         """Process single row and write directly to all applicable output files"""
 
         # Increment input count
@@ -236,11 +235,11 @@ class StreamProcessor:
     def _process_row_for_target_stream(
         self,
         source_filename: str,
-        input_data: List[str],
+        input_data: list[str],
         input_column_map: CaseInsensitiveDict[str, int],
         target_file: str,
-        file_meta: Dict[str, Any],
-    ) -> Tuple[int, int]:
+        file_meta: dict[str, object],
+    ) -> tuple[int, int]:
         """Process row for specific target and write records directly"""
 
         v2_mapping = self.context.mappingrules.v2_mappings[target_file][source_filename]
@@ -289,18 +288,18 @@ class StreamProcessor:
     def _process_data_column_stream(
         self,
         source_filename: str,
-        input_data: List[str],
+        input_data: list[str],
         input_column_map: CaseInsensitiveDict[str, int],
         target_file: str,
         v2_mapping,
         target_column_map: CaseInsensitiveDict[str, int],
         data_column: str,
-        auto_num_col: Optional[str],
+        auto_num_col: str | None,
         person_id_col: str,
-        date_col_data: Dict[str, str],
-        date_component_data: Dict[str, Dict[str, str]],
-        notnull_numeric_fields: List[str],
-    ) -> Tuple[int, int]:
+        date_col_data: dict[str, str],
+        date_component_data: dict[str, dict[str, str]],
+        notnull_numeric_fields: list[str],
+    ) -> tuple[int, int]:
         """Process data column and write records directly to output"""
 
         rejected_count = 0
@@ -346,13 +345,13 @@ class V2ProcessingOrchestrator:
         self,
         rules_file: Path,
         output_dir: Path,
-        input_dir: Optional[Path],
-        omop_ddl_file: Optional[Path],
-        omop_config_file: Optional[Path],
+        input_dir: Path | None,
+        omop_ddl_file: Path | None,
+        omop_config_file: Path | None,
         write_mode: str = "w",
-        person_file: Optional[Path] = None,
-        person_table: Optional[str] = None,
-        db_conn_params: Optional[DBConnParams] = None,
+        person_file: Path | None = None,
+        person_table: str | None = None,
+        db_conn_params: DBConnParams | None = None,
     ):
         self.rules_file = rules_file
         self.output_dir = output_dir
@@ -392,7 +391,7 @@ class V2ProcessingOrchestrator:
         if self.db_conn_params:
             self.engine_connection = EngineConnection(self.db_conn_params)
 
-    def setup_person_lookup(self) -> Tuple[Dict[str, str], int]:
+    def setup_person_lookup(self) -> tuple[dict[str, str], int]:
         """Setup person ID lookup and save mapping"""
         saved_person_id_file = set_saved_person_id_file(None, self.output_dir)
         connection = None

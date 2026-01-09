@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Dict, List
 
 from carrottransform.tools.logger import logger_setup
 
@@ -38,7 +37,7 @@ class DataKey:
 
 @dataclass
 class CountData:
-    counts: Dict[str, int] = field(default_factory=dict)
+    counts: dict[str, int] = field(default_factory=dict)
 
     def increment(self, count_type: str):
         if count_type not in self.counts:
@@ -193,7 +192,7 @@ class Metrics:
         source_path: str,
         target_file: str,
         datacol: str,
-        out_record: List[str],
+        out_record: list[str],
     ) -> None:
         # Are the parameters for DataKeys hierarchical?
         # If so, a nested structure where a Source contains n Fields etc. and each has a method to sum its children would be better
@@ -280,7 +279,7 @@ class Metrics:
                 + "\t"
                 + str(after_count)
                 + "\t"
-                + "{0:.3f}".format(after_pct)
+                + f"{after_pct:.3f}"
                 + "\t"
             )
             if "after_formatting" in self.datasummary[dkey]:
@@ -289,10 +288,7 @@ class Metrics:
                     (float)(after_count - after_format_count) * 100 / after_count
                 )
                 summary_str += (
-                    str(after_format_count)
-                    + "\t"
-                    + "{0:.3f}".format(after_format_pct)
-                    + "\n"
+                    str(after_format_count) + "\t" + f"{after_format_pct:.3f}" + "\n"
                 )
             else:
                 summary_str += "NA\tNA\n"
@@ -302,7 +298,7 @@ class Metrics:
     def get_data_summary(self):
         return self.datasummary
 
-    def get_mapstream_summary_rows(self) -> List[MapstreamSummaryRow]:
+    def get_mapstream_summary_rows(self) -> list[MapstreamSummaryRow]:
         """
         Creates a list of MapstreamSummaryRow from the datasummary
         """
@@ -342,7 +338,7 @@ class Metrics:
 
         return result
 
-    def get_mapstream_summary_dict(self) -> Dict:
+    def get_mapstream_summary_dict(self) -> dict:
         """
         Makes a dict of the mapstream summary
         """

@@ -59,12 +59,12 @@ def process_common_logic(
     rules_file: Path,
     output_dir: Path,
     write_mode: str,
-    omop_ddl_file: Optional[Path],
-    omop_version: Optional[str],
-    person_file: Optional[Path] = None,
-    person_table: Optional[str] = None,
-    input_dir: Optional[Path] = None,
-    db_conn_params: Optional[DBConnParams] = None,
+    omop_ddl_file: Path | None,
+    omop_version: str | None,
+    person_file: Path | None = None,
+    person_table: str | None = None,
+    input_dir: Path | None = None,
+    db_conn_params: DBConnParams | None = None,
 ):
     """Common processing logic for both modes"""
     start_time = time.time()
@@ -157,8 +157,8 @@ def folder(
     output_dir: Path,
     write_mode: str,
     person_file: Path,
-    omop_ddl_file: Optional[Path],
-    omop_version: Optional[str],
+    omop_ddl_file: Path | None,
+    omop_version: str | None,
 ):
     """Process data from folder input"""
     process_common_logic(
@@ -213,8 +213,8 @@ def db(
     output_dir: Path,
     write_mode: str,
     person_table: str,
-    omop_ddl_file: Optional[Path],
-    omop_version: Optional[str],
+    omop_ddl_file: Path | None,
+    omop_version: str | None,
 ):
     """Process data from database input"""
     db_conn_params = DBConnParams(

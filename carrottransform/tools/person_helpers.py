@@ -1,7 +1,8 @@
 import csv
 import sys
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator, Optional
+from typing import Optional
 
 from case_insensitive_dict import CaseInsensitiveDict
 from sqlalchemy.engine import Connection
@@ -33,8 +34,8 @@ def load_person_ids_v2(
     mappingrules: MappingRules,
     use_input_person_ids: str,
     delim=",",
-    db_connection: Optional[Connection] = None,
-    schema: Optional[str] = None,
+    db_connection: Connection | None = None,
+    schema: str | None = None,
 ):
     person_ids, person_number = _get_person_lookup(saved_person_id_file)
 
