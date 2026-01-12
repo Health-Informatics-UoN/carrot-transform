@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Mapping, TextIO
 
+from case_insensitive_dict import CaseInsensitiveDict
+
 import carrottransform.tools as tools
 import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
@@ -18,7 +20,7 @@ class ProcessingContext:
     person_lookup: dict[str, str]
     record_numbers: dict[str, int]
     file_handles: dict[str, outputs.OutputTarget.Handle]
-    target_column_maps: dict[str, dict[str, int]]
+    target_column_maps: dict[str, CaseInsensitiveDict[str, int]]
     metrics: tools.metrics.Metrics
     inputs: sources.SourceObject
 
@@ -45,11 +47,11 @@ class RecordContext:
     """Context object containing all the data needed for record building"""
 
     tgtfilename: str
-    tgtcolmap: dict[str, int]
+    tgtcolmap: CaseInsensitiveDict[str, int]
     v2_mapping: V2TableMapping
     srcfield: str
     srcdata: list[str]
-    srccolmap: dict[str, int]
+    srccolmap: CaseInsensitiveDict[str, int]
     srcfilename: str
     omopcdm: OmopCDM
     metrics: tools.metrics.Metrics

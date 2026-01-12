@@ -6,18 +6,25 @@
       "type": "debugpy",
       "request": "launch",
       "module": "pytest",
-      "args": ["${file}"],
+      "args": [
+        "${file}",
+        "-m",
+        "not skipping_any"
+      ],
       "justMyCode": false
     },
     {
-      "name": "Debug Pytest (test_datetime_in_measurement_csv)",
+      "name": "Debug Trino Connection",
       "type": "debugpy",
       "request": "launch",
       "module": "pytest",
-      "args": "-m \"not nothing\" tests/test_datetime.py::test_datetime_in_measurement_csv",
+      "args": [
+        "-m",
+        "docker",
+        "tests/test_connection_trino.py"
+      ],
       "justMyCode": false
     },
-
     {
       "name": "V1 -Debug Carrot Transform Rules",
       "type": "debugpy",

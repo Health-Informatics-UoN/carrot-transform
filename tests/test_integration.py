@@ -17,6 +17,7 @@ import carrottransform.tools.sources as sources
 import tests.conftest as conftest
 import tests.testools as testools
 from carrottransform.cli.subcommands.run import launch_v2, mapstream
+from tests.conftest import TrinoSchema
 
 logger = logging.getLogger(__name__)
 test_data = Path(__file__).parent / "test_data"
@@ -27,6 +28,7 @@ class Connection(Enum):
     SQLITE = "sqlite"
     MINIO = "minio"
     POSTGRES = "postgresql"
+    TRINO = "trino"
 
 
 @pytest.mark.unit  # it's an integration test ... but i need/want one that i can check quickly
@@ -54,6 +56,51 @@ def test_sql_read(tmp_path: Path):
     actual = sources.csv_source_object(output_to, sep="\t")
     test_case.compare_to_tsvs(actual)
 
+
+@pytest.mark.integration
+def test_mireda_key_error(tmp_path: Path, caplog):
+    """this is the original buggy version that should trigger the key error"""
+
+    # capture all
+    caplog.set_level(logging.DEBUG)
+
+    person_file = (
+        Path(__file__).parent
+        / "test_data/mireda_key_error/demographics_mother_gold.csv"
+    )
+
+    ##
+    # run click
+    runner = CliRunner()
+    result = runner.invoke(
+        mapstream,
+        [
+            "--inputs",
+            str(person_file.parent),
+            "--rules-file",
+            str(person_file.parent / "original_rules.json"),
+            "--person",
+            "demographics_mother_gold",  # person_file.name,
+            "--output",
+            str(tmp_path),
+            "--omop-ddl-file",
+            "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
+        ],
+    )
+
+    assert result.exit_code == -1
+
+    message = caplog.text.splitlines(keepends=False)[-1]
+
+    assert message.strip().endswith(
+        "Person properties were mapped from (['demographics_child_gold.csv', 'infant_data_gold.csv']) but can only come from the person file person='demographics_mother_gold'"
+    )
+
+    assert "-1" == str(result.exception)
+
+
+#### ==========================================================================
+## Test case generation - generates a mixutre of test cases with diffenret example data combinations, connection combination, and ways to pass arguments
 
 test_cases = list(
     map(
@@ -97,13 +144,22 @@ pass__arg_names = [
 connection_types = [Connection.CSV, Connection.SQLITE]
 
 
-def generate_cases(types: list[Connection], needs: list[Connection] | None = None):
+def generate_cases(needs: list[Connection] | None = None):
     """generate a lot of permutations of tests.
 
     @param types - the types of connection to read and write from/into
     @param needs - if set, connections need to involve these
 
     """
+
+    # the common "easy" connections that don't require a fixture
+    types = [Connection.CSV, Connection.SQLITE]
+
+    # add all needed to types
+    if needs is not None:
+        for n in needs:
+            if n not in types:
+                types.append(n)
 
     # variations of the connections and test case data
     parameters = testools.permutations(
@@ -129,9 +185,11 @@ def generate_cases(types: list[Connection], needs: list[Connection] | None = Non
     ]
 
 
-@pytest.mark.parametrize(
-    "output_to, test_case, input_from, pass_as", generate_cases(connection_types)
-)
+#### ==========================================================================
+## test front ends; these all have different permutations of the fixtures so that they can pass them all to the final test function
+
+
+@pytest.mark.parametrize("output_to, test_case, input_from, pass_as", generate_cases())
 @pytest.mark.integration
 def test_function(
     request,
@@ -147,7 +205,27 @@ def test_function(
 
 @pytest.mark.parametrize(
     "output_to, test_case, input_from, pass_as",
-    generate_cases(connection_types + [Connection.MINIO]),
+    generate_cases(needs=[Connection.TRINO]),
+)
+@pytest.mark.docker
+def test_function_trino(
+    request, tmp_path: Path, output_to, test_case, input_from, pass_as, trino
+):
+    """dumb wrapper to make the s3 tests run as well as the integration tests"""
+    body_of_test(
+        request,
+        tmp_path,
+        output_to,
+        test_case,
+        input_from,
+        pass_as,
+        trino=trino,
+    )
+
+
+@pytest.mark.parametrize(
+    "output_to, test_case, input_from, pass_as",
+    generate_cases(needs=[Connection.MINIO]),
 )
 @pytest.mark.docker
 def test_function_minio(
@@ -167,7 +245,7 @@ def test_function_minio(
 
 @pytest.mark.parametrize(
     "output_to, test_case, input_from, pass_as",
-    generate_cases(connection_types + [Connection.POSTGRES]),
+    generate_cases(needs=[Connection.POSTGRES]),
 )
 @pytest.mark.docker
 def test_function_postgresql(
@@ -179,6 +257,10 @@ def test_function_postgresql(
     )
 
 
+#### ==========================================================================
+## This is the main test function
+
+
 def body_of_test(
     request,
     tmp_path: Path,
@@ -188,8 +270,11 @@ def body_of_test(
     pass_as,
     minio: conftest.MinIOBucket | None = None,
     postgres: conftest.PostgreSQLContainer | None = None,
+    trino: TrinoSchema | None = None,
 ):
     """the main integration test. uses a given test case using given input/output techniques and then compares it to known results"""
+
+    logger.setLevel(logging.DEBUG)
 
     # generat a semi-random slug/name to group test data under
     # the files we read/write to s3 will appear in this folder
@@ -199,15 +284,18 @@ def body_of_test(
         + testools.rand_hex()
     )
 
-    logger.info(f"test path is {tmp_path=}\n\t{slug=}")
+    logger.info(f"test path is {str(tmp_path)=}\n\t{slug=}")
 
     # set the input
     inputs: str | None = None
+    source_engine: sqlalchemy.engine.Engine | None = None
     match input_from:
         case Connection.SQLITE:
             inputs = test_case.load_sqlite(tmp_path)
+
         case Connection.CSV:
             inputs = str(test_case._folder).replace("\\", "/")
+
         case Connection.MINIO:
             assert minio is not None
             # create the connection string
@@ -216,6 +304,17 @@ def body_of_test(
             # copy data into the thing
             outputTarget = outputs.minio_output_target(inputs)
             testools.copy_across(ot=outputTarget, so=test_case._folder, names=None)
+
+        case Connection.TRINO:
+            assert trino is not None
+            inputs = trino.connection
+            # "hold the door" - need this connection to remain active to avoid the trino instance being deleted
+            source_engine = sqlalchemy.create_engine(inputs)
+            testools.copy_across(
+                ot=outputs.sql_output_target(sqlalchemy.create_engine(inputs)),
+                so=test_case._folder,
+                names=None,
+            )
 
         case Connection.POSTGRES:
             assert postgres is not None
@@ -227,6 +326,7 @@ def body_of_test(
 
     # set the output
     output: str | None = None
+    output_engine: sqlalchemy.engine.Engine | None = None
     match output_to:
         case Connection.SQLITE:
             output = f"sqlite:///{(tmp_path / 'output.sqlite3').absolute()}"
@@ -239,6 +339,11 @@ def body_of_test(
         case Connection.POSTGRES:
             assert postgres is not None
             output = postgres.config.connection
+        case Connection.TRINO:
+            assert trino is not None
+            output = trino.connection
+            # "hold the door" - need this connection to remain active to avoid the trino instance being deleted
+            output_engine = sqlalchemy.create_engine(output)
     assert output is not None, f"couldn't use {output_to=}"  # check output was set
 
     env, args = testools.passed_as(
@@ -271,15 +376,10 @@ def body_of_test(
     match output_to:
         case Connection.CSV:
             results = sources.csv_source_object(tmp_path / "out", sep="\t")
-        case Connection.SQLITE:
-            results = sources.sql_source_object(sqlalchemy.create_engine(output))
         case Connection.MINIO:
             results = sources.minio_source_object(output, sep="\t")
-        case Connection.POSTGRES:
-            assert postgres is not None
-            results = sources.sql_source_object(
-                sqlalchemy.create_engine(postgres.config.connection)
-            )
+        case Connection.POSTGRES | Connection.TRINO | Connection.SQLITE:
+            results = sources.sql_source_object(output)
 
     assert results is not None  # check output was set
 
@@ -290,44 +390,8 @@ def body_of_test(
         logger.error(f"{tmp_path=}")
         raise
 
-
-@pytest.mark.integration
-def test_mireda_key_error(tmp_path: Path, caplog):
-    """this is the original buggy version that should trigger the key error"""
-
-    # capture all
-    caplog.set_level(logging.DEBUG)
-
-    person_file = (
-        Path(__file__).parent
-        / "test_data/mireda_key_error/demographics_mother_gold.csv"
-    )
-
-    ##
-    # run click
-    runner = CliRunner()
-    result = runner.invoke(
-        mapstream,
-        [
-            "--inputs",
-            str(person_file.parent),
-            "--rules-file",
-            str(person_file.parent / "original_rules.json"),
-            "--person",
-            "demographics_mother_gold",  # person_file.name,
-            "--output",
-            str(tmp_path),
-            "--omop-ddl-file",
-            "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
-        ],
-    )
-
-    assert result.exit_code == -1
-
-    message = caplog.text.splitlines(keepends=False)[-1]
-
-    assert message.strip().endswith(
-        "Person properties were mapped from (['demographics_child_gold.csv', 'infant_data_gold.csv']) but can only come from the person file person='demographics_mother_gold'"
-    )
-
-    assert "-1" == str(result.exception)
+    # dispose of these ... really *just* so we're doing something with them and the type checker is happy
+    if source_engine is not None:
+        source_engine.dispose()
+    if output_engine is not None:
+        output_engine.dispose()

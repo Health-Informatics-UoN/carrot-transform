@@ -31,7 +31,17 @@
         "reveal": "always",
         "panel": "new"
       },
-      "problemMatcher": []
+      "problemMatcher": [],
+      "windows": {
+        "options": {
+          "shell": {
+            "executable": "cmd.exe",
+            "args": [
+              "/c"
+            ]
+          }
+        }
+      }
     }
   ]
 }

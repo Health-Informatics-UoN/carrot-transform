@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 from typing import Iterator
 
+from case_insensitive_dict import CaseInsensitiveDict
+
 import carrottransform.tools.sources as sources
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
@@ -100,13 +102,15 @@ def read_person_ids(
 
     person_ids = {}
     person_number = 1
-    person_columns = {}
+
+    # allow situations where SQL is case insensitive (SQL the language is case insensitive)
+    # Trino seems to flip column names around and SQL is case insensitive
+    person_columns: CaseInsensitiveDict[str, int] = CaseInsensitiveDict()
+
     person_col_in_hdr_number = 0
     reject_count = 0
     # Header row of the person file
     personhdr = next(csvr)
-    # TODO: not sure if this is needed
-    logger.info("Headers in Person file: %s", personhdr)
 
     # Make a dictionary of column names vs their positions
     for col in personhdr:
