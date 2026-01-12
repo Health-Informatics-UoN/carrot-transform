@@ -261,7 +261,6 @@ class TestV2ProcessingOrchestrator:
         """Test person lookup setup"""
         ddl_file = Path("tests/test_data/test_ddl.sql")
 
-
         orchestrator = V2ProcessingOrchestrator(
             rules_file=v2_rules_file,
             output=outputs.csv_output_target(temp_dirs["output_dir"]),
@@ -562,9 +561,7 @@ class TestStreamProcessor:
             assert result.output_counts == {"person.tsv": 2}
             assert result.rejected_id_counts == {"test.csv": 0}
             # Verify the method was called with the correct input file
-            mock_process_file.assert_called_once_with(
-                "test.csv"
-            )
+            mock_process_file.assert_called_once_with("test.csv")
 
     def test_process_all_data_with_error(self, tmp_path, mock_context, mock_cache):
         """Test data processing with error"""
@@ -580,14 +577,13 @@ class TestStreamProcessor:
         )
 
         with patch.object(processor, "_process_input_file_stream") as mock_process_file:
-
             # mark that the method should raise an error ... whenver it's called
             mock_process_file.side_effect = Exception("Test error")
 
             # run the function
             with pytest.raises(Exception) as test_error:
                 processor.process_all_data()
-            
+
             # check to see if the correct error was raised
             assert "Test error" == test_error.value.args[0]
 
