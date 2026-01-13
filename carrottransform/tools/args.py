@@ -376,14 +376,19 @@ def common(func):
     func = click.option(
         "--omop-ddl-file",
         envvar="OMOP_DDL_FILE",
+        default="@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
         type=PathArg,
-        required=False,
+        required=True,
         help="File containing OHDSI ddl statements for OMOP tables",
     )(func)
+
     func = click.option(
-        "--omop-version",
+        "--omop-config-file",
+        envvar="OMOP_CONFIG_FILE",
+        default="@carrot/config/config.json",
+        type=PathArg,
         required=True,
-        help="Quoted string containing omop version - eg '5.3'",
-        default="5.3",
+        help="File containing specialised configuration to populate certain fields",
     )(func)
+
     return func

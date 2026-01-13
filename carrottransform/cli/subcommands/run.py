@@ -1,4 +1,3 @@
-import importlib.resources as resources
 import sys
 import time
 from pathlib import Path
@@ -53,8 +52,8 @@ def mapstream(
     person: str,
     inputs: sources.SourceObject,
     output: outputs.OutputTarget,
-    omop_ddl_file: Path | None,
-    omop_version,
+    omop_ddl_file: Path,
+    omop_config_file: Path,
     use_input_person_ids,
     last_used_ids_file: Path | None,
     log_file_threshold,
@@ -65,9 +64,6 @@ def mapstream(
     """
     Map to output using input streams
     """
-
-    # this used to be a parameter; it's hard coded now but otherwise unchanged
-    omop_config_file: Path = PathArg.convert("@carrot/config/config.json", None, None)
 
     # Initialisation
     # - check for values in optional arguments
@@ -84,7 +80,6 @@ def mapstream(
                     write_mode,
                     omop_ddl_file,
                     omop_config_file,
-                    omop_version,
                     use_input_person_ids,
                     last_used_ids_file,
                     log_file_threshold,
@@ -97,15 +92,6 @@ def mapstream(
     if (rules_file is None) or (not rules_file.is_file()):
         logger.error(f"rules file was set to {rules_file=} and is missing")
         sys.exit(-1)
-
-    ## fallback for the ddl filename
-    if omop_ddl_file is None:
-        omop_ddl_name = f"OMOPCDM_postgresql_{omop_version}_ddl.sql"
-        omop_ddl_file = Path(
-            Path(str(resources.files("carrottransform"))) / "config" / omop_ddl_name
-        )
-        if not omop_ddl_file.is_file():
-            logger.warning(f"{omop_ddl_name=} not found")
 
     ## check on the person_file_rules
     try:
@@ -363,8 +349,8 @@ def launch_v2(
     output: outputs.OutputTarget,
     rules_file: Path,
     person: str,
-    omop_ddl_file: Path | None,
-    omop_version: str | None,
+    omop_ddl_file: Path,
+    omop_config_file: Path,
 ):
     require(
         not person.endswith(".csv"),
@@ -372,21 +358,6 @@ def launch_v2(
     )
 
     logger.info("starting v2 with injected source and output")
-
-    # this used to be a parameter; it's hard coded now but otherwise unchanged
-    omop_config_file: Path = PathArg.convert("@carrot/config/config.json", None, None)
-    require(omop_config_file.is_file())
-    # default to 5.3 - value is onlu used for ddl fallback so nailing it in place
-    if omop_version is None:
-        omop_version = "5.3"
-
-    #
-    if omop_ddl_file is None:
-        omop_ddl_file = PathArg.convert(
-            f"@carrot/config/OMOPCDM_postgresql_{omop_version}_ddl.sql", None, None
-        )
-    assert omop_ddl_file is not None, "omopddl/omop_ddl_file musn't be null"
-    require(omop_ddl_file.is_file())
 
     # fixes it
     RecordBuilderFactory.clear_person_cache()
@@ -401,7 +372,7 @@ def launch_v2(
         output=output,
         write_mode="w",
         omop_ddl_file=omop_ddl_file,
-        omop_version=omop_version,
+        omop_config_file=omop_config_file,
         person=person,
         inputs=inputs,
     )

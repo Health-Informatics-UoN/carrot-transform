@@ -4,10 +4,8 @@ Entry point for the v2 processing system
 
 import time
 from pathlib import Path
-from typing import Optional
 
 from carrottransform.tools import outputs, sources
-from carrottransform.tools.args import PathArg
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.orchestrator import V2ProcessingOrchestrator
 
@@ -19,8 +17,8 @@ def process_common_logic(
     output: outputs.OutputTarget,
     write_mode: str,
     omop_ddl_file: Path,
-    omop_version: Optional[str],
     person: str,
+    omop_config_file: Path,
     inputs: sources.SourceObject,
 ):
     """Common processing logic for both modes"""
@@ -28,9 +26,6 @@ def process_common_logic(
     # NOTE; a lot of this is now handled by the run.py script
 
     start_time = time.time()
-
-    # this used to be a parameter; it's hard coded now but otherwise unchanged
-    omop_config_file: Path = PathArg.convert("@carrot/config/config.json", None, None)
 
     try:
         # Create orchestrator and execute processing (pass explicit kwargs to satisfy typing)
