@@ -376,7 +376,7 @@ def common(func):
     func = click.option(
         "--omop-ddl-file",
         envvar="OMOP_DDL_FILE",
-        default="@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
+        default="@carrot/config/OMOPCDM_postgresql_5.4_ddl.sql",
         type=PathArg,
         required=True,
         help="File containing OHDSI ddl statements for OMOP tables",
