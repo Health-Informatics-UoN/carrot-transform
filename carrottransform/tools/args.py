@@ -129,6 +129,72 @@ class ObjectStructureError(Exception):
     """Raised when the object path format points to inaccessible elements."""
 
 
+def person_rules_check_v2_injected(
+    person: str, mappingrules: MappingRules, sources: sources.SourceObject
+):
+    """ensure that the person rules ONLY reffer to the named table/csv"""
+
+    ##
+    # guard against using <name.csv> instead of <name>
+    if "." in person:
+        raise Exception(
+            f"Can't have a table named {person=} (if it's csv, remove the file extension)"
+        )
+
+    ##
+    # try to open the person table/file/source - this should detect a missing one
+    # ... won't work if the SourceObject changes and isn't "keen" about reading the first row ASAP
+    sources.open(person)
+
+    ##
+    # get the person rules object
+    person_rules: dict | str | None = object_query(
+        mappingrules.rules_data, "cdm/person"
+    )
+
+    # check to be sure it's there
+    if person_rules is None:
+        raise Exception("No cdm/person mapping rules for the person were found")
+
+    if isinstance(person_rules, str):
+        # this is unlikely to happen with carrot-mapper's output, but, mypy flags it.
+        raise Exception(
+            f"the entry cdm/person needs to be an object but it was a scalar/string/leaf {person_rules=}"
+        )
+
+    ##
+    # check the contents of the person rules
+
+    #
+    if len(person_rules) > 1:
+        raise Exception(
+            f"""The source table for the OMOP table Person can be only one, which is the person file: {person}. However, there are multiple source tables {list(person_rules.keys())} for the Person table in the mapping rules."""
+        )
+
+    if len(person_rules) == 0:
+        raise Exception(
+            f"""The source table for the OMOP table Person can be only one, which is the person file: {person}. However, there are NO source tables for the Person table in the mapping rules."""
+        )
+
+    seen: str = list(person_rules.keys())[0]
+
+    # we don't care if the rule's suffix is .csv
+    if seen.endswith(".csv"):
+        named = seen[:-4]
+    else:
+        named = seen
+
+    if "." in named:
+        raise Exception(
+            f"The mapping tries to use {seen=} (whihc i can reduce to {named=}) but that's not going to be {person=}"
+        )
+
+    if named != person:
+        raise Exception(
+            f"The source table for the OMOP table's Person data should be {person=}, but the mapping uses {named=}"
+        )
+
+
 def person_rules_check_v2(
     person_file: Path | None, person_table: str | None, mappingrules: MappingRules
 ) -> None:
@@ -310,14 +376,19 @@ def common(func):
     func = click.option(
         "--omop-ddl-file",
         envvar="OMOP_DDL_FILE",
+        default="@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
         type=PathArg,
-        required=False,
+        required=True,
         help="File containing OHDSI ddl statements for OMOP tables",
     )(func)
+
     func = click.option(
-        "--omop-version",
+        "--omop-config-file",
+        envvar="OMOP_CONFIG_FILE",
+        default="@carrot/config/config.json",
+        type=PathArg,
         required=True,
-        help="Quoted string containing omop version - eg '5.3'",
-        default="5.3",
+        help="File containing specialised configuration to populate certain fields",
     )(func)
+
     return func

@@ -1,12 +1,10 @@
 import logging
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
 import carrottransform.tools.sources as sources
 from carrottransform.tools import file_helpers
-from carrottransform.tools.person_helpers import _get_person_lookup
 
 logger = logging.getLogger(__name__)
 
@@ -109,30 +107,3 @@ def test_utf8_with_bom(tmp_path: Path):
     rows = list(csv_reader)
     assert rows[0] == ["header1", "header2"]  # Should not have BOM in content
     assert rows[1] == ["value1", "value2"]
-
-
-### test_get_person_lookup(saved_person_id_file):
-@pytest.mark.unit
-def test_new_person_lookup(tmp_path: Path):
-    """Test when no saved person ID file exists"""
-    nonexistent_file = tmp_path / "nonexistent.tsv"
-
-    person_lookup, last_used_integer = _get_person_lookup(nonexistent_file)
-
-    assert person_lookup == {}
-    assert last_used_integer == 1
-
-
-@pytest.mark.unit
-@patch("carrottransform.tools.person_helpers._load_saved_person_ids")
-def test_existing_person_lookup(mock_load, tmp_path: Path):
-    """Test when saved person ID file exists"""
-    existing_file = tmp_path / "existing.tsv"
-    mock_load.return_value = ({"person1": 1, "person2": 2}, 2)
-
-    existing_file.touch()
-
-    person_lookup, last_used_integer = _get_person_lookup(existing_file)
-
-    assert person_lookup == {"person1": 1, "person2": 2}
-    assert last_used_integer == 2

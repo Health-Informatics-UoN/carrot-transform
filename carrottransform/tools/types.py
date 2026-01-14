@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, List, Optional, TextIO
+from typing import Mapping, TextIO
 
 from case_insensitive_dict import CaseInsensitiveDict
-from sqlalchemy.engine import Connection
 
 import carrottransform.tools as tools
+import carrottransform.tools.outputs as outputs
+import carrottransform.tools.sources as sources
 from carrottransform.tools.mapping_types import V2TableMapping
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
@@ -17,21 +17,19 @@ class ProcessingContext:
 
     mappingrules: MappingRules
     omopcdm: OmopCDM
-    person_lookup: Dict[str, str]
-    record_numbers: Dict[str, int]
-    file_handles: Dict[str, TextIO]
-    target_column_maps: Dict[str, CaseInsensitiveDict[str, int]]
+    person_lookup: dict[str, str]
+    record_numbers: dict[str, int]
+    file_handles: dict[str, outputs.OutputTarget.Handle]
+    target_column_maps: dict[str, CaseInsensitiveDict[str, int]]
     metrics: tools.metrics.Metrics
-    input_dir: Optional[Path] = None
-    db_connection: Optional[Connection] = None
-    schema: Optional[str] = None
+    inputs: sources.SourceObject
 
     @property
-    def input_files(self) -> List[str]:
+    def input_files(self) -> list[str]:
         return self.mappingrules.get_all_infile_names()
 
     @property
-    def output_files(self) -> List[str]:
+    def output_files(self) -> list[str]:
         return self.mappingrules.get_all_outfile_names()
 
 
@@ -52,29 +50,29 @@ class RecordContext:
     tgtcolmap: CaseInsensitiveDict[str, int]
     v2_mapping: V2TableMapping
     srcfield: str
-    srcdata: List[str]
+    srcdata: list[str]
     srccolmap: CaseInsensitiveDict[str, int]
     srcfilename: str
     omopcdm: OmopCDM
     metrics: tools.metrics.Metrics
-    person_lookup: Dict[str, str]
-    record_numbers: Dict[str, int]
-    file_handles: Dict[str, TextIO]
-    auto_num_col: Optional[str]
+    person_lookup: dict[str, str]
+    record_numbers: dict[str, int]
+    file_handles: Mapping[str, TextIO | outputs.OutputTarget.Handle]
+    auto_num_col: str | None
     person_id_col: str
-    date_col_data: Dict[str, str]
-    date_component_data: Dict[str, Dict[str, str]]
-    notnull_numeric_fields: List[str]
+    date_col_data: dict[str, str]
+    date_component_data: dict[str, dict[str, str]]
+    notnull_numeric_fields: list[str]
 
 
 @dataclass
 class ProcessingResult:
     """Result of data processing operation"""
 
-    output_counts: Dict[str, int]
-    rejected_id_counts: Dict[str, int]
+    output_counts: dict[str, int]
+    rejected_id_counts: dict[str, int]
     success: bool = True
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 @dataclass

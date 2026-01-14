@@ -16,7 +16,7 @@ import carrottransform.tools.outputs as outputs
 import carrottransform.tools.sources as sources
 import tests.conftest as conftest
 import tests.testools as testools
-from carrottransform.cli.subcommands.run import mapstream
+from carrottransform.cli.subcommands.run import launch_v2, mapstream
 from tests.conftest import TrinoSchema
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ def test_sql_read(tmp_path: Path):
     # this is the paramter
     testing_person_file = "measure_weight_height/persons.csv"
 
-    test_case = testools.CarrotTestCase(testing_person_file)
+    test_case = testools.CarrotTestCase(testing_person_file, entry=mapstream)
 
     # run the test sourcing that SQLite database but writing to disk
     input_db = test_case.load_sqlite(tmp_path)
@@ -102,9 +102,9 @@ def test_mireda_key_error(tmp_path: Path, caplog):
 #### ==========================================================================
 ## Test case generation - generates a mixutre of test cases with diffenret example data combinations, connection combination, and ways to pass arguments
 
-v1TestCases = list(
+test_cases = list(
     map(
-        testools.CarrotTestCase,
+        lambda person: testools.CarrotTestCase(person, mapstream),
         [
             "integration_test1/src_PERSON.csv",
             "floats/src_PERSON.csv",
@@ -115,9 +115,20 @@ v1TestCases = list(
             "condition/persons.csv",
         ],
     )
-) + [
+)
+
+test_cases += [
     testools.CarrotTestCase(
-        "only_m/patients.csv", str(test_data / "only_m/v1-rules.json"), "/v1-out"
+        "integration_test1/src_PERSON.csv",
+        entry=launch_v2,
+        mapper=str(Path(__file__).parent / "test_V2/rules-v2.json"),
+        suffix="/v2-out",
+    ),
+    testools.CarrotTestCase(
+        "only_m/patients.csv",
+        entry=mapstream,
+        mapper=str(test_data / "only_m/v1-rules.json"),
+        suffix="/v1-out",
     ),
 ]
 
@@ -133,7 +144,7 @@ pass__arg_names = [
 connection_types = [Connection.CSV, Connection.SQLITE]
 
 
-def generate_cases(needs: None | list[Connection] = None):
+def generate_cases(needs: list[Connection] | None = None):
     """generate a lot of permutations of tests.
 
     @param types - the types of connection to read and write from/into
@@ -152,7 +163,7 @@ def generate_cases(needs: None | list[Connection] = None):
 
     # variations of the connections and test case data
     parameters = testools.permutations(
-        input_from=types, test_case=v1TestCases, output_to=types
+        input_from=types, test_case=test_cases, output_to=types
     )
 
     # variations of wether to pass things asn CLI or environment variables
@@ -257,7 +268,7 @@ def body_of_test(
     test_case,
     input_from: Connection,
     pass_as,
-    minio: None | conftest.MinIOBucket = None,
+    minio: conftest.MinIOBucket | None = None,
     postgres: conftest.PostgreSQLContainer | None = None,
     trino: TrinoSchema | None = None,
 ):
@@ -276,8 +287,8 @@ def body_of_test(
     logger.info(f"test path is {str(tmp_path)=}\n\t{slug=}")
 
     # set the input
-    inputs: None | str = None
-    source_engine: None | sqlalchemy.engine.Engine = None
+    inputs: str | None = None
+    source_engine: sqlalchemy.engine.Engine | None = None
     match input_from:
         case Connection.SQLITE:
             inputs = test_case.load_sqlite(tmp_path)
@@ -314,8 +325,8 @@ def body_of_test(
     assert inputs is not None, f"couldn't use {input_from=}"  # check inputs as set
 
     # set the output
-    output: None | str = None
-    output_engine: None | sqlalchemy.engine.Engine = None
+    output: str | None = None
+    output_engine: sqlalchemy.engine.Engine | None = None
     match output_to:
         case Connection.SQLITE:
             output = f"sqlite:///{(tmp_path / 'output.sqlite3').absolute()}"
@@ -352,7 +363,7 @@ def body_of_test(
     ##
     # run click
     runner = CliRunner()
-    result = runner.invoke(mapstream, args=args, env=env)
+    result = runner.invoke(test_case._entry, args=args, env=env)
 
     if result.exception is not None:
         print(result.exception)
@@ -373,7 +384,11 @@ def body_of_test(
     assert results is not None  # check output was set
 
     # verify that the results are good
-    test_case.compare_to_tsvs(results)
+    try:
+        test_case.compare_to_tsvs(results)
+    except:
+        logger.error(f"{tmp_path=}")
+        raise
 
     # dispose of these ... really *just* so we're doing something with them and the type checker is happy
     if source_engine is not None:

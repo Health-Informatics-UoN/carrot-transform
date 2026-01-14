@@ -91,7 +91,7 @@ def test_person_rules_throws_WrongInputException() -> None:
     source_table = "src_PERSON.csv"
 
     # arrange
-    caught: None | WrongInputException = None
+    caught: WrongInputException | None = None
 
     # act
     try:
@@ -116,7 +116,7 @@ def test_object_query_error() -> None:
 
     data: dict[str, str | dict[str, str]] = {"foo": "9", "bar": {"value": "12"}}
 
-    error: None | ObjectQueryError = None
+    error: ObjectQueryError | None = None
     try:
         object_query(data, "/bar/value")
         raise Exception("that should have thrown an exception")
@@ -136,7 +136,7 @@ def test_object_structure_error() -> None:
 
     data: dict[str, str | dict[str, str]] = {"foo": "9", "bar": {"value": "12"}}
 
-    error: None | ObjectStructureError = None
+    error: ObjectStructureError | None = None
     try:
         object_query(data, "foo/value")
         raise Exception("that should have thrown an exception")

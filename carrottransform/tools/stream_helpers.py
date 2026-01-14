@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Dict, Set
+from typing import Any, Set
 
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.omopcdm import OmopCDM
@@ -17,7 +17,7 @@ class StreamingLookupCache:
         self.file_metadata_cache = self._build_file_metadata_cache()
         self.target_metadata_cache = self._build_target_metadata_cache()
 
-    def _build_input_to_output_lookup(self) -> Dict[str, Set[str]]:
+    def _build_input_to_output_lookup(self) -> dict[str, Set[str]]:
         """Build lookup: input_file -> set of output tables it can map to"""
         lookup = defaultdict(set)
 
@@ -27,7 +27,7 @@ class StreamingLookupCache:
 
         return dict(lookup)
 
-    def _build_file_metadata_cache(self) -> Dict[str, Dict[str, Any]]:
+    def _build_file_metadata_cache(self) -> dict[str, dict[str, Any]]:
         """Pre-compute metadata for each input file"""
         cache = {}
 
@@ -46,7 +46,7 @@ class StreamingLookupCache:
 
         return cache
 
-    def _build_target_metadata_cache(self) -> Dict[str, Dict[str, Any]]:
+    def _build_target_metadata_cache(self) -> dict[str, dict[str, Any]]:
         """Pre-compute metadata for each target table"""
         cache = {}
 

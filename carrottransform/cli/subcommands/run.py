@@ -1,4 +1,3 @@
-import importlib.resources as resources
 import sys
 import time
 from pathlib import Path
@@ -7,8 +6,8 @@ import click
 
 import carrottransform.tools as tools
 import carrottransform.tools.args as args
-import carrottransform.tools.sources as sources
-from carrottransform.tools import outputs
+from carrottransform import require
+from carrottransform.tools import outputs, sources
 from carrottransform.tools.args import (
     OnlyOnePersonInputAllowed,
     PathArg,
@@ -52,8 +51,8 @@ def mapstream(
     person: str,
     inputs: sources.SourceObject,
     output: outputs.OutputTarget,
-    omop_ddl_file: Path | None,
-    omop_version,
+    omop_ddl_file: Path,
+    omop_config_file: Path,
     use_input_person_ids,
     last_used_ids_file: Path | None,
     log_file_threshold,
@@ -64,9 +63,6 @@ def mapstream(
     """
     Map to output using input streams
     """
-
-    # this used to be a parameter; it's hard coded now but otherwise unchanged
-    omop_config_file: Path = PathArg.convert("@carrot/config/config.json", None, None)
 
     # Initialisation
     # - check for values in optional arguments
@@ -83,7 +79,6 @@ def mapstream(
                     write_mode,
                     omop_ddl_file,
                     omop_config_file,
-                    omop_version,
                     use_input_person_ids,
                     last_used_ids_file,
                     log_file_threshold,
@@ -96,15 +91,6 @@ def mapstream(
     if (rules_file is None) or (not rules_file.is_file()):
         logger.error(f"rules file was set to {rules_file=} and is missing")
         sys.exit(-1)
-
-    ## fallback for the ddl filename
-    if omop_ddl_file is None:
-        omop_ddl_name = f"OMOPCDM_postgresql_{omop_version}_ddl.sql"
-        omop_ddl_file = Path(
-            Path(str(resources.files("carrottransform"))) / "config" / omop_ddl_name
-        )
-        if not omop_ddl_file.is_file():
-            logger.warning(f"{omop_ddl_name=} not found")
 
     ## check on the person_file_rules
     try:
@@ -151,8 +137,6 @@ def mapstream(
     try:
         ## get all person_ids from file and either renumber with an int or take directly, and add to a dict
         person_lookup, rejected_person_count = read_person_ids(
-            # this is a little horrible; i'm not ready to rewrite/replace `read_person_ids()` so we just do this pointeing to a fake file
-            Path(__file__) / "this-should-not-exist.txt",
             inputs.open(remove_csv_extension(person)),
             mappingrules,
             use_input_person_ids != "N",
@@ -334,7 +318,7 @@ def mapstream(
         csv_like_lines = map(lambda x: x.split("\t"), data_summary.split("\n")[:-1])
 
         # loop through the lines writing them
-        summary: None | outputs.OutputTarget.Handle = None
+        summary: outputs.OutputTarget.Handle | None = None
         for line in csv_like_lines:
             if summary is None:
                 # we need the column names to "open" this sort of file/table, and, that'll be the first line
@@ -357,11 +341,53 @@ def mapstream(
     logger.info(f"Elapsed time = {time.time() - start_time:.5f} secs")
 
 
+@click.command()
+@args.common
+def launch_v2(
+    inputs: sources.SourceObject,
+    output: outputs.OutputTarget,
+    rules_file: Path,
+    person: str,
+    omop_ddl_file: Path,
+    omop_config_file: Path,
+):
+    require(
+        not person.endswith(".csv"),
+        "don't call the person table .csv - just use the name",
+    )
+
+    logger.info("starting v2 with injected source and output")
+
+    from carrottransform.cli.subcommands.run_v2 import process_common_logic
+
+    # just do this until it passes
+    # uv run ptw . -- -v tests/test_integration.py
+
+    process_common_logic(
+        rules_file=rules_file,
+        output=output,
+        write_mode="w",
+        omop_ddl_file=omop_ddl_file,
+        omop_config_file=omop_config_file,
+        person=person,
+        inputs=inputs,
+    )
+
+    # close/flush these because we need the files on-disk for unit test valiation
+    output.close()
+    inputs.close()
+
+
 @click.group(help="Commands for mapping data to the OMOP CommonDataModel (CDM).")
 def run():
     pass
 
 
 run.add_command(mapstream, "mapstream")
+
+# should let the user use "v1" or "v2" to run the command
+run.add_command(mapstream, "v1")
+run.add_command(launch_v2, "v2")
+
 if __name__ == "__main__":
     run()
