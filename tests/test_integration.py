@@ -357,7 +357,7 @@ def body_of_test(
         "--output",
         output,
         "--omop-ddl-file",
-        "@carrot/config/OMOPCDM_postgresql_5.4_ddl.sql",
+        "@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
     )
 
     ##
