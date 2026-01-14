@@ -8,6 +8,7 @@ from pathlib import Path
 from carrottransform.tools import outputs, sources
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.orchestrator import V2ProcessingOrchestrator
+from carrottransform.tools.record_builder import RecordBuilderFactory
 
 logger = logger_setup()
 
@@ -23,9 +24,10 @@ def process_common_logic(
 ):
     """Common processing logic for both modes"""
 
-    # NOTE; a lot of this is now handled by the run.py script
-
     start_time = time.time()
+
+    # clearing the cache at startup fixes a issue in testing with the cached records
+    RecordBuilderFactory.clear_person_cache()
 
     try:
         # Create orchestrator and execute processing (pass explicit kwargs to satisfy typing)

@@ -33,6 +33,7 @@ def load_person_ids_v2_inject(
     person_ids = {}
     person_number = 1
 
+    # the re-use logic should be re-added
     use_input_person_ids: str = "N"
 
     #
@@ -44,7 +45,7 @@ def load_person_ids_v2_inject(
     reject_count = 0
 
     # Make a dictionary of column names vs their positions
-    person_columns: dict[str, int] = {}
+    person_columns: CaseInsensitiveDict[str, int] = CaseInsensitiveDict[str, int]()
     person_col_in_hdr_number = 0
     for column_headers in person_table_column_headers:
         person_columns[column_headers] = person_col_in_hdr_number

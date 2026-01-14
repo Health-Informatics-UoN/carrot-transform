@@ -21,7 +21,6 @@ from carrottransform.tools.person_helpers import (
     load_last_used_ids,
     read_person_ids,
 )
-from carrottransform.tools.record_builder import RecordBuilderFactory
 
 logger = logger_setup()
 
@@ -358,9 +357,6 @@ def launch_v2(
     )
 
     logger.info("starting v2 with injected source and output")
-
-    # fixes it
-    RecordBuilderFactory.clear_person_cache()
 
     from carrottransform.cli.subcommands.run_v2 import process_common_logic
 
