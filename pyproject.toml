@@ -12,6 +12,7 @@ dependencies = [
     "click>=8.1.7,<9",
     "minio>=7.2.20",
     "psycopg2-binary>=2.9.10",
+    "pydantic>=2.12.5",
     "sqlalchemy>=2.0.42",
     "trino>=0.335.0",
 ]
