@@ -1,32 +1,26 @@
-from dataclasses import dataclass
-from typing import Dict, List, Optional
-
+from pydantic import BaseModel
 
 # To prevent circular import, these types should be in a separate file rather than in the types.py
-@dataclass
-class PersonIdMapping:
+class PersonIdMapping(BaseModel):
     source_field: str
     dest_field: str
 
 
-@dataclass
-class DateMapping:
+class DateMapping(BaseModel):
     source_field: str
-    dest_fields: List[str]
+    dest_fields: list[str]
 
 
-@dataclass
-class ConceptMapping:
+class ConceptMapping(BaseModel):
     source_field: str
-    value_mappings: Dict[
-        str, Dict[str, List[int]]
+    value_mappings: dict[
+        str, dict[str, list[int]]
     ]  # value -> dest_field -> concept_ids
-    original_value_fields: List[str]
+    original_value_fields: list[str]
 
 
-@dataclass
-class V2TableMapping:
+class V2TableMapping(BaseModel):
     source_table: str
-    person_id_mapping: Optional[PersonIdMapping]
-    date_mapping: Optional[DateMapping]
-    concept_mappings: Dict[str, ConceptMapping]  # source_field -> ConceptMapping
+    person_id_mapping: PersonIdMapping | None
+    date_mapping: DateMapping | None
+    concept_mappings: dict[str, ConceptMapping]  # source_field -> ConceptMapping
