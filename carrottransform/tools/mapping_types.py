@@ -56,9 +56,8 @@ class MappingRule(BaseModel):
     """
     source_table: str
     source_field: str
-    term_mapping: term_mapping | None
     omop_table: Literal["observation", "measurement", "person", "condition_occurrence"]
-    destination_fields: dict[str, list[int]] | None
+    destination_fields: dict[str, list[int] | None]
     value: str | None = None
 
 class MappingIndex(BaseModel):
@@ -110,7 +109,56 @@ class V2RuleSet(BaseModel):
             ))
 
     def to_mapping_index(self) -> MappingIndex:
-        ...
+        mappings: list[MappingRule] = []
+
+        for omop_table_name, table_data in self.cdm.items():
+            for source_table, table_mapping in table_data.items():
+                if table_mapping.person_id_mapping:
+                    mappings.append(
+                            MappingRule(
+                                source_table=source_table,
+                                source_field=table_mapping.person_id_mapping.source_field,
+                                omop_table=omop_table_name,
+                                destination_fields={table_mapping.person_id_mapping.dest_field: None},
+                                value=None
+                                )
+                            )
+
+                if table_mapping.date_mapping:
+                    mappings.append(
+                            MappingRule(
+                                source_table=source_table,
+                                source_field=table_mapping.date_mapping.source_field,
+                                omop_table=omop_table_name,
+                                destination_fields={field: None for field in table_mapping.date_mapping.dest_field},
+                                value=None
+                                )
+                            )
+                
+                for source_field, concept_mapping in table_mapping.concept_mappings.items():
+                    original_value_fields = concept_mapping.original_value
+                    for value, omop_mappings in concept_mapping.value_mappings.items():
+
+                        destination_fields = {}
+
+                        for dest_field, concept_ids in omop_mappings.items():
+                            destination_fields[dest_field] = concept_ids
+
+                        for field in original_value_fields:
+                            destination_fields[field] = None
+
+                        mappings.append(
+                                MappingRule(
+                                    source_table=source_table,
+                                    source_field=source_field,
+                                    omop_table=omop_table_name,
+                                    destination_fields=destination_fields,
+                                    value=value
+                                    )
+                                )
+
+        return MappingIndex(metadata=self.metadata, mappings=mappings)
+
 
 class V1RuleSet(BaseModel):
     metadata: RuleSetMetadata | None
