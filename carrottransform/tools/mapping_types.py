@@ -5,6 +5,7 @@ from pydantic import BaseModel
 class RuleSetMetadata(BaseModel):
     date_created: datetime
     dataset: str
+    # why doesn't the metadata have a "v2" flag to make parsing simpler?
 
 # To prevent circular import, these types should be in a separate file rather than in the types.py
 class PersonIdMapping(BaseModel):
@@ -24,7 +25,9 @@ class ConceptMapping(BaseModel):
     original_value: list[str]
 
 class V1CDMField(BaseModel):
-    ...
+    source_table: str
+    source_field: str
+    term_mapping = dict[str, int] | int | None
     
 
 class V2TableMapping(BaseModel):
@@ -40,4 +43,4 @@ class V2RuleSet(BaseModel):
 
 class V1RuleSet(BaseModel):
     metadata: RuleSetMetadata
-    cdm: None
+    cdm: dict[Literal["observation", "measurement", "person", "condition_occurrence"], dict[str, V1CDMField]]
