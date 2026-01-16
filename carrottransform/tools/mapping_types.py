@@ -3,10 +3,24 @@ from typing import Literal
 from pydantic import BaseModel
 import json
 
+term_mapping = dict[str, int] | int
+
+class MappingRule(BaseModel):
+    source_table: str
+    source_field: str
+    term_mapping: term_mapping | None
+    omop_table: Literal["observation", "measurement", "person", "condition_occurrence"]
+
+
 class RuleSetMetadata(BaseModel):
     date_created: datetime
     dataset: str
     # why doesn't the metadata have a "v2" flag to make parsing simpler?
+
+class V1CDMField(BaseModel):
+    source_table: str
+    source_field: str
+    term_mapping = dict[str, int] | int | None
 
 # To prevent circular import, these types should be in a separate file rather than in the types.py
 class PersonIdMapping(BaseModel):
@@ -24,11 +38,6 @@ class ConceptMapping(BaseModel):
         str, dict[str, list[int]]
     ]  # value -> dest_field -> concept_ids
     original_value: list[str]
-
-class V1CDMField(BaseModel):
-    source_table: str
-    source_field: str
-    term_mapping = dict[str, int] | int | None
     
 
 class V2TableMapping(BaseModel):
@@ -71,6 +80,7 @@ class V2RuleSet(BaseModel):
         ...
 
     def process_rules(self, infilename, outfilename, rules):
+        # This should not exist, it's horrible
         ...
     
 class V1RuleSet(BaseModel):
