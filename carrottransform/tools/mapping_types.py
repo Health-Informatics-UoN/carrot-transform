@@ -37,10 +37,10 @@ class V2TableMapping(BaseModel):
     concept_mappings: dict[str, ConceptMapping]  # source_field -> ConceptMapping
 
 class V2RuleSet(BaseModel):
-    metadata: RuleSetMetadata
+    metadata: RuleSetMetadata | None
     # an array of values with a destination_table field would be easier to parse
     cdm: dict[Literal["observation", "measurement", "person", "condition_occurrence"], V2TableMapping]
 
 class V1RuleSet(BaseModel):
-    metadata: RuleSetMetadata
+    metadata: RuleSetMetadata | None
     cdm: dict[Literal["observation", "measurement", "person", "condition_occurrence"], dict[str, V1CDMField]]
