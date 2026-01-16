@@ -52,7 +52,7 @@ class V2TableMapping(BaseModel):
 class MappingRule(BaseModel):
     """
     Representation of how source fields map to destination fields.
-    Both v1 and v2 rulesets end in producing one of these
+    Both v1 and v2 rulesets end in producing these
     """
     source_table: str
     source_field: str
@@ -60,6 +60,10 @@ class MappingRule(BaseModel):
     destination_fields: dict[str, list[int] | None]
     value: str | None = None
 
+    @property
+    def is_person_id_mapping(self) -> bool:
+        return any("person_id" in field for field in self.destination_fields.keys())
+        
 class MappingIndex(BaseModel):
     """
     Collection of `MappingRule`s
