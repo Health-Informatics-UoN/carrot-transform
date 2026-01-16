@@ -1,16 +1,9 @@
 from datetime import datetime
-from typing import Literal
-from pydantic import BaseModel
+from typing import Literal, Any
+from pydantic import BaseModel, Field, model_validator
 import json
 
 term_mapping = dict[str, int] | int
-
-class MappingRule(BaseModel):
-    source_table: str
-    source_field: str
-    term_mapping: term_mapping | None
-    omop_table: Literal["observation", "measurement", "person", "condition_occurrence"]
-
 
 class RuleSetMetadata(BaseModel):
     date_created: datetime
@@ -20,30 +13,79 @@ class RuleSetMetadata(BaseModel):
 class V1CDMField(BaseModel):
     source_table: str
     source_field: str
-    term_mapping = dict[str, int] | int | None
+    term_mapping: term_mapping | None
 
 # To prevent circular import, these types should be in a separate file rather than in the types.py
 class PersonIdMapping(BaseModel):
     source_field: str
     dest_field: str
 
+
 class DateMapping(BaseModel):
     source_field: str
-    dest_fields: list[str]
+    dest_field: list[str]
 
 class ConceptMapping(BaseModel):
-    source_field: str
-    # if I had my druthers, this would be better as {value: somevalue, dest_field: somefield, concept_ids: list[int]} triples
-    value_mappings: dict[
-        str, dict[str, list[int]]
-    ]  # value -> dest_field -> concept_ids
+    value_mappings: dict[str, dict[str, list[int]]]  # value -> dest_field -> concept_ids
     original_value: list[str]
+
+    @model_validator(mode='before')
+    @classmethod
+    def wrap_value_mappings(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        
+        original_value = data.pop("original_value", [])
+        value_mappings = data
+        
+        return {
+            "value_mappings": value_mappings,
+            "original_value": original_value
+        }
     
 
 class V2TableMapping(BaseModel):
-    person_id_mapping: PersonIdMapping | None
-    date_mapping: DateMapping | None
-    concept_mappings: dict[str, ConceptMapping]  # source_field -> ConceptMapping
+    person_id_mapping: PersonIdMapping | None = None
+    date_mapping: DateMapping | None = None
+    concept_mappings: dict[str, ConceptMapping] = Field(default_factory=dict)
+
+class MappingRule(BaseModel):
+    """
+    Representation of how source fields map to destination fields.
+    Both v1 and v2 rulesets end in producing one of these
+    """
+    source_table: str
+    source_field: str
+    term_mapping: term_mapping | None
+    omop_table: Literal["observation", "measurement", "person", "condition_occurrence"]
+    destination_fields: dict[str, list[int]] | None
+    value: str | None = None
+
+class MappingIndex(BaseModel):
+    """
+    Collection of `MappingRule`s
+    """
+    metadata: RuleSetMetadata | None = None
+    mappings: list[MappingRule] = Field(default_factory=list)
+
+    def by_source_table(self, source_table_name: str) -> list[MappingRule]:
+        return [m for m in self.mappings if m.source_table == source_table_name]
+
+    def by_omop_table(self, omop_table_name: str) -> list[MappingRule]:
+        return [m for m in self.mappings if m.omop_table == omop_table_name]
+
+    def by_source_and_omop(self, source_table_name: str, omop_table_name: str) -> list[MappingRule]:
+        return [
+                m for m in self.mappings
+                if m.source_table == source_table_name and m.omop_table == omop_table_name
+                ]
+    
+    def get_source_tables(self) -> list[str]:
+        return list(set(m.source_table for m in self.mappings))
+
+    def get_omop_tables(self) -> list[str]:
+        return list(set(m.omop_table for m in self.mappings))
+
 
 class V2RuleSet(BaseModel):
     metadata: RuleSetMetadata | None
@@ -51,7 +93,7 @@ class V2RuleSet(BaseModel):
     cdm: dict[Literal["observation", "measurement", "person", "condition_occurrence"], dict[str, V2TableMapping]]
     
     def dump_parsed_rules(self) -> str:
-        return json.dumps(self.cdm)
+        return json.dumps(self.model_dump()['cdm'])
 
     def get_dsname_from_rules(self) -> str:
         if self.metadata is None:
@@ -63,26 +105,13 @@ class V2RuleSet(BaseModel):
         return list(self.cdm.keys())
 
     def get_all_infile_names(self) -> list[str]:
-        keys = [mapping.keys() for mapping in self.cdm.values()]
-        return list(set(*keys))
+        return list(set(
+            [key for mapping in self.cdm.values() for key in mapping]
+            ))
 
-    def get_infile_data_fields(self, infilename: str) -> dict[str, list[str]]:
+    def to_mapping_index(self) -> MappingIndex:
         ...
 
-    def get_infile_date_person_id(self, infilename: str) -> tuple[str,str]:
-        ...
-
-    def get_person_source_field_info(self, tgtfilename: str) -> tuple[Optional[str], Optional[str]]:
-        ...
-
-    def parse_rules_src_to_tgt(self, infilename: str) -> tuple[list[str], dict[Any]]:
-        # Aargh what is this
-        ...
-
-    def process_rules(self, infilename, outfilename, rules):
-        # This should not exist, it's horrible
-        ...
-    
 class V1RuleSet(BaseModel):
     metadata: RuleSetMetadata | None
     cdm: dict[Literal["observation", "measurement", "person", "condition_occurrence"], dict[str, V1CDMField]]
@@ -96,24 +125,7 @@ class V1RuleSet(BaseModel):
         else:
             return self.metadata.dataset
 
-    def get_all_outfile_names(self) -> list[str]:
+    def to_mapping_index(self) -> MappingIndex:
         ...
 
-    def get_all_infile_names(self) -> list[str]:
-        ...
-
-    def get_infile_data_fields(self, infilename: str) -> dict[str, list[str]]:
-        ...
-
-    def get_infile_date_person_id(self, infilename: str) -> tuple[str,str]:
-        ...
-
-    def get_person_source_field_info(self, tgtfilename: str) -> tuple[Optional[str], Optional[str]]:
-        ...
-
-    def parse_rules_src_to_tgt(self, infilename: str) -> tuple[list[str], dict[Any]]:
-        # Aargh what is this
-        ...
-
-    def process_rules(self, infilename, outfilename, rules):
-        ...
+RuleSet = V1RuleSet | V2RuleSet
