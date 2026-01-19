@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Any, Protocol
 from pydantic import BaseModel, Field, model_validator
@@ -26,9 +27,6 @@ class RuleSet(Protocol):
         ...
 
     def parse_rules_src_to_tgt(self, infilename) -> tuple[list, dict]:
-        ...
-
-    def process_rules(self, infilename, outfilename, rules):
         ...
 
 
@@ -112,7 +110,21 @@ class V2TableMapping(BaseModel):
         if self.date_mapping:
             return self.date_mapping.source_field
 
+@dataclass
+class MappingRule:
+    source_table: str
+    source_field: str
+    term_mapping: term_mapping | None
+    omop_table: Literal["observation", "measurement", "person", "condition_occurrence"]
+    input_value: str | None
 
+    @property
+    def key(self) -> str:
+        "For legacy compatibility"
+        if self.input_value is not None:
+            return "~".join([self.source_table, self.source_field, self.input_value, self.omop_table])
+        else:
+            return "~".join([self.source_table, self.source_field, self.omop_table])
 
 class V2RuleSet(BaseModel):
     metadata: RuleSetMetadata | None
@@ -226,11 +238,51 @@ class V2RuleSet(BaseModel):
 
         return birth_datetime_source, person_id_source
 
+    def _generate_rules(self) -> list[MappingRule]:
+        rules: list[MappingRule] = []
+
+        for omop_table, rules_set in self.cdm.items():
+            for source_table, source_rules in rules_set.items():
+                if source_rules.person_id_mapping is not None:
+                    rules.append(
+                            MappingRule(
+                                source_table=source_table,
+                                source_field=source_rules.person_id_mapping.source_field,
+                                term_mapping=None,
+                                omop_table=omop_table,
+                                input_value=None
+                                )
+                            )
+                if source_rules.date_mapping is not None:
+                    rules.append(
+                            MappingRule(
+                                source_table=source_table,
+                                source_field=source_rules.date_mapping.source_field,
+                                term_mapping=None,
+                                omop_table=omop_table,
+                                input_value=None,
+                                )
+                            )
+                for source_field, concept_mapping in source_rules.concept_mappings.items():
+                    for input_value, dest_fields in concept_mapping.value_mappings.items():
+                        
+                        rules.append(
+                                MappingRule(
+                                    source_table=source_table,
+                                    source_field=source_field,
+                                    term_mapping={input_value: }
+                                    )
+                                )
+        return rules
+
+
     def parse_rules_src_to_tgt(self, infilename) -> tuple[list, dict]:
+        """
+        Parse rules to produce a map of source to target data for a given input file
+        """
+        # This should be replaced, leaving for compatibility for now
         ...
 
-    def process_rules(self, infilename, outfilename, rules):
-        ...
 
 
 class V1RuleSet(BaseModel):
