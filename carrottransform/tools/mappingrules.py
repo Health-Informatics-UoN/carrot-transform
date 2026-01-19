@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import carrottransform.tools as tools
 from carrottransform.tools.logger import logger_setup
@@ -34,8 +34,8 @@ class MappingRules:
         else:
             logger.info("Detected v1.json format, using legacy parser...")
 
-        self.parsed_rules: Dict[str, Dict[str, Any]] = {}
-        self.outfile_names: Dict[str, List[str]] = {}
+        self.parsed_rules: dict[str, dict[str, Any]] = {}
+        self.outfile_names: dict[str, list[str]] = {}
 
         self.dataset_name = self.get_dsname_from_rules()
 
@@ -59,12 +59,12 @@ class MappingRules:
                         return True
         return False
 
-    def _parse_v2_format(self) -> Dict[str, Dict[str, V2TableMapping]]:
+    def _parse_v2_format(self) -> dict[str, dict[str, V2TableMapping]]:
         """
         Parse v2 format into clean data structures
-        Returns: Dict[table_name, Dict[source_table, V2TableMapping]]
+        Returns: dict[table_name, dict[source_table, V2TableMapping]]
         """
-        v2_mappings: Dict[str, Dict[str, V2TableMapping]] = {}
+        v2_mappings: dict[str, dict[str, V2TableMapping]] = {}
 
         for table_name, table_data in self.rules_data["cdm"].items():
             v2_mappings[table_name] = {}
@@ -143,7 +143,7 @@ class MappingRules:
         else:
             return self._get_all_infile_names_v1()
 
-    def _get_all_infile_names_v2(self) -> List[str]:
+    def _get_all_infile_names_v2(self) -> list[str]:
         """Get all input file names from v2 format"""
         file_list = []
         for table_mappings in self.v2_mappings.values():
@@ -152,7 +152,7 @@ class MappingRules:
                     file_list.append(source_table)
         return file_list
 
-    def _get_all_infile_names_v1(self) -> List[str]:
+    def _get_all_infile_names_v1(self) -> list[str]:
         """Get all input file names from v1 format (legacy method)"""
         file_list = []
         for outfilename, conditions in self.rules_data["cdm"].items():
@@ -169,9 +169,9 @@ class MappingRules:
         else:
             return self._get_infile_data_fields_v1(infilename)
 
-    def _get_infile_data_fields_v2(self, infilename: str) -> Dict[str, List[str]]:
+    def _get_infile_data_fields_v2(self, infilename: str) -> dict[str, list[str]]:
         """Get data fields for a specific input file from v2 format"""
-        data_fields_lists: Dict[str, List[str]] = {}
+        data_fields_lists: dict[str, list[str]] = {}
 
         for table_name, table_mappings in self.v2_mappings.items():
             if infilename in table_mappings:
@@ -185,9 +185,9 @@ class MappingRules:
 
         return data_fields_lists
 
-    def _get_infile_data_fields_v1(self, infilename: str) -> Dict[str, List[str]]:
+    def _get_infile_data_fields_v1(self, infilename: str) -> dict[str, list[str]]:
         """Get data fields for a specific input file from v1 format (legacy method)"""
-        data_fields_lists: Dict[str, List[str]] = {}
+        data_fields_lists: dict[str, list[str]] = {}
         outfilenames, outdata = self.parse_rules_src_to_tgt(infilename)
 
         for outfilename in outfilenames:
@@ -268,7 +268,7 @@ class MappingRules:
 
     def _get_person_source_field_info_v2(
         self, tgtfilename: str
-    ) -> tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """
         Get person source field info for v2 format,
         from the dest. table "Person" in the rules file.
@@ -292,7 +292,7 @@ class MappingRules:
 
     def _get_person_source_field_info_v1(
         self, tgtfilename: str
-    ) -> tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """Get person source field info for v1 format (legacy method)"""
         birth_datetime_source = None
         person_id_source = None
