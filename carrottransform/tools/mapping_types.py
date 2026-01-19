@@ -37,8 +37,6 @@ class RuleSet(Protocol):
         ...
 
 
-term_mapping = dict[str, int] | int
-
 class RuleSetMetadata(BaseModel):
     """Model for the metadata of a ruleset"""
     date_created: datetime
@@ -49,7 +47,7 @@ class V1CDMField(BaseModel):
     """Model for a CDM field for the V1 schema"""
     source_table: str
     source_field: str
-    term_mapping: term_mapping | None
+    term_mapping: dict[str, int] | int | None = None
 
 # To prevent circular import, these types should be in a separate file rather than in the types.py
 class PersonIdMapping(BaseModel):
@@ -245,7 +243,15 @@ class V2RuleSet(BaseModel):
 
 class V1RuleSet(BaseModel):
     metadata: RuleSetMetadata | None
-    cdm: dict[Literal["observation", "measurement", "person", "condition_occurrence"], dict[str, V1CDMField]]
+    cdm: dict[
+            Literal["observation", "measurement", "person", "condition_occurrence"],
+            dict[
+                str,
+                dict[
+                    str, V1CDMField
+                    ]
+                ]
+            ]
 
     parsed_rules: dict[str, dict[str, Any]] = {}
     outfile_names: dict[str, list[str]] = {}
