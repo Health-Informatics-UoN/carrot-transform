@@ -4,7 +4,8 @@ name: Publish a Versioned Release
 
 on:
   push:
-    branches: [version_tag]
+    tags:
+      - "*"
 
 env:
   image-name: carrot/transform
