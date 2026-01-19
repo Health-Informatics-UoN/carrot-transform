@@ -21,8 +21,6 @@ def valid_date_value(item: str) -> bool:
         not _valid_iso_date(item)
         and not _valid_reverse_iso_date(item)
         and not _valid_uk_date(item)
-        # should we handle these?
-        # and not _valid_slash8601_date(item)
     ):
         logger.warning(f"{item} is not a valid/supported date format")
         return False
@@ -59,18 +57,6 @@ def _valid_uk_date(item: str) -> bool:
     """
     try:
         datetime.datetime.strptime(item, "%d/%m/%Y")
-    except ValueError:
-        return False
-
-    return True
-
-
-def _valid_slash8601_date(item: str) -> bool:
-    """
-    Check if a date item parses as (YYYY/MM/DD) format
-    """
-    try:
-        datetime.datetime.strptime(item, "%Y/%m/%d")
     except ValueError:
         return False
 
