@@ -1,7 +1,39 @@
 from datetime import datetime
-from typing import Literal, Any
+from typing import Literal, Any, Protocol
 from pydantic import BaseModel, Field, model_validator
 import json
+
+class RuleSet(Protocol):
+    def dump_parsed_rules(self) -> str:
+        ...
+
+    def get_dsname_from_rules(self) -> str:
+        ...
+
+    def get_dataset_name(self):
+        ...
+
+    def get_all_outfile_names(self):
+        ...
+
+    def get_all_infile_names(self):
+        ...
+
+    def get_infile_data_fields(self, infilename: str):
+        ...
+
+    def get_infile_date_person_id(self, infilename: str) -> tuple[str, str]:
+        ...
+
+    def get_person_source_field_info(self, tgtfilename: str) -> tuple[str | None, str | None]:
+        ...
+
+    def parse_rules_src_to_tgt(self, infilename) -> tuple[list, dict]:
+        ...
+
+    def process_rules(self, infilename, outfilename, rules):
+        ...
+
 
 term_mapping = dict[str, int] | int
 
@@ -180,4 +212,3 @@ class V1RuleSet(BaseModel):
     def to_mapping_index(self) -> MappingIndex:
         ...
 
-RuleSet = V1RuleSet | V2RuleSet

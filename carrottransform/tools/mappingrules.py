@@ -137,7 +137,7 @@ class MappingRules:
 
         return birth_datetime_source, person_id_source
 
-    def parse_rules_src_to_tgt(self, infilename):
+    def parse_rules_src_to_tgt(self, infilename) -> tuple[list, dict]:
         """
         Parse rules to produce a map of source to target data for a given input file
         """
