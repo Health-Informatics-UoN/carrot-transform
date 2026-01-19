@@ -10,16 +10,13 @@ class RuleSet(Protocol):
     def get_dsname_from_rules(self) -> str:
         ...
 
-    def get_dataset_name(self):
+    def get_all_outfile_names(self) -> list[str]:
         ...
 
-    def get_all_outfile_names(self):
+    def get_all_infile_names(self) -> list[str]:
         ...
 
-    def get_all_infile_names(self):
-        ...
-
-    def get_infile_data_fields(self, infilename: str):
+    def get_infile_data_fields(self, infilename: str) -> dict[str, list[str]]:
         ...
 
     def get_infile_date_person_id(self, infilename: str) -> tuple[str, str]:
@@ -38,26 +35,35 @@ class RuleSet(Protocol):
 term_mapping = dict[str, int] | int
 
 class RuleSetMetadata(BaseModel):
+    """Model for the metadata of a ruleset"""
     date_created: datetime
     dataset: str
     # why doesn't the metadata have a "v2" flag to make parsing simpler?
 
 class V1CDMField(BaseModel):
+    """Model for a CDM field for the V1 schema"""
     source_table: str
     source_field: str
     term_mapping: term_mapping | None
 
 # To prevent circular import, these types should be in a separate file rather than in the types.py
 class PersonIdMapping(BaseModel):
+    """Model for a person ID mapping in a v2 schema"""
     source_field: str
     dest_field: str
 
 
 class DateMapping(BaseModel):
+    """Model for a date mapping in a v2 schema"""
     source_field: str
     dest_field: list[str]
 
 class ConceptMapping(BaseModel):
+    """
+    Model for a concept mapping in a v2 schema
+
+    In the V2 schema, concept mappings have dynamic keys, hence the "before" mode model validator
+    """
     value_mappings: dict[str, dict[str, list[int]]]  # value -> dest_field -> concept_ids
     original_value: list[str]
 
@@ -77,123 +83,154 @@ class ConceptMapping(BaseModel):
     
 
 class V2TableMapping(BaseModel):
+    """
+    Model for a source table mapping in the V2 schema.
+
+    The concept mappings are a dictionary where the keys are a source field?
+    """
     person_id_mapping: PersonIdMapping | None = None
     date_mapping: DateMapping | None = None
     concept_mappings: dict[str, ConceptMapping] = Field(default_factory=dict)
 
-class MappingRule(BaseModel):
-    """
-    Representation of how source fields map to destination fields.
-    Both v1 and v2 rulesets end in producing these
-    """
-    source_table: str
-    source_field: str
-    omop_table: Literal["observation", "measurement", "person", "condition_occurrence"]
-    destination_fields: dict[str, list[int] | None]
-    value: str | None = None
+    @property
+    def data_fields(self) -> list[str]:
+        """
+        A list of the source fields for this source table's concept mappings
+        This could also be left as a set, but I'm matching what's already here
+        """
+        return list(self.concept_mappings.keys())
 
     @property
-    def is_person_id_mapping(self) -> bool:
-        return any("person_id" in field for field in self.destination_fields.keys())
-        
-class MappingIndex(BaseModel):
-    """
-    Collection of `MappingRule`s
-    """
-    metadata: RuleSetMetadata | None = None
-    mappings: list[MappingRule] = Field(default_factory=list)
+    def person_field(self) -> str | None:
+        """The source field for the source table's person_id_mapping"""
+        if self.person_id_mapping:
+            return self.person_id_mapping.source_field
 
-    def by_source_table(self, source_table_name: str) -> list[MappingRule]:
-        return [m for m in self.mappings if m.source_table == source_table_name]
+    @property
+    def date_field(self) -> str | None:
+        """The source field for the source table's date_mapping"""
+        if self.date_mapping:
+            return self.date_mapping.source_field
 
-    def by_omop_table(self, omop_table_name: str) -> list[MappingRule]:
-        return [m for m in self.mappings if m.omop_table == omop_table_name]
-
-    def by_source_and_omop(self, source_table_name: str, omop_table_name: str) -> list[MappingRule]:
-        return [
-                m for m in self.mappings
-                if m.source_table == source_table_name and m.omop_table == omop_table_name
-                ]
-    
-    def get_source_tables(self) -> list[str]:
-        return list(set(m.source_table for m in self.mappings))
-
-    def get_omop_tables(self) -> list[str]:
-        return list(set(m.omop_table for m in self.mappings))
 
 
 class V2RuleSet(BaseModel):
     metadata: RuleSetMetadata | None
-    # an array of values with a destination_table field would be easier to parse
     cdm: dict[Literal["observation", "measurement", "person", "condition_occurrence"], dict[str, V2TableMapping]]
     
     def dump_parsed_rules(self) -> str:
+        """
+        Dump the rules as parsed
+
+        Returns
+        -------
+        str
+            json for the parsed rules
+        """
         return json.dumps(self.model_dump()['cdm'])
 
     def get_dsname_from_rules(self) -> str:
+        """
+        Get the name of the dataset from the rules
+        """
         if self.metadata is None:
             return "Unknown"
         else:
             return self.metadata.dataset
 
     def get_all_outfile_names(self) -> list[str]:
+        """
+        Returns a list of the OMOP tables mapped to by these rules
+
+        Returns
+        -------
+        list[str]
+            A list of the OMOP table names
+        """
         return list(self.cdm.keys())
 
     def get_all_infile_names(self) -> list[str]:
-        return list(set(
-            [key for mapping in self.cdm.values() for key in mapping]
-            ))
+        """
+        List the source tables used for mapping
 
-    def to_mapping_index(self) -> MappingIndex:
-        mappings: list[MappingRule] = []
+        Returns
+        -------
+        list[str]
+            A list of the source table names
+        """
+        return list({key for mapping in self.cdm.values() for key in mapping})
 
-        for omop_table_name, table_data in self.cdm.items():
-            for source_table, table_mapping in table_data.items():
-                if table_mapping.person_id_mapping:
-                    mappings.append(
-                            MappingRule(
-                                source_table=source_table,
-                                source_field=table_mapping.person_id_mapping.source_field,
-                                omop_table=omop_table_name,
-                                destination_fields={table_mapping.person_id_mapping.dest_field: None},
-                                value=None
-                                )
-                            )
+    def get_infile_data_fields(self, infilename: str) -> dict[str, list[str]]:
+        """
+        Get data fields for a specific input file
 
-                if table_mapping.date_mapping:
-                    mappings.append(
-                            MappingRule(
-                                source_table=source_table,
-                                source_field=table_mapping.date_mapping.source_field,
-                                omop_table=omop_table_name,
-                                destination_fields={field: None for field in table_mapping.date_mapping.dest_field},
-                                value=None
-                                )
-                            )
-                
-                for source_field, concept_mapping in table_mapping.concept_mappings.items():
-                    original_value_fields = concept_mapping.original_value
-                    for value, omop_mappings in concept_mapping.value_mappings.items():
+        Parameters
+        ----------
+        infilename: str
+            The name of a source table
 
-                        destination_fields = {}
+        Returns
+        -------
+        dict[str, list[str]]
+            A dictionary of a list of fields for each OMOP table
+        """
+        return {
+                omop_table: table_mapping[infilename].data_fields
+                for (omop_table, table_mapping)
+                in self.cdm.items()
+                if table_mapping.get(infilename)
+                }
 
-                        for dest_field, concept_ids in omop_mappings.items():
-                            destination_fields[dest_field] = concept_ids
+    def get_infile_person_id(self, infilename:str) -> str:
+        """Get the person_id source field"""
+        for omop_mapping in self.cdm.values():
+            if infilename in omop_mapping:
+                if omop_mapping[infilename].person_id_mapping:
+                    return omop_mapping[infilename].person_field
+        return ""
 
-                        for field in original_value_fields:
-                            destination_fields[field] = None
+    def get_infile_date_id(self, infilename:str) -> str:
+        """Get the datetime source field"""
+        for omop_mapping in self.cdm.values():
+            if infilename in omop_mapping:
+                if omop_mapping[infilename].date_mapping:
+                    return omop_mapping[infilename].date_field
+        return ""
 
-                        mappings.append(
-                                MappingRule(
-                                    source_table=source_table,
-                                    source_field=source_field,
-                                    omop_table=omop_table_name,
-                                    destination_fields=destination_fields,
-                                    value=value
-                                    )
-                                )
+    def get_infile_date_person_id(self, infilename: str) -> tuple[str, str]:
+        """Get datetime and person_id source fields"""
+        # I don't understand why you want this
+        # also do you really want it to default to ""?
+        person_id = self.get_infile_person_id(infilename)
+        datetime = self.get_infile_date_id(infilename)
 
-        return MappingIndex(metadata=self.metadata, mappings=mappings)
+        return datetime, person_id
+
+    def get_person_id_source(self, tgtfilename: str) -> str | None:
+        """Get the person id source for an omop table"""
+        if tgtfilename in self.cdm:
+            for mapping in self.cdm[tgtfilename].values():
+                if mapping.person_field:
+                    return mapping.person_field
+
+    def get_datetime_source(self, tgtfilename: str) -> str | None:
+        """Get the person id source for an omop table"""
+        if tgtfilename in self.cdm:
+            for mapping in self.cdm[tgtfilename].values():
+                if mapping.date_field:
+                    return mapping.date_field
+
+    def get_person_source_field_info(self, tgtfilename: str) -> tuple[str | None, str | None]:
+        birth_datetime_source = self.get_datetime_source(tgtfilename)
+        person_id_source = self.get_person_id_source(tgtfilename)
+
+        return birth_datetime_source, person_id_source
+
+    def parse_rules_src_to_tgt(self, infilename) -> tuple[list, dict]:
+        ...
+
+    def process_rules(self, infilename, outfilename, rules):
+        ...
 
 
 class V1RuleSet(BaseModel):
@@ -208,7 +245,4 @@ class V1RuleSet(BaseModel):
             return "Unknown"
         else:
             return self.metadata.dataset
-
-    def to_mapping_index(self) -> MappingIndex:
-        ...
 
