@@ -1,10 +1,13 @@
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Any, Protocol
+from typing import Callable, Literal, Any, Protocol
 from pydantic import BaseModel, Field, model_validator
 import json
 
+
 class RuleSet(Protocol):
+    def is_v2_format(self) -> bool:
+        ...
+
     def dump_parsed_rules(self) -> str:
         ...
 
@@ -19,8 +22,12 @@ class RuleSet(Protocol):
 
     def get_infile_data_fields(self, infilename: str) -> dict[str, list[str]]:
         ...
-
-    def get_infile_date_person_id(self, infilename: str) -> tuple[str, str]:
+    def get_infile_date_person_id(
+            self,
+            infilename: str,
+            datetime_source: Callable,
+            person_id_source: Callable,
+            ) -> tuple[str, str]:
         ...
 
     def get_person_source_field_info(self, tgtfilename: str) -> tuple[str | None, str | None]:
@@ -110,26 +117,13 @@ class V2TableMapping(BaseModel):
         if self.date_mapping:
             return self.date_mapping.source_field
 
-@dataclass
-class MappingRule:
-    source_table: str
-    source_field: str
-    term_mapping: term_mapping | None
-    omop_table: Literal["observation", "measurement", "person", "condition_occurrence"]
-    input_value: str | None
-
-    @property
-    def key(self) -> str:
-        "For legacy compatibility"
-        if self.input_value is not None:
-            return "~".join([self.source_table, self.source_field, self.input_value, self.omop_table])
-        else:
-            return "~".join([self.source_table, self.source_field, self.omop_table])
-
 class V2RuleSet(BaseModel):
     metadata: RuleSetMetadata | None
     cdm: dict[Literal["observation", "measurement", "person", "condition_occurrence"], dict[str, V2TableMapping]]
     
+    def is_v2_format(self) -> bool:
+        return True
+
     def dump_parsed_rules(self) -> str:
         """
         Dump the rules as parsed
@@ -209,7 +203,12 @@ class V2RuleSet(BaseModel):
                     return omop_mapping[infilename].date_field
         return ""
 
-    def get_infile_date_person_id(self, infilename: str) -> tuple[str, str]:
+    def get_infile_date_person_id(
+            self,
+            infilename: str,
+            datetime_source: Callable,
+            person_id_source: Callable,
+            ) -> tuple[str, str]:
         """Get datetime and person_id source fields"""
         # I don't understand why you want this
         # also do you really want it to default to ""?
@@ -238,56 +237,21 @@ class V2RuleSet(BaseModel):
 
         return birth_datetime_source, person_id_source
 
-    def _generate_rules(self) -> list[MappingRule]:
-        rules: list[MappingRule] = []
-
-        for omop_table, rules_set in self.cdm.items():
-            for source_table, source_rules in rules_set.items():
-                if source_rules.person_id_mapping is not None:
-                    rules.append(
-                            MappingRule(
-                                source_table=source_table,
-                                source_field=source_rules.person_id_mapping.source_field,
-                                term_mapping=None,
-                                omop_table=omop_table,
-                                input_value=None
-                                )
-                            )
-                if source_rules.date_mapping is not None:
-                    rules.append(
-                            MappingRule(
-                                source_table=source_table,
-                                source_field=source_rules.date_mapping.source_field,
-                                term_mapping=None,
-                                omop_table=omop_table,
-                                input_value=None,
-                                )
-                            )
-                for source_field, concept_mapping in source_rules.concept_mappings.items():
-                    for input_value, dest_fields in concept_mapping.value_mappings.items():
-                        
-                        rules.append(
-                                MappingRule(
-                                    source_table=source_table,
-                                    source_field=source_field,
-                                    term_mapping={input_value: }
-                                    )
-                                )
-        return rules
-
 
     def parse_rules_src_to_tgt(self, infilename) -> tuple[list, dict]:
-        """
-        Parse rules to produce a map of source to target data for a given input file
-        """
-        # This should be replaced, leaving for compatibility for now
-        ...
+        raise NotImplementedError
 
 
 
 class V1RuleSet(BaseModel):
     metadata: RuleSetMetadata | None
     cdm: dict[Literal["observation", "measurement", "person", "condition_occurrence"], dict[str, V1CDMField]]
+
+    parsed_rules: dict[str, dict[str, Any]] = {}
+    outfile_names: dict[str, list[str]] = {}
+
+    def is_v2_format(self) -> bool:
+        return False
 
     def dump_parsed_rules(self) -> str:
         return json.dumps(self.cdm)
@@ -298,3 +262,185 @@ class V1RuleSet(BaseModel):
         else:
             return self.metadata.dataset
 
+    def get_all_outfile_names(self) -> list[str]:
+        return list(self.cdm.keys())
+
+    def get_all_infile_names(self) -> list[str]:
+        return list({field.source_table for omop_table in self.cdm.values() for field in omop_table.values()})
+
+    def get_infile_data_fields(self, infilename: str) -> dict[str, list[str]]:
+        """
+        Get data fields for a specific input file
+
+        Parameters
+        ----------
+        infilename: str
+            The name of a source table
+
+        Returns
+        -------
+        dict[str, list[str]]
+            A dictionary of a list of fields for each OMOP table
+        """
+        data_fields = {}
+        for omop_table, table_mapping in self.cdm.items():
+            fields = {rule.source_field for rule in table_mapping.values() if rule.source_table == infilename}
+            if len(fields) != 0:
+                data_fields[omop_table] = fields
+        return data_fields
+
+    def get_infile_field(self, infilename:str, query_field: Callable) -> str:
+        for omop_name, table in self.cdm.items():
+            query_fields = query_field(omop_name)
+            for dest_field, mapping in table.items():
+                if dest_field == query_fields and mapping.source_table == infilename:
+                    return mapping.source_field
+        return ""
+
+
+    def get_infile_date_person_id(
+            self,
+            infilename: str,
+            datetime_source: Callable,
+            person_id_source: Callable,
+            ) -> tuple[str, str]:
+        datetime_source = self.get_infile_field(infilename, datetime_source)
+        person_id_source = self.get_infile_field(infilename, person_id_source)
+
+        return datetime_source, person_id_source
+
+    def _get_birth_datetime_source(self, tgtfilename: str) -> str | None:
+        if tgtfilename in self.cdm:
+            if "birth_datetime" in self.cdm[tgtfilename].keys():
+                return self.cdm[tgtfilename]["birth_datetime"].source_field
+
+    def _get_person_id_source(self, tgtfilename: str):
+        if tgtfilename in self.cdm:
+            if "person_id" in self.cdm[tgtfilename].keys():
+                return self.cdm[tgtfilename]["person_id"].source_field
+
+    def get_person_source_field_info(self, tgtfilename: str) -> tuple[str | None, str | None]:
+        birth_datetime_source = self._get_birth_datetime_source(tgtfilename)
+        person_id_source = self._get_person_id_source(tgtfilename)
+
+        return birth_datetime_source, person_id_source
+
+    def parse_rules_src_to_tgt(self, infilename) -> tuple[list, dict]:
+        """
+        Parse rules to produce a map of source to target data for a given input file
+        """
+        # I'm not touching this nonsense
+        ## creates a dict of dicts that has input files as keys, and infile~field~data~target as keys for the underlying keys, which contain a list of dicts of lists
+        if infilename in self.outfile_names and infilename in self.parsed_rules:
+            return self.outfile_names[infilename], self.parsed_rules[infilename]
+        outfilenames = []
+        outdata = {}
+
+        for outfilename, rules_set in self.cdm.items():
+            for rules in rules_set.values():
+                key, data = self.process_rules(infilename, outfilename, rules)
+                if key != "":
+                    if key not in outdata:
+                        outdata[key] = []
+                        if key.split("~")[-1] == "person":
+                            outdata[key].append(data)
+
+                    if key.split("~")[-1] == "person":
+                        # Find matching source field keys and merge their dictionaries
+                        for source_field, value in data.items():
+                            if source_field in outdata[key][0] and isinstance(
+                                outdata[key][0][source_field], dict
+                            ):
+                                # Merge the dictionaries for this source field
+                                outdata[key][0][source_field].update(value)
+                            else:
+                                # If no matching dict or new source field, just set it
+                                outdata[key][0][source_field] = value
+                            pass
+                    else:
+                        outdata[key].append(data)
+                    if outfilename not in outfilenames:
+                        outfilenames.append(outfilename)
+
+        self.parsed_rules[infilename] = outdata
+        self.outfile_names[infilename] = outfilenames
+        return outfilenames, outdata
+
+    def process_rules(self, infilename, outfilename, rules):
+        """
+        Process rules for an infile, outfile combination
+        """
+        data = {}
+
+        ### used for mapping simple fields that are always mapped (e.g., dob)
+        plain_key = ""
+        term_value_key = ""  ### used for mapping terms (e.g., gender, race, ethnicity)
+
+        ## iterate through the rules, looking for rules that apply to the input file.
+        for outfield, source_info in rules.items():
+            # Check if this rule applies to our input file
+            if source_info["source_table"] == infilename:
+                if "term_mapping" in source_info:
+                    if type(source_info["term_mapping"]) is dict:
+                        for inputvalue, term in source_info["term_mapping"].items():
+                            if outfilename == "person":
+                                term_value_key = infilename + "~person"
+                                source_field = source_info["source_field"]
+                                if source_field not in data:
+                                    data[source_field] = {}
+                                if str(inputvalue) not in data[source_field]:
+                                    try:
+                                        data[source_field][str(inputvalue)] = []
+                                    except TypeError:
+                                        ### need to convert data[source_field] to a dict
+                                        ### like this: {'F': ['gender_concept_id~8532', 'gender_source_concept_id~8532', 'gender_source_value']}
+                                        temp_data_list = data[source_field].copy()
+                                        data[source_field] = {}
+                                        data[source_field][str(inputvalue)] = (
+                                            temp_data_list
+                                        )
+
+                                data[source_field][str(inputvalue)].append(
+                                    outfield + "~" + str(term)
+                                )
+                            else:
+                                term_value_key = (
+                                    infilename
+                                    + "~"
+                                    + source_info["source_field"]
+                                    + "~"
+                                    + str(inputvalue)
+                                    + "~"
+                                    + outfilename
+                                )
+                                if source_info["source_field"] not in data:
+                                    data[source_info["source_field"]] = []
+                                data[source_info["source_field"]].append(
+                                    outfield + "~" + str(term)
+                                )
+                    else:
+                        plain_key = (
+                            infilename
+                            + "~"
+                            + source_info["source_field"]
+                            + "~"
+                            + outfilename
+                        )
+                        if source_info["source_field"] not in data:
+                            data[source_info["source_field"]] = []
+                        data[source_info["source_field"]].append(
+                            outfield + "~" + str(source_info["term_mapping"])
+                        )
+                else:
+                    if source_info["source_field"] not in data:
+                        data[source_info["source_field"]] = []
+                    if type(data[source_info["source_field"]]) is dict:
+                        data[source_info["source_field"]][str(inputvalue)].append(
+                            outfield
+                        )
+                    else:
+                        data[source_info["source_field"]].append(outfield)
+        if term_value_key != "":
+            return term_value_key, data
+
+        return plain_key, data
