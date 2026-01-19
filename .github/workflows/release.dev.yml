@@ -52,13 +52,11 @@ jobs:
           # - RFC3339 is not suitable for docker tags, so we squash the date
           # - We tag both the short (7-char prefixed) and full sha commit hashes; both are useful
           # - `edge` represents latest main branch commit (potentially unstable)
-          # - version tag
           tags: |
             type=sha
             ${{ github.sha }}
             type=raw,value={{date 'YYYYMMDDHHmmss[Z]'}}
             edge
-            type=raw,value=${{ steps.read_version.outputs.value }}
           # Label notes:
           # - Static labels are applied in the Dockerfile
           # - Date format in `org.opencontainers.image.created` must be RFC3339
