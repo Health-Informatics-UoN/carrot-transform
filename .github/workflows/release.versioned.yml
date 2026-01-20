@@ -66,9 +66,9 @@ jobs:
         with:
           images: ${{ env.registry }}/${{ env.REPO_OWNER_LOWER }}/${{ env.image-name }}
           tags: | # new tags only
-            type=semver,pattern=v{{version}}
-            type=semver,pattern=v{{major}}
-            type=semver,pattern=v{{major}}.{{minor}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}
+            type=semver,pattern={{major}}.{{minor}}
 
       # Create Github Release
       - uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174 # v1.16.0
