@@ -253,8 +253,6 @@ class V2RuleSet(BaseModel):
     def parse_rules_src_to_tgt(self, infilename) -> tuple[list, dict]:
         raise NotImplementedError
 
-
-
 class V1RuleSet(BaseModel):
     metadata: RuleSetMetadata | None
     cdm: dict[
@@ -285,7 +283,14 @@ class V1RuleSet(BaseModel):
         return list(self.cdm.keys())
 
     def get_all_infile_names(self) -> list[str]:
-        return list({field.source_table for omop_table in self.cdm.values() for field in omop_table.values()})
+        return list(
+                {
+                    field.source_table
+                    for omop_table in self.cdm.values()
+                    for map_obj in omop_table.values()
+                    for field in map_obj.values()
+                    }
+                )
 
     def get_infile_data_fields(self, infilename: str) -> dict[str, list[str]]:
         """
@@ -303,7 +308,12 @@ class V1RuleSet(BaseModel):
         """
         data_fields = {}
         for omop_table, table_mapping in self.cdm.items():
-            fields = {rule.source_field for rule in table_mapping.values() if rule.source_table == infilename}
+            fields = {
+                    rule.source_field
+                    for map_obj in table_mapping.values()
+                    for rule in map_obj.values()
+                    if rule.source_table == infilename
+                    }
             if len(fields) != 0:
                 data_fields[omop_table] = fields
         return data_fields
@@ -311,9 +321,10 @@ class V1RuleSet(BaseModel):
     def get_infile_field(self, infilename:str, query_field: Callable) -> str:
         for omop_name, table in self.cdm.items():
             query_fields = query_field(omop_name)
-            for dest_field, mapping in table.items():
-                if dest_field == query_fields and mapping.source_table == infilename:
-                    return mapping.source_field
+            for mapping in table.values():
+                for dest_field, cdm_field in mapping.items():
+                    if dest_field == query_fields and cdm_field.source_table == infilename:
+                        return cdm_field.source_field
         return ""
 
 
@@ -330,13 +341,15 @@ class V1RuleSet(BaseModel):
 
     def _get_birth_datetime_source(self, tgtfilename: str) -> str | None:
         if tgtfilename in self.cdm:
-            if "birth_datetime" in self.cdm[tgtfilename].keys():
-                return self.cdm[tgtfilename]["birth_datetime"].source_field
+            for map_obj in self.cdm[tgtfilename].values():
+                if "birth_datetime" in map_obj.keys():
+                    return map_obj["birth_datetime"].source_field
 
     def _get_person_id_source(self, tgtfilename: str):
         if tgtfilename in self.cdm:
-            if "person_id" in self.cdm[tgtfilename].keys():
-                return self.cdm[tgtfilename]["person_id"].source_field
+            for map_obj in self.cdm[tgtfilename].values():
+                if "person_id" in map_obj.keys():
+                    return map_obj["person_id"].source_field
 
     def get_person_source_field_info(self, tgtfilename: str) -> tuple[str | None, str | None]:
         birth_datetime_source = self._get_birth_datetime_source(tgtfilename)
@@ -355,9 +368,9 @@ class V1RuleSet(BaseModel):
         outfilenames = []
         outdata = {}
 
-        for outfilename, rules_set in self.cdm.items():
+        for omop_table, rules_set in self.cdm.items():
             for rules in rules_set.values():
-                key, data = self.process_rules(infilename, outfilename, rules)
+                key, data = self.process_rules(infilename, omop_table, rules)
                 if key != "":
                     if key not in outdata:
                         outdata[key] = []
@@ -378,13 +391,14 @@ class V1RuleSet(BaseModel):
                             pass
                     else:
                         outdata[key].append(data)
-                    if outfilename not in outfilenames:
-                        outfilenames.append(outfilename)
+                    if omop_table not in outfilenames:
+                        outfilenames.append(omop_table)
 
         self.parsed_rules[infilename] = outdata
         self.outfile_names[infilename] = outfilenames
         return outfilenames, outdata
 
+    
     def process_rules(self, infilename, outfilename, rules):
         """
         Process rules for an infile, outfile combination
@@ -398,13 +412,13 @@ class V1RuleSet(BaseModel):
         ## iterate through the rules, looking for rules that apply to the input file.
         for outfield, source_info in rules.items():
             # Check if this rule applies to our input file
-            if source_info["source_table"] == infilename:
-                if "term_mapping" in source_info:
-                    if type(source_info["term_mapping"]) is dict:
-                        for inputvalue, term in source_info["term_mapping"].items():
+            if source_info.source_table == infilename:
+                if source_info.term_mapping is not None:
+                    if type(source_info.term_mapping) is dict:
+                        for inputvalue, term in source_info.term_mapping.items():
                             if outfilename == "person":
                                 term_value_key = infilename + "~person"
-                                source_field = source_info["source_field"]
+                                source_field = source_info.source_field
                                 if source_field not in data:
                                     data[source_field] = {}
                                 if str(inputvalue) not in data[source_field]:
@@ -412,12 +426,9 @@ class V1RuleSet(BaseModel):
                                         data[source_field][str(inputvalue)] = []
                                     except TypeError:
                                         ### need to convert data[source_field] to a dict
-                                        ### like this: {'F': ['gender_concept_id~8532', 'gender_source_concept_id~8532', 'gender_source_value']}
                                         temp_data_list = data[source_field].copy()
                                         data[source_field] = {}
-                                        data[source_field][str(inputvalue)] = (
-                                            temp_data_list
-                                        )
+                                        data[source_field][str(inputvalue)] = temp_data_list
 
                                 data[source_field][str(inputvalue)].append(
                                     outfield + "~" + str(term)
@@ -426,40 +437,45 @@ class V1RuleSet(BaseModel):
                                 term_value_key = (
                                     infilename
                                     + "~"
-                                    + source_info["source_field"]
+                                    + source_info.source_field
                                     + "~"
                                     + str(inputvalue)
                                     + "~"
                                     + outfilename
                                 )
-                                if source_info["source_field"] not in data:
-                                    data[source_info["source_field"]] = []
-                                data[source_info["source_field"]].append(
+                                if source_info.source_field not in data:
+                                    data[source_info.source_field] = []
+                                data[source_info.source_field].append(
                                     outfield + "~" + str(term)
                                 )
                     else:
                         plain_key = (
                             infilename
                             + "~"
-                            + source_info["source_field"]
+                            + source_info.source_field
                             + "~"
                             + outfilename
                         )
-                        if source_info["source_field"] not in data:
-                            data[source_info["source_field"]] = []
-                        data[source_info["source_field"]].append(
-                            outfield + "~" + str(source_info["term_mapping"])
+                        if source_info.source_field not in data:
+                            data[source_info.source_field] = []
+                        data[source_info.source_field].append(
+                            outfield + "~" + str(source_info.term_mapping)
                         )
                 else:
-                    if source_info["source_field"] not in data:
-                        data[source_info["source_field"]] = []
-                    if type(data[source_info["source_field"]]) is dict:
-                        data[source_info["source_field"]][str(inputvalue)].append(
+                    # No term_mapping - set plain_key if not already set
+                    if plain_key == "":
+                        plain_key = infilename + "~" + outfilename
+                    if source_info.source_field not in data:
+                        data[source_info.source_field] = []
+                    if type(data[source_info.source_field]) is dict:
+                        data[source_info.source_field][str(inputvalue)].append(
                             outfield
                         )
                     else:
-                        data[source_info["source_field"]].append(outfield)
+                        data[source_info.source_field].append(outfield)
+        
         if term_value_key != "":
             return term_value_key, data
-
+        
         return plain_key, data
+

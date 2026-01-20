@@ -44,7 +44,7 @@ def test_compare(caplog) -> None:
 def compare_to_tsvs(subpath: str, actual: sources.SourceObject) -> None:
     """generate a source for the named subpath and compare all .tsv to the passed so
 
-    open each .tsv in the tests subpath and compare it to the open'ed from the named SO.
+    open each .tsv in the tests subpath and compare it to the opened from the named SO.
 
     if the SO is missing a tsv? fail!
     if the SO has different rows? fail!
@@ -387,7 +387,7 @@ def rand_hex(length: int = 16) -> str:
     out = ""
     src = "0123456789abcdef"
 
-    for i in range(0, length):
+    for _ in range(0, length):
         out += src[random.randint(0, len(src) - 1)]
 
     return out

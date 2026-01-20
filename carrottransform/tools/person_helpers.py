@@ -124,7 +124,7 @@ def read_person_ids(
     mappingrules: MappingRules,
     use_input_person_ids: bool,
 ):
-    """revised loading method that accepts an itterator eitehr for a file or for a database connection"""
+    """revised loading method that accepts an iterator either for a file or for a database connection"""
 
     if not isinstance(use_input_person_ids, bool):
         raise Exception(

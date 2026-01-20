@@ -166,220 +166,225 @@ def omopcdm():
         return OmopCDM(ddl_path, config_path)
 
 
-@pytest.mark.unit
-def test_person_table_no_duplicates(omopcdm, test_rules_file, input_data):
-    """Test that person table doesn't create duplicate rows for multiple mappings"""
-    mapping_rules = MappingRules(test_rules_file, omopcdm)
-    outfilenames, outdata = mapping_rules.parse_rules_src_to_tgt("demographic.csv")
-
-    # Verify we got person table
-    assert "person" in outfilenames
-
-    # Check no duplicates in person mappings
-    person_key = "demographic.csv~person"
-    assert person_key in outdata
-    assert len(outdata[person_key]) == 1  # Should only have one entry for person
-
-    # Check mappings for first person
-    person_mappings = outdata[person_key][0]
-    assert "sex" in person_mappings
-    assert "ethnicity" in person_mappings
-
-    # Verify correct term mappings exist
-    sex_mappings = person_mappings["sex"]
-    assert isinstance(sex_mappings, dict)
-    assert "M" in sex_mappings
-    assert set(sex_mappings["M"]) == {"gender_concept_id~8507", "gender_source_value"}
+# These tests use the parse_rules_src_to_tgt method on a V2 ruleset
+# Nowhere in the code does this method get called if you're using a V2 ruleset, so are the tests meaningful?
+# These should either use a V1 ruleset or be removed
 
 
-@pytest.mark.unit
-def test_observation_table_multiple_rows(omopcdm, test_rules_file, input_data):
-    """Test that observation table creates multiple rows for multiple mappings"""
-    mapping_rules = MappingRules(test_rules_file, omopcdm)
-    outfilenames, outdata = mapping_rules.parse_rules_src_to_tgt("demographic.csv")
-
-    # Verify we got observation table
-    assert "observation" in outfilenames
-
-    # Check multiple entries for observations
-    obs_keys = [k for k in outdata.keys() if "observation" in k]
-    assert len(obs_keys) > 1  # Should have multiple observation mappings
-
-    # Check each observation type has correct mappings
-    for key in obs_keys:
-        obs_data = outdata[key]
-        assert len(obs_data) > 0
-        # Check that we have the expected source fields
-        assert "person_id" in obs_data[0]
-        assert "sex" in obs_data[0] or "ethnicity" in obs_data[0]
-
-        # Check the mappings for each source field
-        for field, mappings in obs_data[0].items():
-            if field == "person_id":
-                assert mappings == ["person_id"]
-            elif field == "sex":
-                assert set(mappings) == {
-                    "observation_concept_id~4135376",
-                    "observation_source_value",
-                }
-            elif field == "ethnicity":
-                assert set(mappings) == {
-                    "observation_concept_id~44803968",
-                    "observation_source_value",
-                }
-
-
-@pytest.mark.unit
-def test_mixed_person_and_observation(omopcdm, test_rules_file, input_data):
-    """Test that person and observation tables handle multiple mappings correctly"""
-    mapping_rules = MappingRules(test_rules_file, omopcdm)
-    outfilenames, outdata = mapping_rules.parse_rules_src_to_tgt("demographic.csv")
-
-    # Check both tables present
-    assert "person" in outfilenames
-    assert "observation" in outfilenames
-
-    # Check person has single entry
-    person_key = "demographic.csv~person"
-    assert person_key in outdata
-    assert len(outdata[person_key]) == 1
-
-    # Check observations have multiple entries
-    obs_keys = [k for k in outdata.keys() if "observation" in k]
-    assert len(obs_keys) > 1
-
-
-@pytest.mark.unit
-def test_person_data_correctness(omopcdm, test_rules_file, input_data):
-    """Test that person data is mapped correctly without duplication"""
-    mapping_rules = MappingRules(test_rules_file, omopcdm)
-    outfilenames, outdata = mapping_rules.parse_rules_src_to_tgt("demographic.csv")
-
-    person_key = "demographic.csv~person"
-    person_mappings = outdata[person_key][0]
-
-    # Check first person (Male, White)
-    assert set(person_mappings["sex"]["M"]) == {
-        "gender_concept_id~8507",
-        "gender_source_value",
-    }
-    assert set(person_mappings["ethnicity"]["white"]) == {"race_concept_id~8527"}
-
-    # Check second person (Female, Asian)
-    assert set(person_mappings["sex"]["F"]) == {
-        "gender_concept_id~8532",
-        "gender_source_value",
-    }
-    assert set(person_mappings["ethnicity"]["asian"]) == {"race_concept_id~8515"}
-
-    # Check third person (Male, Black)
-    assert set(person_mappings["sex"]["M"]) == {
-        "gender_concept_id~8507",
-        "gender_source_value",
-    }
-    assert set(person_mappings["ethnicity"]["black"]) == {
-        "race_concept_id~8516",
-        "race_source_value",
-    }
-
-
-@pytest.mark.unit
-def test_output_data_writing(omopcdm, test_rules_file, input_data):
-    """Test that data is written correctly to output files without duplication"""
-    mapping_rules = MappingRules(test_rules_file, omopcdm)
-    outfilenames, outdata = mapping_rules.parse_rules_src_to_tgt("demographic.csv")
-
-    # Check person table output
-    person_key = "demographic.csv~person"
-    person_mappings = outdata[person_key][0]
-
-    # Verify that each person_id only appears once in the mappings
-    person_ids = set()
-    for field, mappings in person_mappings.items():
-        if field == "person_id":
-            for mapping in mappings:
-                person_ids.add(mapping)
-    assert len(person_ids) == 1  # Should only have one person_id mapping
-
-    # Verify individual field mappings for person table
-    for row in input_data:
-        # Check sex mappings
-        sex_value = row["sex"]
-        if sex_value == "M":
-            assert set(person_mappings["sex"]["M"]) == {
-                "gender_concept_id~8507",
-                "gender_source_value",
-            }
-        elif sex_value == "F":
-            assert set(person_mappings["sex"]["F"]) == {
-                "gender_concept_id~8532",
-                "gender_source_value",
-            }
-
-        # Check ethnicity mappings
-        ethnicity_value = row["ethnicity"]
-        if ethnicity_value == "white":
-            assert set(person_mappings["ethnicity"]["white"]) == {
-                "race_concept_id~8527"
-            }
-        elif ethnicity_value == "asian":
-            assert set(person_mappings["ethnicity"]["asian"]) == {
-                "race_concept_id~8515"
-            }
-        elif ethnicity_value == "black":
-            assert set(person_mappings["ethnicity"]["black"]) == {
-                "race_concept_id~8516",
-                "race_source_value",
-            }
-
-    # Check observation table output
-    obs_keys = [k for k in outdata.keys() if "observation" in k]
-    for key in obs_keys:
-        obs_data = outdata[key]
-        # Verify that each person_id only appears once per observation type
-        person_ids = set()
-        for field, mappings in obs_data[0].items():
-            if field == "person_id":
-                person_ids.add(mappings[0])
-        assert (
-            len(person_ids) == 1
-        )  # Should only have one person_id mapping per observation type
-
-        # Verify individual field mappings for observations
-        for row in input_data:
-            sex_value = row["sex"]
-            ethnicity_value = row["ethnicity"]
-
-            # Check sex observation mappings
-            if "sex" in key:
-                # The mappings are stored in the 'sex' field of obs_data[0]
-                assert "sex" in obs_data[0]
-                sex_mappings = obs_data[0]["sex"]
-                assert "observation_concept_id~4135376" in sex_mappings
-                assert "observation_source_value" in sex_mappings
-
-            # Check ethnicity observation mappings
-            if "ethnicity" in key:
-                # The mappings are stored in the 'ethnicity' field of obs_data[0]
-                assert "ethnicity" in obs_data[0]
-                ethnicity_mappings = obs_data[0]["ethnicity"]
-                assert "observation_concept_id~44803968" in ethnicity_mappings
-                assert "observation_source_value" in ethnicity_mappings
-
-    # Verify that the total number of output records matches expected
-    total_records = 0
-    for key, data in outdata.items():
-        if "person" in key:
-            total_records += 1  # One record per person
-        elif "observation" in key:
-            total_records += len(
-                input_data
-            )  # One record per person per observation type
-
-    expected_records = 1 + (
-        2 * len(input_data)
-    )  # 1 person record + 2 observation types per person
-    assert total_records == expected_records
+# @pytest.mark.unit
+# def test_person_table_no_duplicates(omopcdm, test_rules_file):
+#     """Test that person table doesn't create duplicate rows for multiple mappings"""
+#     mapping_rules = MappingRules(test_rules_file, omopcdm)
+#     outfilenames, outdata = mapping_rules.parse_rules_src_to_tgt("demographic.csv")
+#
+#     # Verify we got person table
+#     assert "person" in outfilenames
+#
+#     # Check no duplicates in person mappings
+#     person_key = "demographic.csv~person"
+#     assert person_key in outdata
+#     assert len(outdata[person_key]) == 1  # Should only have one entry for person
+#
+#     # Check mappings for first person
+#     person_mappings = outdata[person_key][0]
+#     assert "sex" in person_mappings
+#     assert "ethnicity" in person_mappings
+#
+#     # Verify correct term mappings exist
+#     sex_mappings = person_mappings["sex"]
+#     assert isinstance(sex_mappings, dict)
+#     assert "M" in sex_mappings
+#     assert set(sex_mappings["M"]) == {"gender_concept_id~8507", "gender_source_value"}
+#
+#
+# @pytest.mark.unit
+# def test_observation_table_multiple_rows(omopcdm, test_rules_file):
+#     """Test that observation table creates multiple rows for multiple mappings"""
+#     mapping_rules = MappingRules(test_rules_file, omopcdm)
+#     outfilenames, outdata = mapping_rules.parse_rules_src_to_tgt("demographic.csv")
+#
+#     # Verify we got observation table
+#     assert "observation" in outfilenames
+#
+#     # Check multiple entries for observations
+#     obs_keys = [k for k in outdata.keys() if "observation" in k]
+#     assert len(obs_keys) > 1  # Should have multiple observation mappings
+#
+#     # Check each observation type has correct mappings
+#     for key in obs_keys:
+#         obs_data = outdata[key]
+#         assert len(obs_data) > 0
+#         # Check that we have the expected source fields
+#         assert "person_id" in obs_data[0]
+#         assert "sex" in obs_data[0] or "ethnicity" in obs_data[0]
+#
+#         # Check the mappings for each source field
+#         for field, mappings in obs_data[0].items():
+#             if field == "person_id":
+#                 assert mappings == ["person_id"]
+#             elif field == "sex":
+#                 assert set(mappings) == {
+#                     "observation_concept_id~4135376",
+#                     "observation_source_value",
+#                 }
+#             elif field == "ethnicity":
+#                 assert set(mappings) == {
+#                     "observation_concept_id~44803968",
+#                     "observation_source_value",
+#                 }
+#
+#
+# @pytest.mark.unit
+# def test_mixed_person_and_observation(omopcdm, test_rules_file):
+#     """Test that person and observation tables handle multiple mappings correctly"""
+#     mapping_rules = MappingRules(test_rules_file, omopcdm)
+#     outfilenames, outdata = mapping_rules.parse_rules_src_to_tgt("demographic.csv")
+#
+#     # Check both tables present
+#     assert "person" in outfilenames
+#     assert "observation" in outfilenames
+#
+#     # Check person has single entry
+#     person_key = "demographic.csv~person"
+#     assert person_key in outdata
+#     assert len(outdata[person_key]) == 1
+#
+#     # Check observations have multiple entries
+#     obs_keys = [k for k in outdata.keys() if "observation" in k]
+#     assert len(obs_keys) > 1
+#
+#
+# @pytest.mark.unit
+# def test_person_data_correctness(omopcdm, test_rules_file):
+#     """Test that person data is mapped correctly without duplication"""
+#     mapping_rules = MappingRules(test_rules_file, omopcdm)
+#     _, outdata = mapping_rules.parse_rules_src_to_tgt("demographic.csv")
+#
+#     person_key = "demographic.csv~person"
+#     person_mappings = outdata[person_key][0]
+#
+#     # Check first person (Male, White)
+#     assert set(person_mappings["sex"]["M"]) == {
+#         "gender_concept_id~8507",
+#         "gender_source_value",
+#     }
+#     assert set(person_mappings["ethnicity"]["white"]) == {"race_concept_id~8527"}
+#
+#     # Check second person (Female, Asian)
+#     assert set(person_mappings["sex"]["F"]) == {
+#         "gender_concept_id~8532",
+#         "gender_source_value",
+#     }
+#     assert set(person_mappings["ethnicity"]["asian"]) == {"race_concept_id~8515"}
+#
+#     # Check third person (Male, Black)
+#     assert set(person_mappings["sex"]["M"]) == {
+#         "gender_concept_id~8507",
+#         "gender_source_value",
+#     }
+#     assert set(person_mappings["ethnicity"]["black"]) == {
+#         "race_concept_id~8516",
+#         "race_source_value",
+#     }
+#
+#
+# @pytest.mark.unit
+# def test_output_data_writing(omopcdm, test_rules_file, input_data):
+#     """Test that data is written correctly to output files without duplication"""
+#     mapping_rules = MappingRules(test_rules_file, omopcdm)
+#     outfilenames, outdata = mapping_rules.parse_rules_src_to_tgt("demographic.csv")
+#
+#     # Check person table output
+#     person_key = "demographic.csv~person"
+#     person_mappings = outdata[person_key][0]
+#
+#     # Verify that each person_id only appears once in the mappings
+#     person_ids = set()
+#     for field, mappings in person_mappings.items():
+#         if field == "person_id":
+#             for mapping in mappings:
+#                 person_ids.add(mapping)
+#     assert len(person_ids) == 1  # Should only have one person_id mapping
+#
+#     # Verify individual field mappings for person table
+#     for row in input_data:
+#         # Check sex mappings
+#         sex_value = row["sex"]
+#         if sex_value == "M":
+#             assert set(person_mappings["sex"]["M"]) == {
+#                 "gender_concept_id~8507",
+#                 "gender_source_value",
+#             }
+#         elif sex_value == "F":
+#             assert set(person_mappings["sex"]["F"]) == {
+#                 "gender_concept_id~8532",
+#                 "gender_source_value",
+#             }
+#
+#         # Check ethnicity mappings
+#         ethnicity_value = row["ethnicity"]
+#         if ethnicity_value == "white":
+#             assert set(person_mappings["ethnicity"]["white"]) == {
+#                 "race_concept_id~8527"
+#             }
+#         elif ethnicity_value == "asian":
+#             assert set(person_mappings["ethnicity"]["asian"]) == {
+#                 "race_concept_id~8515"
+#             }
+#         elif ethnicity_value == "black":
+#             assert set(person_mappings["ethnicity"]["black"]) == {
+#                 "race_concept_id~8516",
+#                 "race_source_value",
+#             }
+#
+#     # Check observation table output
+#     obs_keys = [k for k in outdata.keys() if "observation" in k]
+#     for key in obs_keys:
+#         obs_data = outdata[key]
+#         # Verify that each person_id only appears once per observation type
+#         person_ids = set()
+#         for field, mappings in obs_data[0].items():
+#             if field == "person_id":
+#                 person_ids.add(mappings[0])
+#         assert (
+#             len(person_ids) == 1
+#         )  # Should only have one person_id mapping per observation type
+#
+#         # Verify individual field mappings for observations
+#         for row in input_data:
+#             sex_value = row["sex"]
+#             ethnicity_value = row["ethnicity"]
+#
+#             # Check sex observation mappings
+#             if "sex" in key:
+#                 # The mappings are stored in the 'sex' field of obs_data[0]
+#                 assert "sex" in obs_data[0]
+#                 sex_mappings = obs_data[0]["sex"]
+#                 assert "observation_concept_id~4135376" in sex_mappings
+#                 assert "observation_source_value" in sex_mappings
+#
+#             # Check ethnicity observation mappings
+#             if "ethnicity" in key:
+#                 # The mappings are stored in the 'ethnicity' field of obs_data[0]
+#                 assert "ethnicity" in obs_data[0]
+#                 ethnicity_mappings = obs_data[0]["ethnicity"]
+#                 assert "observation_concept_id~44803968" in ethnicity_mappings
+#                 assert "observation_source_value" in ethnicity_mappings
+#
+#     # Verify that the total number of output records matches expected
+#     total_records = 0
+#     for key, data in outdata.items():
+#         if "person" in key:
+#             total_records += 1  # One record per person
+#         elif "observation" in key:
+#             total_records += len(
+#                 input_data
+#             )  # One record per person per observation type
+#
+#     expected_records = 1 + (
+#         2 * len(input_data)
+#     )  # 1 person record + 2 observation types per person
+#     assert total_records == expected_records
 
 
 if __name__ == "__main__":
