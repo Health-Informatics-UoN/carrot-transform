@@ -5,6 +5,8 @@ import json
 
 
 class RuleSet(Protocol):
+    cdm: dict[str, Any]
+
     def is_v2_format(self) -> bool:
         ...
 
@@ -39,7 +41,7 @@ class RuleSet(Protocol):
 
 class RuleSetMetadata(BaseModel):
     """Model for the metadata of a ruleset"""
-    date_created: datetime
+    date_created: datetime | None
     dataset: str
     # why doesn't the metadata have a "v2" flag to make parsing simpler?
 
