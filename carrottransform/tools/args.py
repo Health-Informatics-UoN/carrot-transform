@@ -129,6 +129,8 @@ class ObjectStructureError(Exception):
     """Raised when the object path format points to inaccessible elements."""
 
 
+# why is this not a method of the mapping rules?
+# the object_query thing is bizarre, why is it here?
 def person_rules_check_v2(
     person_file: Path | None, person_table: str | None, mappingrules: MappingRules
 ) -> None:
@@ -139,7 +141,7 @@ def person_rules_check_v2(
             raise Exception("Person file not found.")
         person_file_name = person_file.name
 
-    person__rules: dict | str = object_query(mappingrules.rules_data, "cdm/person")
+    person__rules: dict | str = object_query(mappingrules.rules_data.cdm, "person")
 
     if isinstance(person__rules, str):
         # this is unlikely, but, mypy flags it.

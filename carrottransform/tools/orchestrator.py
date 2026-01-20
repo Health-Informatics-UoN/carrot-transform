@@ -243,7 +243,7 @@ class StreamProcessor:
     ) -> Tuple[int, int]:
         """Process row for specific target and write records directly"""
 
-        v2_mapping = self.context.mappingrules.v2_mappings[target_file][source_filename]
+        v2_mapping = self.context.mappingrules.rules_data.cdm[target_file][source_filename]
         target_column_map: CaseInsensitiveDict[str, int] = (
             self.context.target_column_maps[target_file]
         )

@@ -58,7 +58,7 @@ class MappingRules:
 
     @property
     def is_v2_format(self) -> bool:
-        return self.rules_data.is_v2_format()
+        return self.rules_data.is_v2_format
         
     def dump_parsed_rules(self) -> str:
         return self.rules_data.dump_parsed_rules()

@@ -3,12 +3,11 @@ from typing import Callable, Literal, Any, Protocol
 from pydantic import BaseModel, Field, model_validator
 import json
 
+from carrottransform.tools.date_helpers import get_datetime_value
+
 
 class RuleSet(Protocol):
-    cdm: dict[str, Any]
-
-    def is_v2_format(self) -> bool:
-        ...
+    is_v2_format: bool
 
     def dump_parsed_rules(self) -> str:
         ...
@@ -44,6 +43,20 @@ class RuleSetMetadata(BaseModel):
     date_created: datetime | None
     dataset: str
     # why doesn't the metadata have a "v2" flag to make parsing simpler?
+
+    @model_validator(mode="before")
+    @classmethod
+    def manage_dates(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+
+        dataset = data["dataset"]
+        date_created = get_datetime_value(data["date_created"]) if "date_created" in data.keys() else None
+
+        return {
+                "dataset": dataset,
+                "date_created": date_created
+                }
 
 class V1CDMField(BaseModel):
     """Model for a CDM field for the V1 schema"""
@@ -121,8 +134,7 @@ class V2RuleSet(BaseModel):
     metadata: RuleSetMetadata | None
     cdm: dict[Literal["observation", "measurement", "person", "condition_occurrence"], dict[str, V2TableMapping]]
     
-    def is_v2_format(self) -> bool:
-        return True
+    is_v2_format: bool = True
 
     def dump_parsed_rules(self) -> str:
         """
@@ -258,8 +270,7 @@ class V1RuleSet(BaseModel):
     parsed_rules: dict[str, dict[str, Any]] = {}
     outfile_names: dict[str, list[str]] = {}
 
-    def is_v2_format(self) -> bool:
-        return False
+    is_v2_format: bool = False
 
     def dump_parsed_rules(self) -> str:
         return json.dumps(self.cdm)

@@ -21,7 +21,7 @@ class StreamingLookupCache:
         """Build lookup: input_file -> set of output tables it can map to"""
         lookup = defaultdict(set)
 
-        for target_file, source_mappings in self.mappingrules.v2_mappings.items():
+        for target_file, source_mappings in self.mappingrules.rules_data.cdm.items():
             for source_file in source_mappings.keys():
                 lookup[source_file].add(target_file)
 

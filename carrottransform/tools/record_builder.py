@@ -82,7 +82,7 @@ class TargetRecordBuilder(ABC):
             self.context.srccolmap[date_mapping.source_field]
         ]
 
-        for dest_field in date_mapping.dest_fields:
+        for dest_field in date_mapping.dest_field:
             if dest_field in self.context.tgtcolmap:
                 if not self._apply_single_date_field(tgtarray, dest_field, source_date):
                     return False
@@ -265,8 +265,8 @@ class PersonRecordBuilder(TargetRecordBuilder):
                     all_concept_mappings[dest_field] = concept_ids
 
             # Collect original value mappings
-            if concept_mapping.original_value_fields:
-                for dest_field in concept_mapping.original_value_fields:
+            if concept_mapping.original_value:
+                for dest_field in concept_mapping.original_value:
                     all_original_values[dest_field] = source_value
 
         return all_concept_mappings, all_original_values
@@ -330,7 +330,7 @@ class StandardRecordBuilder(TargetRecordBuilder):
         value_mapping = get_value_mapping(concept_mapping, source_value)
 
         # Only proceed if we have concept mappings OR original value fields
-        if not value_mapping and not concept_mapping.original_value_fields:
+        if not value_mapping and not concept_mapping.original_value:
             return RecordResult(False, 0, self.context.metrics)
 
         # Generate all concept combinations
@@ -372,9 +372,9 @@ class StandardRecordBuilder(TargetRecordBuilder):
         self.apply_concept_mapping(tgtarray, concept_combo)
 
         # Handle original value fields (direct field copying)
-        if concept_mapping.original_value_fields:
+        if concept_mapping.original_value:
             self.apply_original_value_mappings(
-                tgtarray, concept_mapping.original_value_fields, source_value
+                tgtarray, concept_mapping.original_value, source_value
             )
 
         # Handle person ID mapping
