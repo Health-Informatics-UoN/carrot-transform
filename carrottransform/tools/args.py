@@ -323,8 +323,13 @@ class PatternStringParamType(click.ParamType):
 
     name = "regex checked string"
 
-    def __init__(self, pattern: str):
+    def __init__(self, pattern: str, message: str | None = None):
         self._pattern = re.compile(pattern)
+        self._message = (
+            message
+            if message is not None
+            else "'{value}' is not a valid match for the pattern"
+        )
 
     def convert(
         self, value: Any, param: click.Parameter | None, ctx: click.Context | None
@@ -334,7 +339,7 @@ class PatternStringParamType(click.ParamType):
 
         # test to see if the pattern matches the regular expression
         if not (self._pattern.match(value)):
-            self.fail(f"'{value}' is not a valid match for the pattern", param, ctx)
+            self.fail(self._message.format(value=value), param, ctx)
 
         return value
 
@@ -368,7 +373,10 @@ def common(func):
     func = click.option(
         "--person",
         envvar="PERSON",
-        type=PatternStringParamType(PERSON_TABLE_PATTERN),
+        type=PatternStringParamType(
+            PERSON_TABLE_PATTERN,
+            "'{value}' is not a valid person file/table name. it needs to be just the name without any path or extension",
+        ),
         required=True,
         help="File or table containing person_ids in the first column",
     )(func)
