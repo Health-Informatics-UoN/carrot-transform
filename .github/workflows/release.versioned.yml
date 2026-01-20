@@ -70,20 +70,8 @@ jobs:
             type=semver,pattern={{major}}
             type=semver,pattern={{major}}.{{minor}}
 
-      # Create Github Release
-      - uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174 # v1.16.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          body: |
-            # Carrot Transform ${{ github.ref_name }}
-
-            [Tagged Container images](https://github.com/Health-Informatics-UoN/carrot-transform/pkgs/container/carrot%2Ftransform)
-          generateReleaseNotes: true
-          prerelease: ${{ steps.version.outputs.prerelease != '' }}
-          makeLatest: false # TODO: can we reliably detect and automate this in future?
-
+      # we have been creating a release from the command line for transform
+      
       # apply the new tags to the existing images
       - name: Push updated image tags
         uses: akhilerm/tag-push-action@f35ff2cb99d407368b5c727adbcc14a2ed81d509 # v2.2.0
@@ -91,3 +79,4 @@ jobs:
           src: ${{ env.registry }}/${{ env.REPO_OWNER_LOWER }}/${{ env.image-name }}:${{ github.sha }}
           dst: |
             ${{ steps.meta.outputs.tags }}
+
