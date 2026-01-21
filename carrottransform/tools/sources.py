@@ -12,7 +12,7 @@ import sqlalchemy
 from sqlalchemy import MetaData, select
 
 from carrottransform import require
-from carrottransform.tools import args, outputs
+from carrottransform.tools import at_path, outputs
 from carrottransform.tools.outputs import s3_bucket_folder
 
 logger = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ class SourceObjectArgumentType(click.ParamType):
         if re.match(r"[\w]+://.+", value):
             return sql_source_object(sqlalchemy.create_engine(value))
 
-        return csv_source_object(args.PathArg.convert(value, param, ctx), sep=",")
+        return csv_source_object(at_path.convert_path(value), sep=",")
 
 
 # create a singleton for the Click settings

@@ -14,7 +14,7 @@ import sqlalchemy
 from sqlalchemy import Column, MetaData, Table, Text, insert
 
 from carrottransform import require
-from carrottransform.tools import args
+from carrottransform.tools import at_path
 
 logger = logging.getLogger(__name__)
 
@@ -338,7 +338,7 @@ class OutputTargetArgumentType(click.ParamType):
                 == str(argumentError)
             )
 
-        return csv_output_target(args.PathArg.convert(value, param, ctx))
+        return csv_output_target(at_path.convert_path(value))
 
 
 # create a singleton for the Click settings

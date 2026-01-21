@@ -11,7 +11,7 @@ from sqlalchemy import create_engine
 
 import carrottransform.tools.sources as sources
 from carrottransform import require
-from carrottransform.tools import outputs
+from carrottransform.tools import at_path, outputs
 from carrottransform.tools.mappingrules import MappingRules
 
 # only matches strings which can be used as SQL (et al) tables
@@ -92,14 +92,7 @@ class PathArgumentType(click.ParamType):
 
     def convert(self, value: str, param, ctx) -> Path:
         try:
-            # switch to posix separators
-            value = value.replace("\\", "/")
-
-            prefix: str = "@carrot/"
-            if value.startswith(prefix):
-                return carrot / value[len(prefix) :]
-            else:
-                return Path(value)
+            return at_path.convert_path(value)
         except Exception as e:
             self.fail(f"Invalid path: {value} ({e})", param, ctx)
 
