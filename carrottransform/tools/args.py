@@ -393,3 +393,86 @@ def common(func):
     )(func)
 
     return func
+
+
+def parse_connector_string(name: str, args: dict[str, str]) -> str:
+    # check for mode and full
+    full: str = args[name] if name in args else ""
+    mode: str = name + "_mode"
+    mode = args[mode] if mode in args else ""
+
+    # if neither is set
+    if mode == "" and full == "":
+        raise Exception(f"{name} is unset - a connection")
+
+    # if both are set
+    if mode != "" and full != "":
+        raise Exception(f"{name} has both a mode and full value - please only set one")
+
+    # if full is set; just use that
+    if full != "":
+        return full
+
+    if mode == "minio":
+        # we always need the username
+        user: str = name + "_user"
+        if user not in args or args[user] == "":
+            raise Exception("minio connections need a username set with {user}=")
+        user = args[user]
+
+        # we always need a password
+        password: str = name + "_pass"
+        if password not in args or args[password] == "":
+            raise Exception(f"minio connections need a password with {password}=")
+        password = args[password]
+
+        # if no protocl is specifced; we assume http
+        protocol: str = name + "_protocol"
+        protocol = args[protocol] if protocol in args else ""
+        if "" == protocol:
+            protocol = "http"
+
+        # we always need a host
+        host: str = name + "_host"
+        if host not in args or args[host] == "":
+            raise Exception(f"minio connections need a host with {host}=")
+        host = args[host]
+
+        # we need a port - or should we assume 9000?
+        port: str = name + "_port"
+        if port not in args or args[port] == "":
+            raise Exception(f"minio connections need a port with {port}=")
+        port = args[port]
+
+        # need a bucket name
+        bucket: str = name + "_bucket"
+        if bucket not in args or args[bucket] == "":
+            raise Exception(f"minio connections need a bucket with {bucket}=")
+        bucket = args[bucket]
+
+        # the folder is optional
+        # get the folder name and ensure it starts with "/" or is blank
+        folder = name + "_folder"
+        folder = args[folder] if folder in args else ""
+        if not folder.startswith("/"):
+            folder = "/" + folder
+        if folder.endswith("/"):
+            folder = folder[:-1]
+
+        return f"minio:{user}:{password}@{protocol}://{host}:{port}/{bucket}{folder}"
+
+    elif mode == "trino":
+        raise Exception("??? the whatever here? do we need catalog/schema?")
+
+    elif mode == "sql":
+        raise Exception("??? the whatever here? do we need catalog/schema?")
+
+    else:
+        raise Exception(f"unrecognised {mode=}")
+
+    # match mode:
+    #     if value.startswith("minio:"):
+    #     output = f"sqlite:///{(tmp_path / 'output.sqlite3').absolute()}"
+    #     return f"trino://{self.trino_user}@localhost:{self.server_port}/{self.catalog}"
+    #     short_connection: str = f"trino://{config._instance.trino_user}@localhost:{config._instance.server_port}/{config._instance.catalog}/information_schema"
+    #     case _:
