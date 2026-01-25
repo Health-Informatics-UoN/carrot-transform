@@ -413,18 +413,20 @@ def parse_connector_string(name: str, args: dict[str, str]) -> str:
     if full != "":
         return full
 
+    def need(suffix: str, error: str) -> str:
+        """rather than copy and paste this "need" logic - here's a function to lookup an needed key or throw if it's missing"""
+        # we always need the username
+        key: str = name + '_' + suffix
+        if key not in args or args[key] == "":
+            raise Exception(error.format(key= key))
+        return args[key]
+
     if mode == "minio":
         # we always need the username
-        user: str = name + "_user"
-        if user not in args or args[user] == "":
-            raise Exception("minio connections need a username set with {user}=")
-        user = args[user]
+        user: str = need("user", "minio connections need a username set with {key}=")
 
         # we always need a password
-        password: str = name + "_pass"
-        if password not in args or args[password] == "":
-            raise Exception(f"minio connections need a password with {password}=")
-        password = args[password]
+        password: str = need("pass", "minio connections need a password with {key}=")
 
         # if no protocl is specifced; we assume http
         protocol: str = name + "_protocol"
@@ -433,22 +435,13 @@ def parse_connector_string(name: str, args: dict[str, str]) -> str:
             protocol = "http"
 
         # we always need a host
-        host: str = name + "_host"
-        if host not in args or args[host] == "":
-            raise Exception(f"minio connections need a host with {host}=")
-        host = args[host]
+        host: str = need("host", "minio connections need a host name or address set with {key}=")
 
         # we need a port - or should we assume 9000?
-        port: str = name + "_port"
-        if port not in args or args[port] == "":
-            raise Exception(f"minio connections need a port with {port}=")
-        port = args[port]
+        port: str = need("port", "minio connections need a port set with {key}=")
 
         # need a bucket name
-        bucket: str = name + "_bucket"
-        if bucket not in args or args[bucket] == "":
-            raise Exception(f"minio connections need a bucket with {bucket}=")
-        bucket = args[bucket]
+        bucket: str = need("bucket", "minio connections need a bucket set with {key}=")
 
         # the folder is optional
         # get the folder name and ensure it starts with "/" or is blank
@@ -461,10 +454,27 @@ def parse_connector_string(name: str, args: dict[str, str]) -> str:
 
         return f"minio:{user}:{password}@{protocol}://{host}:{port}/{bucket}{folder}"
 
-    elif mode == "trino":
-        raise Exception("??? the whatever here? do we need catalog/schema?")
+    elif mode == "postgresql":
+        # return f"postgresql://{self.db_user}:{self.db_pass}@localhost:{self.db_port}/{self.db_name}"
 
-    elif mode == "sql":
+        # we always need the username
+        user: str = need("user", "postgresql connections need a username set with {key}=")
+
+        # we always need a password
+        password: str = need("pass", "postgresql connections need a password with {key}=")
+
+        # we always need a host
+        host: str = need("host", "postgresql connections need a host name or address set with {key}=")
+
+        # we need a port - or should we assume 9000?
+        port: str = need("port", "postgresql connections need a port set with {key}=")
+
+        # need a schema name
+        name: str = need("name", "postgresql connections need a schema or database name set with {key}=")
+
+        return f"postgresql://{user}:{password}@{host}:{port}/{name}"
+
+    elif mode == "trino":
         raise Exception("??? the whatever here? do we need catalog/schema?")
 
     else:
