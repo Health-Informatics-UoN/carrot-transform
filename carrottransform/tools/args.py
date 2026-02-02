@@ -355,6 +355,7 @@ def common(func):
         required=True,
         help="Input directory or database",
     )(func)
+
     func = click.option(
         "--output",
         envvar="OUTPUT",
@@ -362,6 +363,21 @@ def common(func):
         required=True,
         help="define the output directory for OMOP-format tsv files",
     )(func)
+
+    for io in ['--output','--inputs']:
+        extras = {
+            "mode": 'what sort of connection to use for {key}',
+        }
+
+        for k, v in extras.items():
+            func = click.option(
+                f"{io}-{k}",
+                type=str,
+                required=False,
+                help=v.format(key= k),
+                default=''
+            )(func)
+
 
     func = click.option(
         "--person",

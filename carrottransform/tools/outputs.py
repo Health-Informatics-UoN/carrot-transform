@@ -326,6 +326,33 @@ class OutputTargetArgumentType(click.ParamType):
     name = "a connection to the/a target (whatever that may be)"
 
     def convert(self, value: str, param, ctx):
+
+        if ctx is None:
+            raise Exception('argument type was called in an unexpected way')
+
+        if not (hasattr(ctx, 'params') and ctx.params):
+            raise Exception('argument type was called in an unexpected way')
+
+        all_params: dict[str, any] = (
+            # some parameters will have been solved already; BUT! we don't care abiyt thse
+            {}
+        )
+
+        all_params.update(ctx.params)
+        if ctx.parent is not None and hasattr(ctx.parent, 'params'):
+            all_params.update(ctx.parent.params)
+
+        blob = ""
+        blob += (f"All parameters so far: ")
+        for k,v in all_params.items():
+            blob +="\t" + k+'\n'+ "\t\t" + str(v) +'\n'
+        blob += '\n'
+        blob +=(f"Parameter name: {param.name}")
+        blob += '\n'
+        blob +=(f"Human readable name: {param.human_readable_name}")
+        blob += '\n'
+        raise Exception(blob)
+
         value = str(value)
         if value.startswith("minio:"):
             return minio_output_target(value)
