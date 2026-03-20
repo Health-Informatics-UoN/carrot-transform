@@ -98,7 +98,7 @@ class PathArgumentType(click.ParamType):
 
 
 class AlchemyConnectionArgumentType(click.ParamType):
-    """implements an SQLAlchemy connection type that can be checkd and passed to our function by click"""
+    """implements an SQLAlchemy connection type that can be checked and passed to our function by click"""
 
     name = "sqlalchemy connection string"
 
