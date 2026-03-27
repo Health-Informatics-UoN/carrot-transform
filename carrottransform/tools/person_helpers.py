@@ -9,8 +9,83 @@ import carrottransform.tools.sources as sources
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mappingrules import MappingRules
 from carrottransform.tools.validation import valid_date_value, valid_value
+from carrottransform.tools.args import object_query, ObjectStructureError
 
 logger = logger_setup()
+
+
+class IndeterminatePersonFiles(Exception):
+    def __init__(self, files):
+        super().__init__(f"unable to determine the name of the person file {files=}")
+        self._files = files
+
+
+class MalformedRulesFile(Exception):
+    pass
+
+
+def person_id_file_v1(rules_file: Path) -> str:
+    """get the person id file name from the rules file"""
+
+    # load the rules file
+
+    # to allow prettier error reporting - we collect all names that were used
+    seen_inputs: list[str] = []
+    count = 0
+    try:
+        with rules_file.open("r") as file:
+            import json
+
+            person_rules = object_query(json.load(file), "cdm/person")
+            if not isinstance(person_rules, dict):
+                raise RuntimeError("the person section is not in the expected format")
+
+            for rule_name, person in person_rules.items():
+                for col in person:
+                    source_table: str = person[col]["source_table"]
+                    if not source_table.lower().endswith(".csv"):
+                        raise MalformedRulesFile()
+
+                    source_table = source_table[:-4]
+
+                    if source_table not in seen_inputs:
+                        count += 1
+                        seen_inputs.append(source_table)
+    except ObjectStructureError as e:
+        if "Key 'person' not found in object" == str(e):
+            raise IndeterminatePersonFiles([])
+        else:
+            raise
+
+    if 1 == count:
+        return seen_inputs[0]
+    else:
+        raise IndeterminatePersonFiles(seen_inputs)
+
+
+def person_id_file_v2(rules_file: Path) -> str:
+    """get the person id file name from the rules file"""
+    with rules_file.open("r") as file:
+        import json
+
+        data = json.load(file)
+
+        if "cdm" not in data:
+            raise MalformedRulesFile()
+        if "person" not in data["cdm"]:
+            raise IndeterminatePersonFiles([])
+
+        found: list[str] = []
+        ## we're converting map keys to a list. the keys will be unique
+        for source_table in data["cdm"]["person"]:
+            if not source_table.endswith(".csv"):
+                raise MalformedRulesFile()
+            found.append(source_table[:-4])
+
+    if 1 == len(found):
+        return found[0]
+    else:
+        IndeterminatePersonFiles(sorted(found))
 
 
 def load_last_used_ids(last_used_ids_file: Path, last_used_ids):
