@@ -352,7 +352,6 @@ def copy_across(ot: outputs.OutputTarget, so: sources.SourceObject | Path, names
 
 def run_v1(
     inputs: str,
-    person: str,
     mapper: str,
     output: str,
 ):
@@ -366,8 +365,6 @@ def run_v1(
             inputs,
             "--rules-file",
             mapper,
-            "--person",
-            person,
             "--output",
             output,
             "--omop-ddl-file",

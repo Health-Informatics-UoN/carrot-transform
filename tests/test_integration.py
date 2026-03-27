@@ -47,7 +47,6 @@ def test_sql_read(tmp_path: Path):
     output_to = tmp_path / "out"
     testools.run_v1(
         inputs=input_db,
-        person=test_case._person,
         mapper=test_case._mapper,
         output=str(output_to),
     )
@@ -79,8 +78,6 @@ def test_mireda_key_error(tmp_path: Path, caplog):
             str(person_file.parent),
             "--rules-file",
             str(person_file.parent / "original_rules.json"),
-            "--person",
-            "demographics_mother_gold",  # person_file.name,
             "--output",
             str(tmp_path),
             "--omop-ddl-file",
@@ -88,15 +85,11 @@ def test_mireda_key_error(tmp_path: Path, caplog):
         ],
     )
 
-    assert result.exit_code == -1
-
-    message = caplog.text.splitlines(keepends=False)[-1]
-
-    assert message.strip().endswith(
-        "Person properties were mapped from (['demographics_child_gold.csv', 'infant_data_gold.csv']) but can only come from the person file person='demographics_mother_gold'"
+    assert result.exit_code == 1
+    assert (
+        f"{result.exception=}"
+        == "result.exception=IndeterminatePersonFiles(\"unable to determine the name of the person file files=['infant_data_gold', 'demographics_child_gold']\")"
     )
-
-    assert "-1" == str(result.exception)
 
 
 #### ==========================================================================
@@ -352,8 +345,6 @@ def body_of_test(
         inputs,
         "--rules-file",
         test_case._mapper,
-        "--person",
-        test_case._person,
         "--output",
         output,
         "--omop-ddl-file",

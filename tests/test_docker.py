@@ -100,10 +100,6 @@ def test_dock_observations(tmp_path: Path):
             "/run/out",
         ]
         command += [
-            "--person",
-            "demos",
-        ]
-        command += [
             "--inputs",
             "/run/",
         ]

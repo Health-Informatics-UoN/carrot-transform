@@ -20,6 +20,7 @@ from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.person_helpers import (
     load_last_used_ids,
     read_person_ids,
+    person_id_file_v1
 )
 
 logger = logger_setup()
@@ -48,7 +49,6 @@ logger = logger_setup()
 )
 def mapstream(
     rules_file: Path,
-    person: str,
     inputs: sources.SourceObject,
     output: outputs.OutputTarget,
     omop_ddl_file: Path,
@@ -91,6 +91,8 @@ def mapstream(
     if (rules_file is None) or (not rules_file.is_file()):
         logger.error(f"rules file was set to {rules_file=} and is missing")
         sys.exit(-1)
+
+    person: str = person_id_file_v1(rules_file)
 
     ## check on the person_file_rules
     try:
@@ -347,15 +349,9 @@ def launch_v2(
     inputs: sources.SourceObject,
     output: outputs.OutputTarget,
     rules_file: Path,
-    person: str,
     omop_ddl_file: Path,
     omop_config_file: Path,
 ):
-    require(
-        not person.endswith(".csv"),
-        "don't call the person table .csv - just use the name",
-    )
-
     logger.info("starting v2 with injected source and output")
 
     from carrottransform.cli.subcommands.run_v2 import process_common_logic
@@ -369,7 +365,6 @@ def launch_v2(
         write_mode="w",
         omop_ddl_file=omop_ddl_file,
         omop_config_file=omop_config_file,
-        person=person,
         inputs=inputs,
     )
 

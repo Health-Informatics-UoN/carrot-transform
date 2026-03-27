@@ -9,6 +9,7 @@ from carrottransform.tools import outputs, sources
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.orchestrator import V2ProcessingOrchestrator
 from carrottransform.tools.record_builder import RecordBuilderFactory
+from carrottransform.tools.person_helpers import person_id_file_v2
 
 logger = logger_setup()
 
@@ -18,7 +19,6 @@ def process_common_logic(
     output: outputs.OutputTarget,
     write_mode: str,
     omop_ddl_file: Path,
-    person: str,
     omop_config_file: Path,
     inputs: sources.SourceObject,
 ):
@@ -30,6 +30,8 @@ def process_common_logic(
     RecordBuilderFactory.clear_person_cache()
 
     try:
+        person: str = person_id_file_v2(rules_file)
+
         # Create orchestrator and execute processing (pass explicit kwargs to satisfy typing)
         orchestrator = V2ProcessingOrchestrator(
             rules_file=rules_file,

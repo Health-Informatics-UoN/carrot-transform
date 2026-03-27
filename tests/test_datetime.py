@@ -16,8 +16,6 @@ def test_datetime_in_measurement_csv(tmp_path: Path):
     testools.run_v1(
         # set the inputs directory
         inputs=str(package_root / "examples/test/inputs/"),
-        # set the person file name
-        person="Demographics",
         # set the path to the rules file
         mapper=str(package_root / "examples/test/rules/rules_14June2021.json"),
         # set/up the output directory
@@ -45,8 +43,6 @@ def test_datetime_in_measurement_sqlite(tmp_path: Path):
     testools.run_v1(
         # set the inputs directory
         inputs=sqlite_string,
-        # set the person file name
-        person="Demographics",  # str("Demographics.csv"),
         # set the path to the rules file
         mapper=str(package_root / "examples/test/rules/rules_14June2021.json"),
         # set/up the output directory

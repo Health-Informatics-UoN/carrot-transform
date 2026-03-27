@@ -364,17 +364,6 @@ def common(func):
     )(func)
 
     func = click.option(
-        "--person",
-        envvar="PERSON",
-        type=PatternStringParamType(
-            PERSON_TABLE_PATTERN,
-            "'{value}' is not a valid person file/table name. it needs to be just the name without any path or extension",
-        ),
-        required=True,
-        help="File or table containing person_ids in the first column",
-    )(func)
-
-    func = click.option(
         "--omop-ddl-file",
         envvar="OMOP_DDL_FILE",
         default="@carrot/config/OMOPCDM_postgresql_5.3_ddl.sql",
