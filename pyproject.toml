@@ -1,6 +1,6 @@
 [project]
 name = "carrot_transform"
-version = "0.7.5"
+dynamic = ["version"]
 description = ""
 authors = [{ name = "anwarfg", email = "913028+anwarfg@users.noreply.github.com" }]
 requires-python = ">=3.10"
@@ -55,8 +55,11 @@ include = ["carrottransform"]
 [tool.hatch.build.targets.wheel]
 include = ["carrottransform"]
 
+[tool.hatch.version]
+source = "vcs"
+
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]

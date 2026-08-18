@@ -1,0 +1,73 @@
+# This workflow is used to release the project.
+# It is triggered by a push to the main branch.
+# It will publish an edge container image
+# And run semantic release
+# If the release is triggered it will tag the container image and release to PyPI
+
+name: Release
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  packages: write
+  id-token: write
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    uses: health-informatics-uon/workflows/.github/workflows/semantic-release.yml@1.4.12
+    with:
+      node-version: "24"
+    secrets: inherit
+
+  publish-container:
+    uses: health-informatics-uon/workflows/.github/workflows/publish-container.yml@1.4.12
+    with:
+      image-name: carrot/transform
+      image-description: "Carrot Transform"
+      registry: ghcr.io
+      context: .
+      dockerfile: Dockerfile
+      platforms: linux/amd64,linux/arm64
+    secrets: inherit
+
+  semver-container:
+    uses: health-informatics-uon/workflows/.github/workflows/semver-container.yml@1.4.12
+    needs: [release, publish-container]
+    if: needs.release.outputs.release-created == 'true'
+    with:
+      image-name: carrot/transform
+      registry: ghcr.io
+      tag: ${{ needs.release.outputs.release-tag }}
+      tag-latest: true
+    secrets: inherit
+
+  publish-pypi:
+    needs: release
+    if: needs.release.outputs.release-created == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/carrot-transform
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.x"
+
+      - name: Build package
+        run: |
+          pip install build
+          python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
