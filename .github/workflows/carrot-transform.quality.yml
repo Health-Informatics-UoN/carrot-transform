@@ -32,21 +32,25 @@ jobs:
         uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1
         with:
           args: "check ."
+          version: 0.12.0
       
       - name: Run Ruff Checks
         uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1
         with:
           args: "check --select I ."
+          version: 0.12.0
 
       - name: Run Ruff Checks (without I)
         uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1
         with:
           args: "check ."
+          version: 0.12.0
       
       - name: Run Ruff Format
         uses: astral-sh/ruff-action@39f75e526a505e26a302f8796977b50c13720edf # v3.2.1
         with:
           args: "format --check --diff"
+          version: 0.12.0
 
   coverage:
     name: carrot-transform coverage
