@@ -1,0 +1,57 @@
+{
+  "metadata": {
+    "date_created": "2026-08-18T00:00:00+00:00",
+    "dataset": "death_test"
+  },
+  "cdm": {
+    "person": {
+      "PERSON 1": {
+        "person_id": {
+          "source_table": "patients.csv",
+          "source_field": "ID"
+        },
+        "birth_datetime": {
+          "source_table": "patients.csv",
+          "source_field": "BIRTHDATE"
+        },
+        "gender_source_concept_id": {
+          "source_table": "patients.csv",
+          "source_field": "GENDER",
+          "term_mapping": {
+            "M": 8507,
+            "F": 8532
+          }
+        },
+        "gender_concept_id": {
+          "source_table": "patients.csv",
+          "source_field": "GENDER",
+          "term_mapping": {
+            "M": 8507,
+            "F": 8532
+          }
+        },
+        "gender_source_value": {
+          "source_table": "patients.csv",
+          "source_field": "GENDER"
+        }
+      }
+    },
+    "death": {
+      "DEATH 1": {
+        "person_id": {
+          "source_table": "patients.csv",
+          "source_field": "ID"
+        },
+        "death_datetime": {
+          "source_table": "patients.csv",
+          "source_field": "DEATHDATE"
+        },
+        "death_type_concept_id": {
+          "source_table": "patients.csv",
+          "source_field": "DEATHDATE",
+          "term_mapping": 32817
+        }
+      }
+    }
+  }
+}
