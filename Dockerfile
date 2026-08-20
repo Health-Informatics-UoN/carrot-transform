@@ -24,9 +24,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ------
 FROM python:3.10-slim
 
-# Create a non-root user and group
-RUN groupadd -r app && useradd --no-log-init -r -g app app
-
 LABEL org.opencontainers.image.title="Carrot Transform"
 LABEL org.opencontainers.image.description="Carrot Transform"
 LABEL org.opencontainers.image.vendor="University of Nottingham"
@@ -35,11 +32,11 @@ LABEL org.opencontainers.image.source=https://github.com/Health-Informatics-UoN/
 LABEL org.opencontainers.image.licenses=MIT
 
 # Copy the environment, but not the source code
-COPY --from=builder --chown=app:app /app/.venv /app/.venv
+COPY --from=builder /app/.venv /app/.venv
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Switch to the non-root user
-USER app
-
+# TODO: this runs as root, which trusted research environments will refuse to run.
+# needs a non-root story that still works with arbitrary bind-mounted host directories
+# for --inputs/--output before this can go back to a fixed non-root USER.
 CMD ["carrot-transform"]
