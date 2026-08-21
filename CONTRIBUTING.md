@@ -7,8 +7,8 @@ This page covers everything specific to contributing code to Carrot Transform.
 ## Ways to contribute
 
 - **Bugs & feature requests** — open an [issue](https://github.com/Health-Informatics-UoN/carrot-transform/issues). Please check existing issues first to avoid duplicates.
-- **New to the project?** Look for issues labelled [`good first issue`](https://github.com/Health-Informatics-UoN/carrot-transform/labels/good%20first%20issue) or [`help wanted`](https://github.com/Health-Informatics-UoN/hutch-bunny/labels/help%20wanted).
-- **Bigger changes** please open an issue to discuss the approach before you start. It saves you from spending time on something that turns out not to fit. Check the [roadmap](https://github.com/orgs/Health-Informatics-UoN/projects/1/views/15) for planned work first.
+- **New to the project?** Look for issues labelled [`good first issue`](https://github.com/Health-Informatics-UoN/carrot-transform/labels/good%20first%20issue) or [`help wanted`](https://github.com/Health-Informatics-UoN/carrot-transform/labels/help%20wanted).
+- **Bigger changes** please open an issue to discuss the approach before you start. It saves you from spending time on something that turns out not to fit. Check the [roadmap](https://github.com/orgs/Health-Informatics-UoN/projects/1/views/13) for planned work first.
 
 ## Development setup
 
