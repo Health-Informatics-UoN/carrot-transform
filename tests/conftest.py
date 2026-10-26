@@ -1,4 +1,5 @@
 import logging
+import os
 import random
 import textwrap
 import time
@@ -285,7 +286,10 @@ def postgres(docker_ip) -> Generator[PostgreSQLContainer, None, None]:
 
 
 #### ==========================================================================
-## MinIO two-part fixture
+## S3 (RustFS) two-part fixture
+
+# Override to test against another S3-compatible image (pin a tag in CI)
+S3_TEST_IMAGE = os.environ.get("S3_TEST_IMAGE", "rustfs/rustfs:1.0.3-glibc")
 
 
 @dataclass
@@ -314,21 +318,24 @@ def minio_config(docker_ip) -> Iterable[MinIOContainer]:
 
     # create docker and pull the container
     client = docker.from_env()
-    client.images.pull("minio/minio:latest")
+    client.images.pull(S3_TEST_IMAGE)
     log_info("container pulled")
 
     # start the container
     container = client.containers.run(
         name=config.docker_name,
-        image="minio/minio:latest",
-        command="server /data --console-address ':9001'",
+        image=S3_TEST_IMAGE,
+        command="/data",
         environment={
-            "MINIO_ROOT_USER": config.username,
-            "MINIO_ROOT_PASSWORD": config.password,
+            "RUSTFS_ACCESS_KEY": config.username,
+            "RUSTFS_SECRET_KEY": config.password,
+            "RUSTFS_ADDRESS": ":9000",
+            "RUSTFS_CONSOLE_ADDRESS": ":9001",
+            "RUSTFS_CONSOLE_ENABLE": "true",
         },
         ports={
-            "9000/tcp": None,  # Random host port for MinIO API
-            "9001/tcp": None,  # Random host port for MinIO Console
+            "9000/tcp": None,  # Random host port for the S3 API
+            "9001/tcp": None,  # Random host port for the web console
         },
         detach=True,
         remove=True,
@@ -348,7 +355,7 @@ def minio_config(docker_ip) -> Iterable[MinIOContainer]:
         try:
             # check the ready ienpoint
             response = requests.get(
-                f"http://{config.docker_ip}:{config.server_port}/minio/health/ready"
+                f"http://{config.docker_ip}:{config.server_port}/health/ready"
             )
             if response.status_code == 200:
                 log_info("found ready endpoint")
@@ -359,10 +366,10 @@ def minio_config(docker_ip) -> Iterable[MinIOContainer]:
         # don't bother stopping the contianer if it didn't start
         logs = container.logs().decode("utf-8")
         logger.error(
-            f"MinIO container failed to start within {STARTUP_TIMEOUT} seconds"
+            f"S3 ({S3_TEST_IMAGE}) container failed to start within {STARTUP_TIMEOUT} seconds"
         )
-        logger.error(f"Full MinIO container logs:\n{logs}")
-        raise Exception("MinIO container failed to start")
+        logger.error(f"Full S3 container logs:\n{logs}")
+        raise Exception("S3 container failed to start")
 
     log_info("container ready")
     yield config
