@@ -3,7 +3,7 @@ name = "carrot_transform"
 version = "0.7.5"
 description = ""
 authors = [{ name = "anwarfg", email = "913028+anwarfg@users.noreply.github.com" }]
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"
 readme = "README.md"
 dependencies = [
     "awscli>=1.42.74",
