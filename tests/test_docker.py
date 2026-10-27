@@ -69,20 +69,17 @@ def test_dock_observations(tmp_path: Path):
                 continue
             shutil.copy(test_home / item, tmp_path / item)
 
-        # this is how to run the container
+        # this is how to run the container - the image has no ENTRYPOINT, so any
+        # args passed to `docker run` replace the default CMD entirely, meaning
+        # "carrot-transform" (the console-script already on PATH in the image)
+        # must be given explicitly as the first arg
         command = [
             "docker",
             "run",
             "--rm",
             f"-v{tmp_path}:/run",
             image_name,
-            "uv",
-            "run",
-            "--python",
-            "3.11",
-            "python",
-            "-m",
-            "carrottransform.cli.command",
+            "carrot-transform",
             "run",
             "mapstream",
         ]
