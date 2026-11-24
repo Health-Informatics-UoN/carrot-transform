@@ -65,7 +65,9 @@ class OmopCDM:
         ## matching for table name - matches 'CREATE TABLE @', some letters (upper and lower case), '.' and some more letters (lower case)
         start_rgx = re.compile(r"^CREATE\s*TABLE\s*(\@?[a-zA-Z]+\.)?([a-zA-Z_]+)")
         ## matches some whitespace, lower case letters(or underscores), whitespace, letters (upper/lower and underscores)
-        datatype_rgx = re.compile(r"^\s*([a-z_]+)\s+([a-zA-Z_]+)")
+        ## names quoted because they are reserved words (e.g. note_nlp."offset") are matched without the quotes,
+        ## and names may contain digits (e.g. fact_relationship.fact_id_1, location.address_1)
+        datatype_rgx = re.compile(r'^\s*"?([a-z][a-z0-9_]*)"?\s+([a-zA-Z_]+)')
         ## matching for end of file - matches close bracket, semi colon, end of file or line
         end_rgx = re.compile(r".*[)];$")
         vermatched = False
