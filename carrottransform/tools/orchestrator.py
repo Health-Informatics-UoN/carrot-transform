@@ -9,6 +9,7 @@ import carrottransform.tools as tools
 from carrottransform import require
 from carrottransform.tools import args, outputs, person_helpers, sources
 from carrottransform.tools.args import person_rules_check_v2, remove_csv_extension
+from carrottransform.tools.code_lookup import expand_code_lookups
 from carrottransform.tools.date_helpers import normalise_to8601
 from carrottransform.tools.file_helpers import OutputFileManager
 from carrottransform.tools.logger import logger_setup
@@ -21,6 +22,7 @@ from carrottransform.tools.types import (
     ProcessingResult,
     RecordContext,
 )
+from carrottransform.tools.vocabulary import Vocabulary
 
 logger = logger_setup()
 
@@ -312,8 +314,11 @@ class V2ProcessingOrchestrator:
         omop_ddl_file: Path,
         omop_config_file: Path,
         write_mode: str,
+        vocabulary: Vocabulary | None = None,
     ):
         self.rules_file = rules_file
+        # For rules that look up codes in a vocabulary (code_lookup)
+        self._vocabulary = vocabulary
         self._output = output
         self._inputs = inputs
         self._person = person
@@ -327,7 +332,13 @@ class V2ProcessingOrchestrator:
     def initialize_components(self):
         """Initialize all processing components"""
         self.omopcdm = OmopCDM(self.omop_ddl_file, self.omop_config_file)
-        self.mappingrules = MappingRules(self.rules_file, self.omopcdm)
+        self.mappingrules = MappingRules(
+            self.rules_file,
+            self.omopcdm,
+            prepare=lambda rules: expand_code_lookups(
+                rules, self._inputs, self._vocabulary
+            ),
+        )
 
         if not self.mappingrules.is_v2_format:
             raise ValueError("Rules file is not in v2 format!")

@@ -96,7 +96,7 @@ class V2TableMapping:
     person_id_mapping: PersonIdMapping | None
     date_mapping: DateMapping | None
     concept_mappings: dict[str, ConceptMapping]  # source_field -> ConceptMapping
-    # Record-level extensions, see docs/rules_v2_record_extensions.md
+    # Record-level extensions, see https://carrot.ac.uk/transform/rules_v2_notes_nlp
     field_mappings: dict[str, str] = field(default_factory=dict)  # dest -> source
     constant_mappings: dict[str, str | int] = field(default_factory=dict)
     record_key: RecordKey | None = None

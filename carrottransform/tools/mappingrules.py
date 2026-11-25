@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -12,8 +13,8 @@ from carrottransform.tools.mapping_types import (
     PersonIdMapping,
     RecordKey,
     Reference,
-    ValueMapping,
     V2TableMapping,
+    ValueMapping,
 )
 from carrottransform.tools.omopcdm import OmopCDM
 
@@ -26,9 +27,17 @@ class MappingRules:
     as a file-specific dictionary allowing rules to be "looked-up" depending on data content
     """
 
-    def __init__(self, rulesfilepath: Path, omopcdm: OmopCDM):
+    def __init__(
+        self,
+        rulesfilepath: Path,
+        omopcdm: OmopCDM,
+        prepare: Callable[[dict], dict] | None = None,
+    ):
         ## just loads the json directly
         self.rules_data = tools.load_json(Path(rulesfilepath))
+        # e.g. expanding code_lookup (tools/code_lookup.py) before parsing
+        if prepare is not None:
+            self.rules_data = prepare(self.rules_data)
         self.omopcdm = omopcdm
 
         # Detect format version and parse accordingly
@@ -112,7 +121,7 @@ class MappingRules:
                             original_value_fields=original_value_fields,
                         )
 
-                # Record-level extensions, see docs/rules_v2_record_extensions.md
+                # Record-level extensions, see https://carrot.ac.uk/transform/rules_v2_notes_nlp
                 record_key = None
                 if "record_key" in mappings:
                     record_key = RecordKey(

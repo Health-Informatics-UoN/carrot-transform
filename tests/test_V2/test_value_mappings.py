@@ -1,5 +1,5 @@
 """
-End-to-end test for `value_mappings` (docs/rules_v2_record_extensions.md): a
+End-to-end test for `value_mappings` (https://carrot.ac.uk/transform/rules_v2_notes_nlp): a
 note's concept field filled from the concept its note_type value maps to.
 """
 

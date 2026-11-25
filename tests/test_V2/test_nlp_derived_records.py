@@ -1,5 +1,5 @@
 """
-End-to-end tests for `derived_from` (docs/rules_v2_record_extensions.md):
+End-to-end tests for `derived_from` (https://carrot.ac.uk/transform/rules_v2_notes_nlp):
 domain records derived from note_nlp records are only written when the row's
 note_nlp record was, unless an exclusion matches, and are linked to it in
 fact_relationship in both directions.

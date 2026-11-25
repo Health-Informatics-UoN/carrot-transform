@@ -151,7 +151,7 @@ class TargetRecordBuilder(ABC):
         Apply the record-level keys of the v2 block (field_mappings,
         constant_mappings, references). Returns False if a reference can't be
         resolved, in which case the record must not be written.
-        See docs/rules_v2_record_extensions.md.
+        See https://carrot.ac.uk/transform/rules_v2_notes_nlp.
         """
         mapping = self.context.v2_mapping
         tgtcolmap = self.context.tgtcolmap

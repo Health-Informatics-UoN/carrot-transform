@@ -1,6 +1,6 @@
 """
 End-to-end tests for the v2 record-level extensions used by note / note_nlp
-(docs/rules_v2_record_extensions.md), run against the CDM 5.4 DDL and the
+(https://carrot.ac.uk/transform/rules_v2_notes_nlp), run against the CDM 5.4 DDL and the
 package's own OMOP config.
 """
 
