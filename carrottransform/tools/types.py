@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Mapping, TextIO
 
 from case_insensitive_dict import CaseInsensitiveDict
@@ -23,6 +23,13 @@ class ProcessingContext:
     target_column_maps: dict[str, CaseInsensitiveDict[str, int]]
     metrics: tools.metrics.Metrics
     inputs: sources.SourceObject
+    # OMOP table -> source key -> generated record id (see `record_key`)
+    record_keys: dict[str, dict[str, str]] = field(default_factory=dict)
+    # OMOP table -> records written for the current source row, as
+    # (record id, concept id), for linking derived records (see `derived_from`)
+    row_records: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
+    # Rows written to tables not built from rules (fact_relationship)
+    link_counts: dict[str, int] = field(default_factory=dict)
 
     @property
     def input_files(self) -> list[str]:
@@ -59,10 +66,17 @@ class RecordContext:
     record_numbers: dict[str, int]
     file_handles: Mapping[str, TextIO | outputs.OutputTarget.Handle]
     auto_num_col: str | None
-    person_id_col: str
+    person_id_col: str | None
     date_col_data: dict[str, str]
     date_component_data: dict[str, dict[str, str]]
     notnull_numeric_fields: list[str]
+    # OMOP table -> source key -> generated record id (see `record_key`)
+    record_keys: dict[str, dict[str, str]] = field(default_factory=dict)
+    # OMOP table -> records written for the current source row, as
+    # (record id, concept id), for linking derived records (see `derived_from`)
+    row_records: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
+    # Rows written to tables not built from rules (fact_relationship)
+    link_counts: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass

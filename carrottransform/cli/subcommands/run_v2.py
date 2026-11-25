@@ -9,6 +9,7 @@ from carrottransform.tools import outputs, sources
 from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.orchestrator import V2ProcessingOrchestrator
 from carrottransform.tools.record_builder import RecordBuilderFactory
+from carrottransform.tools.vocabulary import Vocabulary
 
 logger = logger_setup()
 
@@ -21,6 +22,7 @@ def process_common_logic(
     person: str,
     omop_config_file: Path,
     inputs: sources.SourceObject,
+    vocabulary: Vocabulary | None = None,
 ):
     """Common processing logic for both modes"""
 
@@ -39,6 +41,7 @@ def process_common_logic(
             omop_ddl_file=omop_ddl_file,
             omop_config_file=omop_config_file,
             write_mode=write_mode,
+            vocabulary=vocabulary,
         )
 
         logger.info(

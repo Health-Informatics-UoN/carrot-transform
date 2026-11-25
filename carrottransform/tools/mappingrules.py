@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -7,8 +8,13 @@ from carrottransform.tools.logger import logger_setup
 from carrottransform.tools.mapping_types import (
     ConceptMapping,
     DateMapping,
+    DerivedFrom,
+    FactRelationshipLink,
     PersonIdMapping,
+    RecordKey,
+    Reference,
     V2TableMapping,
+    ValueMapping,
 )
 from carrottransform.tools.omopcdm import OmopCDM
 
@@ -21,9 +27,17 @@ class MappingRules:
     as a file-specific dictionary allowing rules to be "looked-up" depending on data content
     """
 
-    def __init__(self, rulesfilepath: Path, omopcdm: OmopCDM):
+    def __init__(
+        self,
+        rulesfilepath: Path,
+        omopcdm: OmopCDM,
+        prepare: Callable[[dict], dict] | None = None,
+    ):
         ## just loads the json directly
         self.rules_data = tools.load_json(Path(rulesfilepath))
+        # e.g. expanding code_lookup (tools/code_lookup.py) before parsing
+        if prepare is not None:
+            self.rules_data = prepare(self.rules_data)
         self.omopcdm = omopcdm
 
         # Detect format version and parse accordingly
@@ -107,12 +121,73 @@ class MappingRules:
                             original_value_fields=original_value_fields,
                         )
 
+                # Record-level extensions, see https://carrot.ac.uk/transform/rules_v2_notes_nlp
+                record_key = None
+                if "record_key" in mappings:
+                    record_key = RecordKey(
+                        source_field=mappings["record_key"]["source_field"]
+                    )
+                references = {
+                    dest_field: Reference(
+                        table=ref["table"], source_field=ref["source_field"]
+                    )
+                    for dest_field, ref in mappings.get("references", {}).items()
+                }
+
+                derived_from = None
+                if "derived_from" in mappings:
+                    derived = mappings["derived_from"]
+                    link = derived.get("fact_relationship")
+                    derived_from = DerivedFrom(
+                        table=derived["table"],
+                        exclude_values={
+                            source_field: [str(v) for v in values]
+                            for source_field, values in derived.get(
+                                "exclude_values", {}
+                            ).items()
+                        },
+                        fact_relationship=FactRelationshipLink(
+                            domain_concept_id=int(link["domain_concept_id"]),
+                            source_domain_concept_id=int(
+                                link["source_domain_concept_id"]
+                            ),
+                            relationship_concept_id=int(
+                                link["relationship_concept_id"]
+                            ),
+                            reverse_relationship_concept_id=int(
+                                link["reverse_relationship_concept_id"]
+                            ),
+                        )
+                        if link
+                        else None,
+                    )
+
                 v2_mappings[table_name][source_table] = V2TableMapping(
                     source_table=source_table,
                     person_id_mapping=person_id_mapping,
                     date_mapping=date_mapping,
                     concept_mappings=concept_mappings,
+                    field_mappings=dict(mappings.get("field_mappings", {})),
+                    constant_mappings=dict(mappings.get("constant_mappings", {})),
+                    record_key=record_key,
+                    references=references,
+                    derived_from=derived_from,
+                    value_mappings={
+                        dest_field: ValueMapping(
+                            source_field=lookup["source_field"],
+                            values={
+                                str(value): int(concept_id)
+                                for value, concept_id in lookup["values"].items()
+                            },
+                        )
+                        for dest_field, lookup in mappings.get(
+                            "value_mappings", {}
+                        ).items()
+                    },
                 )
+
+        self._check_references(v2_mappings)
+        self._check_derived_from(v2_mappings)
 
         return v2_mappings
 
@@ -144,13 +219,133 @@ class MappingRules:
             return self._get_all_infile_names_v1()
 
     def _get_all_infile_names_v2(self) -> list[str]:
-        """Get all input file names from v2 format"""
+        """
+        Get all input file names from v2 format.
+
+        Files whose blocks register `record_key`s for a table come before files
+        whose blocks reference that table, so the keys exist when looked up.
+        """
         file_list = []
         for table_mappings in self.v2_mappings.values():
             for source_table in table_mappings.keys():
                 if source_table not in file_list:
                     file_list.append(source_table)
-        return file_list
+
+        keyed_tables = {
+            file: {
+                table
+                for table, mappings in self.v2_mappings.items()
+                if file in mappings and mappings[file].record_key
+            }
+            for file in file_list
+        }
+        referenced_tables = {
+            file: {
+                ref.table
+                for mappings in self.v2_mappings.values()
+                if file in mappings
+                for ref in mappings[file].references.values()
+            }
+            for file in file_list
+        }
+
+        # Stable topological sort: repeatedly take the first file whose
+        # referenced tables are keyed only by files already placed (or itself).
+        ordered: list[str] = []
+        remaining = list(file_list)
+        while remaining:
+            for file in remaining:
+                pending = {
+                    table
+                    for other in remaining
+                    if other != file
+                    for table in keyed_tables[other]
+                }
+                if not referenced_tables[file] & pending:
+                    break
+            else:
+                file = remaining[0]  # cycle between files: keep original order
+                logger.warning(
+                    f"Circular references between source files {remaining}; "
+                    "some references may not resolve"
+                )
+            ordered.append(file)
+            remaining.remove(file)
+        return ordered
+
+    def get_target_order(self, targets) -> list[str]:
+        """
+        Order the target tables one source row is written to, so tables whose
+        records register keys come before tables referencing them, and tables
+        records are derived from come before the tables derived from them
+        (e.g. note, then note_nlp, then condition_occurrence).
+        """
+        depends_on: dict[str, set[str]] = {}
+        for table, mappings in self.v2_mappings.items():
+            for mapping in mappings.values():
+                deps = depends_on.setdefault(table, set())
+                deps.update(ref.table for ref in mapping.references.values())
+                if mapping.derived_from:
+                    deps.add(mapping.derived_from.table)
+
+        ordered: list[str] = []
+        remaining = sorted(targets)
+        while remaining:
+            ready = [
+                table
+                for table in remaining
+                if not (depends_on.get(table, set()) - {table}) & set(remaining)
+            ]
+            table = ready[0] if ready else remaining[0]  # cycle: keep name order
+            ordered.append(table)
+            remaining.remove(table)
+        return ordered
+
+    @property
+    def uses_fact_relationship(self) -> bool:
+        """True if any block links derived records in fact_relationship"""
+        return any(
+            mapping.derived_from and mapping.derived_from.fact_relationship
+            for mappings in self.v2_mappings.values()
+            for mapping in mappings.values()
+        )
+
+    @staticmethod
+    def _check_derived_from(v2_mappings: dict[str, dict[str, V2TableMapping]]):
+        """Records can only be derived from a table the same source table feeds"""
+        for table, mappings in v2_mappings.items():
+            for source_table, mapping in mappings.items():
+                derived = mapping.derived_from
+                if derived is None:
+                    continue
+                if derived.table == table:
+                    raise ValueError(
+                        f"{table} in {source_table} can't be derived from itself"
+                    )
+                if source_table not in v2_mappings.get(derived.table, {}):
+                    raise ValueError(
+                        f"{table} in {source_table} is derived from "
+                        f"'{derived.table}', but {source_table} has no "
+                        f"'{derived.table}' block"
+                    )
+
+    @staticmethod
+    def _check_references(v2_mappings: dict[str, dict[str, V2TableMapping]]):
+        """Every referenced table must have at least one block with a record_key"""
+        keyed = {
+            table
+            for table, mappings in v2_mappings.items()
+            if any(mapping.record_key for mapping in mappings.values())
+        }
+        for table, mappings in v2_mappings.items():
+            for source_table, mapping in mappings.items():
+                for dest_field, ref in mapping.references.items():
+                    if ref.table not in keyed:
+                        raise ValueError(
+                            f"{table}.{dest_field} in {source_table} references "
+                            f"table '{ref.table}', but no source table for "
+                            f"'{ref.table}' defines a record_key"
+                        )
 
     def _get_all_infile_names_v1(self) -> list[str]:
         """Get all input file names from v1 format (legacy method)"""

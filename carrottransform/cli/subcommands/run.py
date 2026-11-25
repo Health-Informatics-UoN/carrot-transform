@@ -21,6 +21,7 @@ from carrottransform.tools.person_helpers import (
     load_last_used_ids,
     read_person_ids,
 )
+from carrottransform.tools.vocabulary import Vocabulary, VocabularyArgument
 
 logger = logger_setup()
 
@@ -343,6 +344,16 @@ def mapstream(
 
 @click.command()
 @args.common
+@click.option(
+    "--vocabulary",
+    envvar="VOCABULARY",
+    type=VocabularyArgument,
+    default=None,
+    help="OMOP vocabulary for rules that look up codes (code_lookup): a folder "
+    "of vocabulary files downloaded from Athena (CONCEPT.csv and "
+    "CONCEPT_RELATIONSHIP.csv), or a database URL whose concept and "
+    "concept_relationship tables hold it",
+)
 def launch_v2(
     inputs: sources.SourceObject,
     output: outputs.OutputTarget,
@@ -350,6 +361,7 @@ def launch_v2(
     person: str,
     omop_ddl_file: Path,
     omop_config_file: Path,
+    vocabulary: Vocabulary | None,
 ):
     require(
         not person.endswith(".csv"),
@@ -371,6 +383,7 @@ def launch_v2(
         omop_config_file=omop_config_file,
         person=person,
         inputs=inputs,
+        vocabulary=vocabulary,
     )
 
     # close/flush these because we need the files on-disk for unit test valiation

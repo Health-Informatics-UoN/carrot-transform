@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, Set, Tuple
@@ -8,6 +9,7 @@ import carrottransform.tools as tools
 from carrottransform import require
 from carrottransform.tools import args, outputs, person_helpers, sources
 from carrottransform.tools.args import person_rules_check_v2, remove_csv_extension
+from carrottransform.tools.code_lookup import expand_code_lookups
 from carrottransform.tools.date_helpers import normalise_to8601
 from carrottransform.tools.file_helpers import OutputFileManager
 from carrottransform.tools.logger import logger_setup
@@ -20,6 +22,7 @@ from carrottransform.tools.types import (
     ProcessingResult,
     RecordContext,
 )
+from carrottransform.tools.vocabulary import Vocabulary
 
 logger = logger_setup()
 
@@ -83,7 +86,15 @@ class StreamProcessor:
 
         # Get file metadata from cache
         file_meta = self.cache.file_metadata_cache[source_filename]
-        if not file_meta["datetime_source"] or not file_meta["person_id_source"]:
+        # A person ID mapping is only needed if a target table has a person_id
+        # column (note_nlp, for example, has none)
+        needs_person = any(
+            self.cache.target_metadata_cache[target]["person_id_col"] is not None
+            for target in applicable_targets
+        )
+        if not file_meta["datetime_source"] or (
+            needs_person and not file_meta["person_id_source"]
+        ):
             logger.warning(f"Missing date or person ID mapping for {source_filename}")
             return output_counts, rejected_count
 
@@ -157,11 +168,17 @@ class StreamProcessor:
 
         input_data[datetime_col_idx] = fulldate
 
+        # Records derived from other records are linked within one source row
+        self.context.row_records.clear()
+
         row_output_counts = {}
         total_rejected = 0
 
-        # Process this row for each applicable target table
-        for target_file in applicable_targets:
+        # Process this row for each applicable target table, writing tables that
+        # register record keys before tables that reference them
+        for target_file in self.context.mappingrules.get_target_order(
+            applicable_targets
+        ):
             target_counts, target_rejected = self._process_row_for_target_stream(
                 source_filename, input_data, input_column_map, target_file, file_meta
             )
@@ -195,13 +212,18 @@ class StreamProcessor:
         notnull_numeric_fields = target_meta["notnull_numeric_fields"]
 
         data_columns = file_meta["data_fields"].get(target_file, [])
+        if v2_mapping.is_row_mapping:
+            # One record per row, not per mapped column; the key column (if any)
+            # stands in as the data column for metrics
+            record_key = v2_mapping.record_key
+            data_columns = [record_key.source_field if record_key else "all"]
 
         output_count = 0
         rejected_count = 0
 
         # Process each data column for this target
         for data_column in data_columns:
-            if data_column not in input_column_map:
+            if data_column not in input_column_map and not v2_mapping.is_row_mapping:
                 continue
 
             column_output, column_rejected = self._process_data_column_stream(
@@ -234,7 +256,7 @@ class StreamProcessor:
         target_column_map: CaseInsensitiveDict[str, int],
         data_column: str,
         auto_num_col: str | None,
-        person_id_col: str,
+        person_id_col: str | None,
         date_col_data: dict[str, str],
         date_component_data: dict[str, dict[str, str]],
         notnull_numeric_fields: list[str],
@@ -262,6 +284,9 @@ class StreamProcessor:
             date_col_data=date_col_data,
             date_component_data=date_component_data,
             notnull_numeric_fields=notnull_numeric_fields,
+            record_keys=self.context.record_keys,
+            row_records=self.context.row_records,
+            link_counts=self.context.link_counts,
         )
 
         # Build records
@@ -289,8 +314,11 @@ class V2ProcessingOrchestrator:
         omop_ddl_file: Path,
         omop_config_file: Path,
         write_mode: str,
+        vocabulary: Vocabulary | None = None,
     ):
         self.rules_file = rules_file
+        # For rules that look up codes in a vocabulary (code_lookup)
+        self._vocabulary = vocabulary
         self._output = output
         self._inputs = inputs
         self._person = person
@@ -304,7 +332,13 @@ class V2ProcessingOrchestrator:
     def initialize_components(self):
         """Initialize all processing components"""
         self.omopcdm = OmopCDM(self.omop_ddl_file, self.omop_config_file)
-        self.mappingrules = MappingRules(self.rules_file, self.omopcdm)
+        self.mappingrules = MappingRules(
+            self.rules_file,
+            self.omopcdm,
+            prepare=lambda rules: expand_code_lookups(
+                rules, self._inputs, self._vocabulary
+            ),
+        )
 
         if not self.mappingrules.is_v2_format:
             raise ValueError("Rules file is not in v2 format!")
@@ -347,6 +381,40 @@ class V2ProcessingOrchestrator:
 
         return person_lookup, rejected_person_count
 
+    # count type -> (log level, why records weren't written)
+    SKIPPED_RECORD_REASONS = {
+        "invalid_references": (
+            logging.WARNING,
+            "not written because a referenced record key was not found",
+        ),
+        "derived_unlinked": (
+            logging.WARNING,
+            "not derived because the source row's record they derive from "
+            "was not written",
+        ),
+        "derived_excluded": (
+            logging.INFO,
+            "not derived because the source row matched an exclusion "
+            "(e.g. a negated term)",
+        ),
+        "unmapped_value": (
+            logging.INFO,
+            "had a value with no concept for a value-mapped field "
+            "(written with no matching concept)",
+        ),
+    }
+
+    def _log_skipped_records(self):
+        """Report records left out by references and derived_from, per table"""
+        for count_type, (level, reason) in self.SKIPPED_RECORD_REASONS.items():
+            skipped: dict[str, int] = {}
+            for key, counts in self.metrics.get_data_summary().items():
+                count = counts.get_count(count_type)
+                if count:
+                    skipped[key.tablename] = skipped.get(key.tablename, 0) + count
+            for table, count in sorted(skipped.items()):
+                logger.log(level, f"TARGET: {table}: {count} record(s) {reason}")
+
     def execute_processing(self) -> ProcessingResult:
         """Execute the complete processing pipeline with efficient streaming"""
 
@@ -376,6 +444,15 @@ class V2ProcessingOrchestrator:
                 )
                 target_column_maps[output_name] = target_column_map
 
+            # Links between derived records and their sources (see derived_from)
+            if self.mappingrules.uses_fact_relationship:
+                link_header = self.omopcdm.get_omop_column_list("fact_relationship")
+                if not link_header:
+                    raise Exception("need columns for fact_relationship")
+                file_handles["fact_relationship"] = self._output.start(
+                    "fact_relationship", link_header
+                )
+
             # Create processing context
             context = ProcessingContext(
                 mappingrules=self.mappingrules,
@@ -394,6 +471,10 @@ class V2ProcessingOrchestrator:
 
             for target_file, count in result.output_counts.items():
                 logger.info(f"TARGET: {target_file}: output count {count}")
+            for table, count in context.link_counts.items():
+                logger.info(f"TARGET: {table}: output count {count}")
+
+            self._log_skipped_records()
 
             # Write summary
             data_summary = None

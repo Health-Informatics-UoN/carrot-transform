@@ -30,6 +30,12 @@
     "device_exposure": {
       "device_exposure_start_datetime": "device_exposure_start_date",
       "device_exposure_end_datetime": "device_exposure_end_date"
+    },
+    "note": {
+      "note_datetime": "note_date"
+    },
+    "note_nlp": {
+      "nlp_datetime": "nlp_date"
     }
   },
   "date_field_components": {
@@ -51,7 +57,8 @@
     "procedure_occurrence": "person_id",
     "specimen": "person_id",
     "device_exposure": "person_id",
-    "visit_occurrence": "person_id"
+    "visit_occurrence": "person_id",
+    "note": "person_id"
   },
   "auto_number_field": {
     "condition_occurrence": "condition_occurrence_id",
@@ -61,6 +68,8 @@
     "procedure_occurrence": "procedure_occurrence_id",
     "specimen": "specimen_id",
     "device_exposure": "device_exposure_id",
-    "visit_occurrence": "visit_occurrence_id"
+    "visit_occurrence": "visit_occurrence_id",
+    "note": "note_id",
+    "note_nlp": "note_nlp_id"
   }
 }
